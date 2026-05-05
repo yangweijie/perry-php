@@ -32,6 +32,9 @@ final class AndroidXmlBackend extends CodegenBackend
     /** @var array<string, string> */
     private array $colors = [];
 
+    /** @var array<array{id: string, method: string, action: \Perry\UI\Action}> */
+    private array $buttonActions = [];
+
     public function name(): string
     {
         return 'android-xml';
@@ -49,6 +52,7 @@ final class AndroidXmlBackend extends CodegenBackend
     {
         $this->indent = 1;
         $this->colors = [];
+        $this->buttonActions = [];
         $this->windowWidth = null;
         $this->windowHeight = null;
 
@@ -184,9 +188,11 @@ final class AndroidXmlBackend extends CodegenBackend
 
         // Generate android:onClick when button has an action
         $onClick = '';
-        if ($widget->getAction() !== null) {
+        $action = $widget->getAction();
+        if ($action !== null) {
             $methodName = $this->actionToMethodName($btnId);
             $onClick = "{$this->indentStr()}    android:onClick=\"{$methodName}\"\n";
+            $this->buttonActions[] = ['id' => $btnId, 'method' => $methodName, 'action' => $action];
         }
 
         $id = "{$this->indentStr()}    android:id=\"@+id/{$btnId}\"\n";
@@ -589,5 +595,99 @@ final class AndroidXmlBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    public function generateMainActivity(string $outputName): string
+    {
+        $methods = '';
+        foreach ($this->buttonActions as $item) {
+            $action = $item['action'];
+            $methodName = $item['method'];
+
+            $methodBody = $this->generateActionMethodBody($action);
+
+            $methods .= <<<KOTLIN
+
+    fun {$methodName}(view: View) {
+{$methodBody}
+    }
+
+KOTLIN;
+        }
+
+        return <<<KOTLIN
+package com.perry.{$outputName}
+
+import android.os.Bundle
+import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+    }
+{$methods}}
+
+KOTLIN;
+    }
+
+    private function generateActionMethodBody(\Perry\UI\Action $action): string
+    {
+        if ($action->type === \Perry\UI\ActionType::Custom) {
+            $code = $action->generate(new \Perry\Generator\KotlinGenerator());
+            return $this->indentLines($code, 2);
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Closure) {
+            $code = $action->generate(new \Perry\Generator\KotlinGenerator());
+            return $this->indentLines($code, 2);
+        }
+
+        if ($action->type === \Perry\UI\ActionType::SetValue) {
+            $targetName = $action->target->name;
+            $value = $action->value;
+            $kotlinValue = $this->formatValueForKotlin($value);
+            return "        {$targetName} = {$kotlinValue}";
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Append) {
+            $targetName = $action->target->name;
+            $value = $action->value;
+            return '        ' . $targetName . ' += "' . addslashes($value) . '"';
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Clear) {
+            $targetName = $action->target->name;
+            return "        {$targetName} = \"\"";
+        }
+
+        return '        // Action type not yet supported for Android: ' . $action->type->value;
+    }
+
+    private function formatValueForKotlin(mixed $value): string
+    {
+        if (is_string($value)) {
+            return '"' . addslashes($value) . '"';
+        }
+        if (is_int($value) || is_float($value)) {
+            $str = (string) $value;
+            if (is_float($value) && !str_contains($str, '.')) {
+                $str .= '.0';
+            }
+            return $str;
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        return (string) $value;
+    }
+
+    private function indentLines(string $code, int $level): string
+    {
+        $lines = explode("\n", $code);
+        $indent = str_repeat('    ', $level);
+        return implode("\n", array_map(fn($line) => $indent . $line, $lines));
     }
 }

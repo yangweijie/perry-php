@@ -27,6 +27,9 @@ final class WinUIBackend extends CodegenBackend
 {
     private int $indent = 0;
 
+    /** @var array<array{id: string, method: string, action: \Perry\UI\Action}> */
+    private array $buttonActions = [];
+
     public function name(): string
     {
         return 'winui';
@@ -40,6 +43,7 @@ final class WinUIBackend extends CodegenBackend
     public function generate(Widget $root): string
     {
         $this->indent = 0;
+        $this->buttonActions = [];
         $body = $this->generateWidget($root);
 
         return <<<XAML
@@ -53,6 +57,57 @@ final class WinUIBackend extends CodegenBackend
             {$body}
         </Window>
         XAML;
+    }
+
+    public function generateMainActivity(string $outputName): string
+    {
+        $methods = '';
+        foreach ($this->buttonActions as $item) {
+            $action = $item['action'];
+            $methodName = $item['method'];
+            $body = $this->generateActionBody($action);
+            $methods .= <<<CS
+
+        private void {$methodName}(object sender, RoutedEventArgs e) {
+{$body}
+        }
+CS;
+        }
+
+        return <<<CS
+using System.Windows;
+using System.Windows.Controls;
+
+namespace PerryApp {
+    public partial class MainWindow : Window {
+        public MainWindow() {
+            InitializeComponent();
+        }
+{$methods}
+    }
+}
+CS;
+    }
+
+    private function generateActionBody(\Perry\UI\Action $action): string
+    {
+        if ($action->type === \Perry\UI\ActionType::Custom) {
+            return '            // Custom action: ' . $action->customCode;
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Closure) {
+            $code = $action->generate(new \Perry\Generator\CSharpGenerator());
+            return $this->indentCs($code, 3);
+        }
+
+        return '            // Action type not yet fully supported for WinUI: ' . $action->type->value;
+    }
+
+    private function indentCs(string $code, int $level): string
+    {
+        $lines = explode("\n", $code);
+        $indent = str_repeat('    ', $level);
+        return implode("\n", array_map(fn($line) => $indent . $line, $lines));
     }
 
     private function generateWidget(Widget $widget): string
@@ -92,9 +147,36 @@ final class WinUIBackend extends CodegenBackend
     {
         $label = htmlspecialchars($widget->label());
         $props = $this->generateProperties($widget->getStyle());
+
+        $action = $widget->getAction();
+        $clickAttr = '';
+        if ($action !== null) {
+            $safeId = $this->safeMethodName($widget->label());
+            $methodName = 'On' . $safeId . 'Click';
+            $this->buttonActions[] = ['id' => $widget->label(), 'method' => $methodName, 'action' => $action];
+            $clickAttr = " Click=\"{$methodName}\"";
+        }
+
         return <<<XAML
-        {$this->indentStr()}<Button Content="{$label}"{$props} />
+        {$this->indentStr()}<Button Content="{$label}"{$props}{$clickAttr} />
         XAML;
+    }
+
+    private function safeMethodName(string $label): string
+    {
+        $map = [
+            '⌫' => 'Backspace',
+            'C' => 'Clear',
+            '%' => 'Percent',
+            '÷' => 'Divide',
+            '×' => 'Multiply',
+            '-' => 'Minus',
+            '+' => 'Plus',
+            '+/-' => 'Negate',
+            '.' => 'Dot',
+            '=' => 'Equals',
+        ];
+        return $map[$label] ?? ucfirst(preg_replace('/[^a-zA-Z0-9]/', '', $label));
     }
 
     private function generateVStack(VStack $widget): string

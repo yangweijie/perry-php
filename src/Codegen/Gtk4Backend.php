@@ -22,11 +22,15 @@ use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\WidgetKind;
+use Perry\UI\Action;
 
 final class Gtk4Backend extends CodegenBackend
 {
     private int $indent = 0;
     private int $objectId = 0;
+
+    /** @var array<array{id: string, method: string, action: Action}> */
+    private array $buttonActions = [];
 
     public function name(): string
     {
@@ -42,6 +46,7 @@ final class Gtk4Backend extends CodegenBackend
     {
         $this->indent = 0;
         $this->objectId = 0;
+        $this->buttonActions = [];
         $body = $this->generateWidget($root);
 
         return <<<XML
@@ -58,6 +63,56 @@ final class Gtk4Backend extends CodegenBackend
             </object>
         </interface>
         XML;
+    }
+
+    public function generateMainActivity(string $outputName): string
+    {
+        $handlers = '';
+        foreach ($this->buttonActions as $item) {
+            $methodName = $item['method'];
+            $action = $item['action'];
+            $body = $this->generateActionBody($action);
+            $handlers .= <<<C
+
+void {$methodName}(GtkButton *button, gpointer user_data) {
+{$body}
+}
+C;
+        }
+
+        return <<<C
+#include <gtk/gtk.h>
+
+void activate(GtkApplication *app, gpointer user_data) {
+    GtkBuilder *builder = gtk_builder_new_from_file("build/{$outputName}.ui");
+    GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
+    gtk_window_set_application(GTK_WINDOW(window), app);
+    gtk_widget_set_visible(window, TRUE);
+    g_object_unref(builder);
+}
+{$handlers}
+C;
+    }
+
+    private function generateActionBody(\Perry\UI\Action $action): string
+    {
+        if ($action->type === \Perry\UI\ActionType::Custom) {
+            return '    // Custom action: ' . $action->customCode;
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Closure) {
+            $code = $action->generate(new \Perry\Generator\SwiftGenerator());
+            return $this->indentC($code, 1);
+        }
+
+        return '    // Action type not yet fully supported for Gtk4: ' . $action->type->value;
+    }
+
+    private function indentC(string $code, int $level): string
+    {
+        $lines = explode("\n", $code);
+        $indent = str_repeat('    ', $level);
+        return implode("\n", array_map(fn($line) => $indent . $line, $lines));
     }
 
     private function nextId(): string
@@ -110,10 +165,23 @@ final class Gtk4Backend extends CodegenBackend
         $label = htmlspecialchars($widget->label());
         $props = $this->generateProperties($widget->getStyle());
 
+        $action = $widget->getAction();
+        if ($action !== null) {
+            $methodName = 'on_' . $id . '_clicked';
+            $this->buttonActions[] = ['id' => $id, 'method' => $methodName, 'action' => $action];
+        }
+
+        $signal = '';
+        if ($action !== null) {
+            $methodName = 'on_' . $id . '_clicked';
+            $signal = "{$this->indentStr()}    <signal name=\"clicked\" handler=\"{$methodName}\" />";
+        }
+
         return <<<XML
         {$this->indentStr()}<object class="GtkButton" id="{$id}">
         {$this->indentStr()}    <property name="label">{$label}</property>
         {$props}
+        {$signal}
         {$this->indentStr()}</object>
         XML;
     }

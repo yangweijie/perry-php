@@ -15,6 +15,15 @@ abstract class CodegenBackend
 
     abstract public function generate(Widget $root): string;
 
+    /**
+     * Generate platform-specific main activity/entry point code.
+     * Override in backends that need to generate activity classes (e.g., Android).
+     */
+    public function generateMainActivity(string $outputName): string
+    {
+        return '';
+    }
+
     public function generateToFile(Widget $root, string $outputPath): bool
     {
         $content = $this->generate($root);
