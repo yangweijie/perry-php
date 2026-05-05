@@ -1,0 +1,142 @@
+<?php
+
+use Perry\Generator\KotlinGenerator;
+use Perry\IR;
+
+test('KotlinGenerator generates var declaration', function () {
+    $literal = new IR\Literal(0);
+    $assign = new IR\Assignment('count', $literal);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($assign);
+    
+    expect($result)->toBe('var count = 0');
+});
+
+test('KotlinGenerator generates state var assignment', function () {
+    $literal = new IR\Literal('0');
+    $assign = new IR\Assignment('display', $literal);
+    
+    $gen = new KotlinGenerator(['display']);
+    $result = $gen->generate($assign);
+    
+    expect($result)->toBe('display.value = "0"');
+});
+
+test('KotlinGenerator generates toDoubleOrNull', function () {
+    $call = new IR\FunctionCall('floatval', [
+        new IR\Variable('x')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('x.toDoubleOrNull() ?: 0.0');
+});
+
+test('KotlinGenerator generates toIntOrNull', function () {
+    $call = new IR\FunctionCall('intval', [
+        new IR\Variable('x')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('x.toIntOrNull() ?: 0');
+});
+
+test('KotlinGenerator generates length', function () {
+    $call = new IR\FunctionCall('strlen', [
+        new IR\Variable('s')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('s.length');
+});
+
+test('KotlinGenerator generates contains', function () {
+    $call = new IR\FunctionCall('in_array', [
+        new IR\Variable('val'),
+        new IR\Variable('arr')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('arr.contains(val)');
+});
+
+test('KotlinGenerator generates last()', function () {
+    $call = new IR\FunctionCall('end', [
+        new IR\Variable('arr')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('arr.last()');
+});
+
+test('KotlinGenerator generates Math.floor', function () {
+    $call = new IR\FunctionCall('floor', [
+        new IR\Variable('x')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('Math.floor(x).toInt()');
+});
+
+test('KotlinGenerator generates dropLast', function () {
+    $call = new IR\FunctionCall('substr', [
+        new IR\Variable('s'),
+        new IR\Literal(-1)
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toBe('s.last().toString()');
+});
+
+test('KotlinGenerator generates if expression for ternary', function () {
+    $ternary = new IR\Ternary(
+        new IR\Variable('cond'),
+        new IR\Literal('yes'),
+        new IR\Literal('no')
+    );
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($ternary);
+    
+    expect($result)->toBe('if (cond) "yes" else "no"');
+});
+
+test('KotlinGenerator generates listOf for array literal', function () {
+    $arr = new IR\ArrayLiteral([
+        new IR\Literal('a'),
+        new IR\Literal('b'),
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($arr);
+    
+    expect($result)->toBe('listOf("a", "b")');
+});
+
+test('KotlinGenerator generates filter for preg_split', function () {
+    $call = new IR\FunctionCall('preg_split', [
+        new IR\Literal('/[+\\-]/'),
+        new IR\Variable('str')
+    ]);
+    
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    
+    expect($result)->toContain('.split(')
+        ->and($result)->toContain('.toRegex()')
+        ->and($result)->toContain('.filter { it.isNotEmpty() }');
+});

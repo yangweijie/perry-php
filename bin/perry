@@ -1,0 +1,174 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/../../../autoload.php')) {
+    require __DIR__ . '/../../../autoload.php';
+} else {
+    spl_autoload_register(function (string $class) {
+        $prefix = 'Perry\\';
+        $baseDir = __DIR__ . '/../src/';
+
+        if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
+            return;
+        }
+
+        $relativeClass = substr($class, strlen($prefix));
+        $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+
+        if (file_exists($file)) {
+            require $file;
+        }
+    });
+}
+
+use Perry\App;
+use Perry\Build\Compiler;
+use Perry\Build\Target;
+use Perry\UI\Styling\Style;
+use Perry\UI\Widget\Button;
+use Perry\UI\Widget\HStack;
+use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\Text;
+use Perry\UI\Widget\VStack;
+
+$app = new App();
+
+function usage(): void
+{
+    fwrite(STDERR, <<<USAGE
+    Perry - Cross-platform UI build tool
+
+    Usage:
+      perry info                     Show current platform info
+      perry demo [--target=TARGET]   Run demo app
+      perry codegen [--target=TARGET] [--backend=NAME] Generate code
+      perry compile [--target=TARGET] [--output=NAME] Compile to executable
+      perry targets                  List available targets
+      perry backends                 List codegen backends
+
+    Targets:
+      macos, ios, ios-simulator, tvos, visionos, watchos,
+      android, gtk4-linux, windows, web, wasm
+
+    Backends:
+      swiftui, html, android-xml
+
+    USAGE);
+}
+
+$args = array_slice($argv, 1);
+$command = $args[0] ?? 'info';
+
+$target = null;
+$backend = null;
+
+foreach ($args as $arg) {
+    if (str_starts_with($arg, '--target=')) {
+        $target = Target::fromString(substr($arg, 9));
+    }
+    if (str_starts_with($arg, '--backend=')) {
+        $backend = substr($arg, 10);
+    }
+}
+
+if ($target === null) {
+    $target = Target::autoDetect();
+}
+
+$app = new App($target);
+
+switch ($command) {
+    case 'info':
+        $info = $app->info();
+        fwrite(STDOUT, "Platform: {$info['display_name']} ({$info['target']})\n");
+        fwrite(STDOUT, "Driver: {$info['driver']}\n");
+        fwrite(STDOUT, "Codegen backends: " . implode(', ', $info['codegen_backends']) . "\n");
+        break;
+
+    case 'targets':
+        foreach (Target::cases() as $t) {
+            fwrite(STDOUT, "  {$t->value} - {$t->displayName()}\n");
+        }
+        break;
+
+    case 'backends':
+        foreach ($app->codegen()->available() as $b) {
+            fwrite(STDOUT, "  {$b}\n");
+        }
+        break;
+
+    case 'demo':
+        $root = (new VStack(
+            (new Text('Hello, Perry!'))->style(Style::make()->fontSize(24)->foregroundColor('#333')),
+            (new HStack(
+                (new Button('Click Me', fn () => fwrite(STDOUT, "Clicked!\n")))
+                    ->style(Style::make()->backgroundColor('#007AFF')->foregroundColor('#fff')->padding(12)->cornerRadius(8)),
+                new Spacer(),
+                (new Text('Perry PHP v0.1.0'))->style(Style::make()->fontSize(14)->foregroundColor('#666')),
+            ))->style(Style::make()->padding(16)),
+        ))->style(Style::make()->padding(20));
+
+        $app->setRoot($root);
+
+        $backendName = $backend ?? match ($target) {
+            Target::MacOs, Target::IOS, Target::IOSSimulator, Target::TvOs, Target::VisionOs, Target::WatchOs => 'swiftui',
+            Target::Android => 'android-xml',
+            Target::Windows => 'winui',
+            Target::Gtk4Linux => 'gtk4',
+            default => 'html',
+        };
+        $code = $app->generateCode($backendName);
+        fwrite(STDOUT, $code . "\n");
+        break;
+
+    case 'codegen':
+        $root = (new VStack(
+            (new Text('Hello, Perry!'))->style(Style::make()->fontSize(24)),
+            (new Button('Action')),
+        ));
+
+        $app->setRoot($root);
+
+        $backendName = $backend ?? match ($target) {
+            Target::MacOs, Target::IOS, Target::IOSSimulator, Target::TvOs, Target::VisionOs, Target::WatchOs => 'swiftui',
+            Target::Android => 'android-xml',
+            Target::Windows => 'winui',
+            Target::Gtk4Linux => 'gtk4',
+            default => 'html',
+        };
+        $code = $app->generateCode($backendName);
+        fwrite(STDOUT, $code . "\n");
+        break;
+
+    case 'compile':
+        $outputName = 'app';
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--output=')) {
+                $outputName = substr($arg, 9);
+            }
+        }
+
+        $root = (new VStack(
+            (new Text('Hello, Perry!'))->style(Style::make()->fontSize(24)),
+            (new Button('Action')),
+        ));
+
+        $compiler = new Compiler($target);
+        $result = $compiler->compile($root, $outputName);
+
+        if ($result->success) {
+            fwrite(STDOUT, "✓ Compiled: {$result->outputFile}\n");
+        } else {
+            fwrite(STDERR, "✗ Compilation failed:\n{$result->error}\n");
+            exit(1);
+        }
+        break;
+
+    default:
+        usage();
+        exit(1);
+}
