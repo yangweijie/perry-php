@@ -14,8 +14,12 @@ use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
@@ -202,8 +206,12 @@ final class SwiftUIBackend extends CodegenBackend
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
-            WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::WebView => $this->generateWebViewWidget($widget),
             default => 'EmptyView()',
         };
     }
@@ -308,6 +316,41 @@ final class SwiftUIBackend extends CodegenBackend
         return "WebViewWrapper(html: \"{$html}\")";
     }
 
+    private function generateSlider(Slider $widget): string
+    {
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Slider(value: \${$name}, in: {$min}...{$max}, step: {$step}){$modifiers}";
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->items());
+        $this->indent--;
+        return "List {\n{$children}\n{$this->indentStr()}}";
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return "NavigationView {\n{$children}\n{$this->indentStr()}}";
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return "TabView {\n{$children}\n{$this->indentStr()}}";
+    }
+
     private function generateToggle(Toggle $widget): string
     {
         $label = addslashes($widget->label());
@@ -358,6 +401,52 @@ final class SwiftUIBackend extends CodegenBackend
         if ($style->has($props::Opacity)) {
             $mods[] = ".opacity({$style->get($props::Opacity)})";
         }
+        if ($style->has($props::Margin)) {
+            $m = $style->get($props::Margin);
+            $mods[] = ".padding(.horizontal, {$m})";
+        }
+        if ($style->has($props::BorderWidth)) {
+            $mods[] = ".border(width: {$style->get($props::BorderWidth)})";
+        }
+        if ($style->has($props::BorderColor)) {
+            $mods[] = ".borderColor({$this->colorExpr($style->get($props::BorderColor))})";
+        }
+        if ($style->has($props::ShadowColor) || $style->has($props::ShadowRadius) || $style->has($props::ShadowOffsetX) || $style->has($props::ShadowOffsetY)) {
+            $color = $style->has($props::ShadowColor) ? $this->colorExpr($style->get($props::ShadowColor)) : 'Color.black';
+            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 0;
+            $x = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
+            $y = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 0;
+            $mods[] = ".shadow(color: {$color}, radius: {$radius}, x: {$x}, y: {$y})";
+        }
+        if ($style->has($props::FontWeight)) {
+            $mods[] = ".fontWeight({$this->mapFontWeight($style->get($props::FontWeight))})";
+        }
+        if ($style->has($props::FontFamily)) {
+            $mods[] = ".font(.custom(\"{$style->get($props::FontFamily)}\"))";
+        }
+        if ($style->has($props::TextAlignment)) {
+            $mods[] = ".multilineTextAlignment({$this->mapTextAlignment($style->get($props::TextAlignment))})";
+        }
+        if ($style->has($props::TextDecoration)) {
+            $decoration = $style->get($props::TextDecoration);
+            $underline = $decoration === 'underline' || $decoration === 'lineThrough' ? 'true' : 'false';
+            $mods[] = ".underline({$underline})";
+        }
+        if ($style->has($props::LineSpacing)) {
+            $mods[] = ".lineSpacing({$style->get($props::LineSpacing)})";
+        }
+        if ($style->has($props::PaddingTop)) {
+            $mods[] = ".padding(.top, {$style->get($props::PaddingTop)})";
+        }
+        if ($style->has($props::PaddingBottom)) {
+            $mods[] = ".padding(.bottom, {$style->get($props::PaddingBottom)})";
+        }
+        if ($style->has($props::PaddingLeading)) {
+            $mods[] = ".padding(.leading, {$style->get($props::PaddingLeading)})";
+        }
+        if ($style->has($props::PaddingTrailing)) {
+            $mods[] = ".padding(.trailing, {$style->get($props::PaddingTrailing)})";
+        }
         return $mods ? "\n        " . implode("\n        ", $mods) : '';
     }
 
@@ -374,6 +463,36 @@ final class SwiftUIBackend extends CodegenBackend
         $g = hexdec(substr($hex, 2, 2)) / 255;
         $b = hexdec(substr($hex, 4, 2)) / 255;
         return sprintf('Color(red: %.2f, green: %.2f, blue: %.2f)', $r, $g, $b);
+    }
+
+    private function mapFontWeight(int $weight): string
+    {
+        return match ($weight) {
+            700 => 'Font.Weight.bold',
+            600 => 'Font.Weight.semibold',
+            500 => 'Font.Weight.medium',
+            300 => 'Font.Weight.light',
+            default => 'Font.Weight.regular',
+        };
+    }
+
+    private function mapTextAlignment(string $alignment): string
+    {
+        return match ($alignment) {
+            'left' => 'TextAlignment.leading',
+            'right' => 'TextAlignment.trailing',
+            'center' => 'TextAlignment.center',
+            default => 'TextAlignment.leading',
+        };
+    }
+
+    private function mapTextDecoration(string $decoration): string
+    {
+        return match ($decoration) {
+            'underline' => 'true',
+            'lineThrough' => 'true', // SwiftUI uses underline for both
+            default => 'false',
+        };
     }
 
     private function getSpacing(?Style $style): string

@@ -5,22 +5,32 @@ declare(strict_types=1);
 namespace Perry\Codegen;
 
 use Perry\Build\Target;
+use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
+use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
-use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\VStack;
+use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
 
 final class AndroidXmlBackend extends CodegenBackend
 {
     private int $indent = 0;
+
+    /** @var array<string, string> */
+    private array $colors = [];
 
     public function name(): string
     {
@@ -32,21 +42,56 @@ final class AndroidXmlBackend extends CodegenBackend
         return $target === Target::Android;
     }
 
+    private ?int $windowWidth = null;
+    private ?int $windowHeight = null;
+
     public function generate(Widget $root): string
     {
         $this->indent = 1;
-        $body = $this->generateWidget($root);
+        $this->colors = [];
+        $this->windowWidth = null;
+        $this->windowHeight = null;
+
+        if ($root instanceof AppContainer) {
+            $this->windowWidth = $root->windowWidth();
+            $this->windowHeight = $root->windowHeight();
+            $body = $this->generateWidget($root->content());
+        } else {
+            $body = $this->generateWidget($root);
+        }
+
+        $width = $this->windowWidth !== null ? "{$this->windowWidth}dp" : "match_parent";
+        $height = $this->windowHeight !== null ? "{$this->windowHeight}dp" : "match_parent";
 
         return <<<XML
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="{$width}"
+            android:layout_height="{$height}"
+            android:orientation="vertical"
+            android:padding="8dp">
 
         {$body}
         </LinearLayout>
         XML;
+    }
+
+    /** @return array<string, string> */
+    public function getColors(): array
+    {
+        return $this->colors;
+    }
+
+    private function registerColor(string $hex): string
+    {
+        $hex = strtolower(ltrim($hex, '#'));
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        $name = 'perry_color_' . preg_replace('/[^a-f0-9]/', '', $hex);
+        $this->colors[$name] = '#' . $hex;
+        return '@color/' . $name;
     }
 
     private function generateWidget(Widget $widget): string
@@ -64,7 +109,13 @@ final class AndroidXmlBackend extends CodegenBackend
             WidgetKind::Image => $this->generateImage($widget),
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
+            WidgetKind::TextEditor => $this->generateTextEditor($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::WebView => $this->generateWebView($widget),
             default => '',
         };
     }
@@ -77,10 +128,18 @@ final class AndroidXmlBackend extends CodegenBackend
         if ($binding !== null) {
             $idLine = "{$this->indentStr()}    android:id=\"@+id/tv_{$binding->name}\"\n";
         }
+
+        $style = $widget->getStyle();
+        $attrs = '';
+        if ($style !== null) {
+            $attrs = $this->generateStyleAttributes($style, 'text');
+        }
+
         return "{$this->indentStr()}<TextView\n"
             . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
             . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
             . $idLine
+            . $attrs
             . "{$this->indentStr()}    android:text=\"{$text}\" />";
     }
 
@@ -88,10 +147,63 @@ final class AndroidXmlBackend extends CodegenBackend
     {
         $label = htmlspecialchars($widget->label());
         $btnId = $this->buttonLabelToId($widget->label());
+        $isNegate = ($widget->label() === '+/-');
+
+        $style = $widget->getStyle();
+        $w = 40;
+        $h = 40;
+        $radius = 20;
+        $fontSize = 18;
+        $bgColor = null;
+        $fgColor = null;
+
+        if ($style !== null) {
+            if ($style->has(StyleProperty::Width)) {
+                $w = (int) $style->get(StyleProperty::Width);
+            }
+            if ($style->has(StyleProperty::Height)) {
+                $h = (int) $style->get(StyleProperty::Height);
+            }
+            if ($style->has(StyleProperty::CornerRadius)) {
+                $radius = (int) $style->get(StyleProperty::CornerRadius);
+            }
+            if ($style->has(StyleProperty::FontSize)) {
+                $fontSize = (int) $style->get(StyleProperty::FontSize);
+            }
+            if ($style->has(StyleProperty::BackgroundColor)) {
+                $bgColor = $this->registerColor((string) $style->get(StyleProperty::BackgroundColor));
+            }
+            if ($style->has(StyleProperty::ForegroundColor)) {
+                $fgColor = $this->registerColor((string) $style->get(StyleProperty::ForegroundColor));
+            }
+        }
+
+        if ($isNegate) {
+            $fontSize = 14;
+        }
+
+        // Generate android:onClick when button has an action
+        $onClick = '';
+        if ($widget->getAction() !== null) {
+            $methodName = $this->actionToMethodName($btnId);
+            $onClick = "{$this->indentStr()}    android:onClick=\"{$methodName}\"\n";
+        }
+
+        $id = "{$this->indentStr()}    android:id=\"@+id/{$btnId}\"\n";
+        $size = "{$this->indentStr()}    android:layout_width=\"{$w}dp\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"{$h}dp\"\n";
+        $minClear = "{$this->indentStr()}    android:minHeight=\"0dp\"\n"
+            . "{$this->indentStr()}    android:minWidth=\"0dp\"\n";
+        $padding = "{$this->indentStr()}    android:paddingTop=\"0dp\"\n"
+            . "{$this->indentStr()}    android:paddingBottom=\"0dp\"\n";
+        $gravity = "{$this->indentStr()}    android:gravity=\"center\"\n";
+        $corner = "{$this->indentStr()}    app:cornerRadius=\"{$radius}dp\"\n";
+        $textSize = "{$this->indentStr()}    android:textSize=\"{$fontSize}sp\"\n";
+        $bg = $bgColor !== null ? "{$this->indentStr()}    android:backgroundTint=\"{$bgColor}\"\n" : '';
+        $fg = $fgColor !== null ? "{$this->indentStr()}    android:textColor=\"{$fgColor}\"\n" : '';
+
         return "{$this->indentStr()}<Button\n"
-            . "{$this->indentStr()}    android:id=\"@+id/{$btnId}\"\n"
-            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
-            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $id . $size . $minClear . $padding . $gravity . $corner . $textSize . $bg . $fg . $onClick
             . "{$this->indentStr()}    android:text=\"{$label}\" />";
     }
 
@@ -118,11 +230,18 @@ final class AndroidXmlBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
 
+        $style = $widget->getStyle();
+        $attrs = '';
+        if ($style !== null) {
+            $attrs = $this->generateStyleAttributes($style, 'layout');
+        }
+
         return <<<XML
         {$this->indentStr()}<LinearLayout
         {$this->indentStr()}    android:layout_width="match_parent"
         {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:orientation="vertical">
+        {$this->indentStr()}    android:orientation="vertical"
+        {$attrs}{$this->indentStr()}>
         {$children}
         {$this->indentStr()}</LinearLayout>
         XML;
@@ -134,11 +253,18 @@ final class AndroidXmlBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
 
+        $style = $widget->getStyle();
+        $attrs = '';
+        if ($style !== null) {
+            $attrs = $this->generateStyleAttributes($style, 'layout');
+        }
+
         return <<<XML
         {$this->indentStr()}<LinearLayout
         {$this->indentStr()}    android:layout_width="match_parent"
         {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:orientation="horizontal">
+        {$this->indentStr()}    android:orientation="horizontal"
+        {$attrs}{$this->indentStr()}>
         {$children}
         {$this->indentStr()}</LinearLayout>
         XML;
@@ -176,23 +302,74 @@ final class AndroidXmlBackend extends CodegenBackend
     private function generateTextInput(TextInput $widget): string
     {
         $hint = htmlspecialchars($widget->placeholder());
-        return <<<XML
-        {$this->indentStr()}<EditText
-        {$this->indentStr()}    android:layout_width="match_parent"
-        {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:hint="{$hint}" />
-        XML;
+        $binding = $widget->getBinding();
+        $idLine = '';
+        if ($binding !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/et_{$binding->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<EditText\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:hint=\"{$hint}\" />";
+    }
+
+    private function generateTextEditor(\Perry\UI\Widget\TextEditor $widget): string
+    {
+        $hint = htmlspecialchars($widget->placeholder());
+        $binding = $widget->getBinding();
+        $idLine = '';
+        if ($binding !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/te_{$binding->name}\"\n";
+        }
+
+        $style = $widget->getStyle();
+        $attrs = '';
+        if ($style !== null) {
+            $attrs = $this->generateStyleAttributes($style, 'text');
+        }
+
+        return "{$this->indentStr()}<EditText\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . $attrs
+            . "{$this->indentStr()}    android:hint=\"{$hint}\"\n"
+            . "{$this->indentStr()}    android:inputType=\"textMultiLine\"\n"
+            . "{$this->indentStr()}    android:gravity=\"top|start\" />";
+    }
+
+    private function generateWebView(WebView $widget): string
+    {
+        $html = htmlspecialchars($widget->html());
+
+        return "{$this->indentStr()}<WebView\n"
+            . "{$this->indentStr()}    android:id=\"@+id/webview\"\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_weight=\"1\" />";
     }
 
     private function generateToggle(Toggle $widget): string
     {
         $label = htmlspecialchars($widget->label());
-        return <<<XML
-        {$this->indentStr()}<Switch
-        {$this->indentStr()}    android:layout_width="wrap_content"
-        {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:text="{$label}" />
-        XML;
+        $binding = $widget->getBinding();
+        $idLine = '';
+        if ($binding !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/sw_{$binding->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<Switch\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:text=\"{$label}\" />";
+    }
+
+    private function actionToMethodName(string $btnId): string
+    {
+        return 'on' . str_replace('_', '', ucwords($btnId, '_'));
     }
 
     private function generateChildren(array $children): string
@@ -202,6 +379,211 @@ final class AndroidXmlBackend extends CodegenBackend
             $parts[] = $this->generateWidget($child);
         }
         return implode("\n", $parts);
+    }
+
+    private function generateStyleAttributes(\Perry\UI\Styling\Style $style, string $context): string
+    {
+        $attrs = [];
+
+        if ($style->has(StyleProperty::BackgroundColor)) {
+            $hex = $style->get(StyleProperty::BackgroundColor);
+            if (is_string($hex)) {
+                $colorRef = $this->registerColor($hex);
+                if ($context === 'button') {
+                    $attrs[] = "{$this->indentStr()}    android:backgroundTint=\"{$colorRef}\"";
+                } else {
+                    $attrs[] = "{$this->indentStr()}    android:background=\"{$colorRef}\"";
+                }
+            }
+        }
+
+        if ($style->has(StyleProperty::ForegroundColor)) {
+            $hex = $style->get(StyleProperty::ForegroundColor);
+            if (is_string($hex)) {
+                $colorRef = $this->registerColor($hex);
+                $attrs[] = "{$this->indentStr()}    android:textColor=\"{$colorRef}\"";
+            }
+        }
+
+        if ($style->has(StyleProperty::FontSize)) {
+            $size = $style->get(StyleProperty::FontSize);
+            if (is_numeric($size)) {
+                $attrs[] = "{$this->indentStr()}    android:textSize=\"{$size}sp\"";
+            }
+        }
+
+        if ($style->has(StyleProperty::Width)) {
+            $w = $style->get(StyleProperty::Width);
+            if (is_numeric($w)) {
+                $dp = (int) $w;
+                $attrs[] = "{$this->indentStr()}    android:minWidth=\"{$dp}dp\"";
+            }
+        }
+
+        if ($style->has(StyleProperty::Height)) {
+            $h = $style->get(StyleProperty::Height);
+            if (is_numeric($h)) {
+                $dp = (int) $h;
+                $attrs[] = "{$this->indentStr()}    android:minHeight=\"{$dp}dp\"";
+            }
+        }
+
+        if ($style->has(StyleProperty::CornerRadius)) {
+            $radius = $style->get(StyleProperty::CornerRadius);
+            if (is_numeric($radius)) {
+                $r = (int) $radius;
+                if ($context === 'button') {
+                } elseif ($context === 'layout') {
+                    $attrs[] = "{$this->indentStr()}    android:padding=\"{$r}dp\"";
+                }
+            }
+        }
+
+        if ($style->has(StyleProperty::Padding)) {
+            $p = $style->get(StyleProperty::Padding);
+            if (is_numeric($p)) {
+                $dp = (int) $p;
+                $attrs[] = "{$this->indentStr()}    android:padding=\"{$dp}dp\"";
+            }
+        }
+
+        $padTop = $style->has(StyleProperty::PaddingTop) ? (int) $style->get(StyleProperty::PaddingTop) : null;
+        $padBottom = $style->has(StyleProperty::PaddingBottom) ? (int) $style->get(StyleProperty::PaddingBottom) : null;
+        $padLeft = $style->has(StyleProperty::PaddingLeading) ? (int) $style->get(StyleProperty::PaddingLeading) : null;
+        $padRight = $style->has(StyleProperty::PaddingTrailing) ? (int) $style->get(StyleProperty::PaddingTrailing) : null;
+        if ($padTop !== null || $padBottom !== null || $padLeft !== null || $padRight !== null) {
+            $t = $padTop ?? 0;
+            $b = $padBottom ?? 0;
+            $l = $padLeft ?? 0;
+            $r = $padRight ?? 0;
+            $attrs[] = "{$this->indentStr()}    android:paddingLeft=\"{$l}dp\"";
+            $attrs[] = "{$this->indentStr()}    android:paddingRight=\"{$r}dp\"";
+            $attrs[] = "{$this->indentStr()}    android:paddingTop=\"{$t}dp\"";
+            $attrs[] = "{$this->indentStr()}    android:paddingBottom=\"{$b}dp\"";
+        }
+
+        if ($style->has(StyleProperty::Opacity)) {
+            $opacity = $style->get(StyleProperty::Opacity);
+            if (is_numeric($opacity)) {
+                $attrs[] = "{$this->indentStr()}    android:alpha=\"{$opacity}\"";
+            }
+        }
+
+        // Margin
+        if ($style->has(StyleProperty::Margin)) {
+            $v = $style->get(StyleProperty::Margin);
+            $attrs[] = "{$this->indentStr()}    android:layout_margin=\"{$v}dp\"";
+        }
+
+        // Border (uses background with shape drawable - simplified)
+        if ($style->has(StyleProperty::BorderWidth) || $style->has(StyleProperty::BorderColor)) {
+            $width = $style->has(StyleProperty::BorderWidth) ? (int)$style->get(StyleProperty::BorderWidth) : 1;
+            $color = $style->has(StyleProperty::BorderColor) ? $this->registerColor($style->get(StyleProperty::BorderColor)) : '@color/perry_color_000000';
+            $attrs[] = "{$this->indentStr()}    android:background=\"{$color}\"";
+        }
+
+        // Shadow (use elevation as approximation)
+        if ($style->has(StyleProperty::ShadowRadius)) {
+            $radius = (int)$style->get(StyleProperty::ShadowRadius);
+            $attrs[] = "{$this->indentStr()}    android:elevation=\"{$radius}dp\"";
+        }
+
+        // Font
+        if ($style->has(StyleProperty::FontWeight)) {
+            $v = $style->get(StyleProperty::FontWeight);
+            $weight = ($v === 'bold' || $v === '700') ? 'bold' : 'normal';
+            $attrs[] = "{$this->indentStr()}    android:textStyle=\"{$weight}\"";
+        }
+        if ($style->has(StyleProperty::FontFamily)) {
+            $v = $style->get(StyleProperty::FontFamily);
+            $attrs[] = "{$this->indentStr()}    android:fontFamily=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::TextAlignment)) {
+            $v = $style->get(StyleProperty::TextAlignment);
+            $map = ['left' => 'left', 'center' => 'center', 'right' => 'right'];
+            $align = $map[$v] ?? 'left';
+            $attrs[] = "{$this->indentStr()}    android:gravity=\"{$align}\"";
+        }
+        if ($style->has(StyleProperty::TextDecoration)) {
+            $v = $style->get(StyleProperty::TextDecoration);
+            if ($v === 'underline') {
+                $attrs[] = "{$this->indentStr()}    android:textStyle=\"bold\""; // Android lacks underline in XML
+            }
+        }
+        if ($style->has(StyleProperty::LineSpacing)) {
+            $v = $style->get(StyleProperty::LineSpacing);
+            $attrs[] = "{$this->indentStr()}    android:lineSpacingExtra=\"{$v}sp\"";
+        }
+
+        // Max dimensions
+        if ($style->has(StyleProperty::MaxWidth)) {
+            $v = (int)$style->get(StyleProperty::MaxWidth);
+            $attrs[] = "{$this->indentStr()}    android:maxWidth=\"{$v}dp\"";
+        }
+        if ($style->has(StyleProperty::MaxHeight)) {
+            $v = (int)$style->get(StyleProperty::MaxHeight);
+            $attrs[] = "{$this->indentStr()}    android:maxHeight=\"{$v}dp\"";
+        }
+
+        if (empty($attrs)) {
+            return '';
+        }
+
+        return implode("\n", $attrs) . "\n";
+    }
+
+    private function generateSlider(Slider $widget): string
+    {
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        return "{$this->indentStr()}<SeekBar\n"
+            . "{$this->indentStr()}    android:id=\"@+id/sb_{$name}\"\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:min=\"{$min}\"\n"
+            . "{$this->indentStr()}    android:max=\"{$max}\"\n"
+            . "{$this->indentStr()}    android:keyProgressIncrement=\"{$step}\" />";
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->items());
+        $this->indent--;
+        return "{$this->indentStr()}<LinearLayout\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:orientation=\"vertical\">\n"
+            . $children
+            . "{$this->indentStr()}</LinearLayout>";
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return "{$this->indentStr()}<FrameLayout\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"match_parent\">\n"
+            . $children
+            . "{$this->indentStr()}</FrameLayout>";
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return "{$this->indentStr()}<LinearLayout\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:orientation=\"vertical\">\n"
+            . $children
+            . "{$this->indentStr()}</LinearLayout>";
     }
 
     private function indentStr(): string

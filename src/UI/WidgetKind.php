@@ -16,7 +16,7 @@ enum WidgetKind: int
     case TextInput = 7;
     case Toggle = 8;
     case Slider = 9;
-    case List = 10;
+    case ListWidget = 10;
     case NavigationView = 11;
     case TabView = 12;
     case TextEditor = 13;

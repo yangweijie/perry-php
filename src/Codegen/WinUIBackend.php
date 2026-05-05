@@ -16,6 +16,10 @@ use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\AppContainer;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Slider;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\VStack;
 use Perry\UI\WidgetKind;
 
@@ -67,6 +71,10 @@ final class WinUIBackend extends CodegenBackend
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             default => '',
         };
     }
@@ -161,6 +169,58 @@ final class WinUIBackend extends CodegenBackend
         XAML;
     }
 
+    private function generateSlider(Slider $widget): string
+    {
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        return <<<XAML
+        {$this->indentStr()}<Slider
+            Minimum="{$min}"
+            Maximum="{$max}"
+            Step="{$step}"
+            Value="{Binding ElementName={$name}}" />
+        XAML;
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $this->indent++;
+        $items = $this->generateChildren($widget->items());
+        $this->indent--;
+        return <<<XAML
+        {$this->indentStr()}<ItemsControl>
+        {$items}
+        {$this->indentStr()}</ItemsControl>
+        XAML;
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $this->indent++;
+        $screens = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return <<<XAML
+        {$this->indentStr()}<Frame>
+        {$screens}
+        {$this->indentStr()}</Frame>
+        XAML;
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $this->indent++;
+        $tabs = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return <<<XAML
+        {$this->indentStr()}<TabControl>
+        {$tabs}
+        {$this->indentStr()}</TabControl>
+        XAML;
+    }
+
     private function generateChildren(array $children): string
     {
         $parts = [];
@@ -178,14 +238,105 @@ final class WinUIBackend extends CodegenBackend
 
         $props = [];
 
+        // Colors
+        if ($style->has(StyleProperty::BackgroundColor)) {
+            $props[] = "Background=\"#{$style->get(StyleProperty::BackgroundColor)}\"";
+        }
+        if ($style->has(StyleProperty::ForegroundColor)) {
+            $props[] = "Foreground=\"#{$style->get(StyleProperty::ForegroundColor)}\"";
+        }
+        if ($style->has(StyleProperty::BorderColor)) {
+            $props[] = "BorderBrush=\"#{$style->get(StyleProperty::BorderColor)}\"";
+        }
+
+        // Sizing
         if ($style->has(StyleProperty::Width)) {
             $props[] = "Width=\"{$style->get(StyleProperty::Width)}\"";
         }
         if ($style->has(StyleProperty::Height)) {
             $props[] = "Height=\"{$style->get(StyleProperty::Height)}\"";
         }
+        if ($style->has(StyleProperty::MinWidth)) {
+            $props[] = "MinWidth=\"{$style->get(StyleProperty::MinWidth)}\"";
+        }
+        if ($style->has(StyleProperty::MinHeight)) {
+            $props[] = "MinHeight=\"{$style->get(StyleProperty::MinHeight)}\"";
+        }
+        if ($style->has(StyleProperty::MaxWidth)) {
+            $props[] = "MaxWidth=\"{$style->get(StyleProperty::MaxWidth)}\"";
+        }
+        if ($style->has(StyleProperty::MaxHeight)) {
+            $props[] = "MaxHeight=\"{$style->get(StyleProperty::MaxHeight)}\"";
+        }
+
+        // Border
+        if ($style->has(StyleProperty::BorderWidth)) {
+            $props[] = "BorderThickness=\"{$style->get(StyleProperty::BorderWidth)}\"";
+        }
+        if ($style->has(StyleProperty::CornerRadius)) {
+            $props[] = "CornerRadius=\"{$style->get(StyleProperty::CornerRadius)}\"";
+        }
+
+        // Margin & Padding
+        if ($style->has(StyleProperty::Margin)) {
+            $v = $style->get(StyleProperty::Margin);
+            $props[] = "Margin=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::Padding)) {
+            $v = $style->get(StyleProperty::Padding);
+            $props[] = "Padding=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::PaddingTop)) {
+            $v = $style->get(StyleProperty::PaddingTop);
+            $props[] = "Padding=\"{0},{$v},0,0\"";
+        }
+        if ($style->has(StyleProperty::PaddingBottom)) {
+            $v = $style->get(StyleProperty::PaddingBottom);
+            $props[] = "Padding=\"0,0,0,{$v}\"";
+        }
+        if ($style->has(StyleProperty::PaddingLeading)) {
+            $v = $style->get(StyleProperty::PaddingLeading);
+            $props[] = "Padding=\"{$v},0,0,0\"";
+        }
+        if ($style->has(StyleProperty::PaddingTrailing)) {
+            $v = $style->get(StyleProperty::PaddingTrailing);
+            $props[] = "Padding=\"0,0,{$v},0\"";
+        }
+
+        // Opacity
         if ($style->has(StyleProperty::Opacity)) {
             $props[] = "Opacity=\"{$style->get(StyleProperty::Opacity)}\"";
+        }
+
+        // Font
+        if ($style->has(StyleProperty::FontSize)) {
+            $props[] = "FontSize=\"{$style->get(StyleProperty::FontSize)}\"";
+        }
+        if ($style->has(StyleProperty::FontWeight)) {
+            $v = $style->get(StyleProperty::FontWeight);
+            $props[] = "FontWeight=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::FontFamily)) {
+            $v = $style->get(StyleProperty::FontFamily);
+            $props[] = "FontFamily=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::TextAlignment)) {
+            $v = $style->get(StyleProperty::TextAlignment);
+            $map = ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'];
+            $align = $map[$v] ?? 'Left';
+            $props[] = "TextAlignment=\"{$align}\"";
+        }
+        if ($style->has(StyleProperty::TextDecoration)) {
+            $v = $style->get(StyleProperty::TextDecoration);
+            $props[] = "TextDecorations=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::LineSpacing)) {
+            $props[] = "LineHeight=\"{$style->get(StyleProperty::LineSpacing)}\"";
+        }
+
+        // Shadow (elevation approximation)
+        if ($style->has(StyleProperty::ShadowRadius)) {
+            $props[] = "Shadow=\"{$style->get(StyleProperty::ShadowRadius)}\"";
         }
 
         if (empty($props)) {

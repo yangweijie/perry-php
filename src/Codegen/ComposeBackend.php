@@ -14,8 +14,12 @@ use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
@@ -163,6 +167,10 @@ final class ComposeBackend extends CodegenBackend
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             default => 'Box {}',
         };
     }
@@ -253,6 +261,40 @@ final class ComposeBackend extends CodegenBackend
         return "Row(verticalAlignment = Alignment.CenterVertically) {\n{$this->indentStr()}    Switch(checked = false, onCheckedChange = {{}})\n{$this->indentStr()}    Text(\"{$label}\")\n{$this->indentStr()}}";
     }
 
+    private function generateSlider(Slider $widget): string
+    {
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        return "Slider(value = {$name}, valueRange = {$min}f..{$max}f, steps = {(int)(({$max} - {$min}) / {$step})}, onValueChange = {{ {$name} = it }})";
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->items());
+        $this->indent--;
+        return "LazyColumn(modifier = Modifier.fillMaxWidth()) {\n{$children}\n{$this->indentStr()}}";
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return "Box(modifier = Modifier.fillMaxSize()) {\n{$children}\n{$this->indentStr()}}";
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return "TabRow() {\n{$children}\n{$this->indentStr()}}";
+    }
+
     private function generateChildren(array $children): string
     {
         $parts = [];
@@ -270,25 +312,108 @@ final class ComposeBackend extends CodegenBackend
         $mods = [];
         $props = \Perry\UI\Styling\StyleProperty::class;
 
-        if ($style->has($props::FontSize)) {
-            $mods[] = ".fontSize({$style->get($props::FontSize)}.sp)";
+        // Colors
+        if ($style->has($props::BackgroundColor)) {
+            $mods[] = ".background({$this->colorExpr($style->get($props::BackgroundColor))})";
         }
         if ($style->has($props::ForegroundColor)) {
             $mods[] = ".color({$this->colorExpr($style->get($props::ForegroundColor))})";
         }
+        if ($style->has($props::BorderColor)) {
+            $mods[] = ".border(color = {$this->colorExpr($style->get($props::BorderColor))})";
+        }
+
+        // Sizing
         if ($style->has($props::Width) || $style->has($props::Height)) {
             $w = $style->has($props::Width) ? $style->get($props::Width) . '.dp' : 'Modifier.fillMaxWidth()';
             $h = $style->has($props::Height) ? $style->get($props::Height) . '.dp' : 'Modifier.fillMaxHeight()';
             $mods[] = ".size({$w}, {$h})";
         }
-        if ($style->has($props::BackgroundColor)) {
-            $mods[] = ".background({$this->colorExpr($style->get($props::BackgroundColor))})";
+        if ($style->has($props::MinWidth)) {
+            $mods[] = ".requiredWidthIn(min = {$style->get($props::MinWidth)}.dp)";
         }
+        if ($style->has($props::MinHeight)) {
+            $mods[] = ".requiredHeightIn(min = {$style->get($props::MinHeight)}.dp)";
+        }
+        if ($style->has($props::MaxWidth)) {
+            $mods[] = ".requiredWidthIn(max = {$style->get($props::MaxWidth)}.dp)";
+        }
+        if ($style->has($props::MaxHeight)) {
+            $mods[] = ".requiredHeightIn(max = {$style->get($props::MaxHeight)}.dp)";
+        }
+
+        // Border
+        if ($style->has($props::BorderWidth)) {
+            $mods[] = ".border(width = {$style->get($props::BorderWidth)}.dp" .
+                ($style->has($props::BorderColor) ? ", color = {$this->colorExpr($style->get($props::BorderColor))}" : '') . ')';
+        }
+
+        // Corner radius
         if ($style->has($props::CornerRadius)) {
             $mods[] = ".clip(RoundedCornerShape({$style->get($props::CornerRadius)}.dp))";
         }
+
+        // Margin (Compose uses padding with offset, or just padding on outer container)
+        if ($style->has($props::Margin)) {
+            $v = $style->get($props::Margin);
+            $mods[] = ".padding({$v}.dp)";
+        }
+
+        // Padding
         if ($style->has($props::Padding)) {
             $mods[] = ".padding({$style->get($props::Padding)}.dp)";
+        }
+        if ($style->has($props::PaddingTop) || $style->has($props::PaddingBottom) ||
+            $style->has($props::PaddingLeading) || $style->has($props::PaddingTrailing)) {
+            $top = $style->has($props::PaddingTop) ? $style->get($props::PaddingTop) : 0;
+            $bottom = $style->has($props::PaddingBottom) ? $style->get($props::PaddingBottom) : 0;
+            $start = $style->has($props::PaddingLeading) ? $style->get($props::PaddingLeading) : 0;
+            $end = $style->has($props::PaddingTrailing) ? $style->get($props::PaddingTrailing) : 0;
+            $mods[] = ".padding(start = {$start}.dp, top = {$top}.dp, end = {$end}.dp, bottom = {$bottom}.dp)";
+        }
+
+        // Opacity
+        if ($style->has($props::Opacity)) {
+            $mods[] = ".alpha({$style->get($props::Opacity)})";
+        }
+
+        // Shadow
+        if ($style->has($props::ShadowRadius) || $style->has($props::ShadowColor)) {
+            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 4;
+            $color = $style->has($props::ShadowColor) ? $this->colorExpr($style->get($props::ShadowColor)) : 'Color.Black';
+            $offsetX = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
+            $offsetY = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 2;
+            $mods[] = ".shadow(radius = {$radius}.dp, color = {$color}, offset = Offset({$offsetX}.dp, {$offsetY}.dp))";
+        }
+
+        // Font
+        if ($style->has($props::FontSize)) {
+            $mods[] = ".fontSize({$style->get($props::FontSize)}.sp)";
+        }
+        if ($style->has($props::FontWeight)) {
+            $v = $style->get($props::FontWeight);
+            $map = ['bold' => 'FontWeight.Bold', 'semibold' => 'FontWeight.SemiBold', 'medium' => 'FontWeight.Medium', 'normal' => 'FontWeight.Normal', 'light' => 'FontWeight.Light'];
+            $weight = $map[$v] ?? 'FontWeight.Normal';
+            $mods[] = ".fontWeight({$weight})";
+        }
+        if ($style->has($props::FontFamily)) {
+            $v = $style->get($props::FontFamily);
+            $mods[] = ".fontFamily(\"{$v}\")";
+        }
+        if ($style->has($props::TextAlignment)) {
+            $v = $style->get($props::TextAlignment);
+            $map = ['left' => 'TextAlign.Left', 'center' => 'TextAlign.Center', 'right' => 'TextAlign.Right'];
+            $align = $map[$v] ?? 'TextAlign.Left';
+            $mods[] = ".textAlign({$align})";
+        }
+        if ($style->has($props::TextDecoration)) {
+            $v = $style->get($props::TextDecoration);
+            $map = ['underline' => 'TextDecoration.Underline', 'line-through' => 'TextDecoration.LineThrough'];
+            $decoration = $map[$v] ?? 'TextDecoration.None';
+            $mods[] = ".textDecorationLine({$decoration})";
+        }
+        if ($style->has($props::LineSpacing)) {
+            $mods[] = ".lineHeight({$style->get($props::LineSpacing)}.sp)";
         }
 
         return $mods ? ', modifier = Modifier' . implode('', $mods) : '';

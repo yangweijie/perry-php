@@ -13,8 +13,12 @@ use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
@@ -107,7 +111,12 @@ final class HtmlBackend extends CodegenBackend
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::TextEditor => $this->generateTextEditorHtml($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::WebView => $this->generateWebViewHtml($widget),
             default => '',
         };
     }
@@ -355,6 +364,41 @@ final class HtmlBackend extends CodegenBackend
         return "<div class=\"toggle\"><input type=\"checkbox\"><span>{$label}</span></div>";
     }
 
+    private function generateSlider(Slider $widget): string
+    {
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        $style = $this->generateStyle($widget->getStyle());
+        return "<input type=\"range\" id=\"{$name}\" min=\"{$min}\" max=\"{$max}\" step=\"{$step}\"{$style}>";
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->items());
+        $this->indent--;
+        return "<ul class=\"list\">\n{$this->indentStr()}{$children}\n{$this->indentStr()}</ul>";
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return "<div class=\"nav-view\">\n{$this->indentStr()}{$children}\n{$this->indentStr()}</div>";
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return "<div class=\"tab-view\">\n{$this->indentStr()}{$children}\n{$this->indentStr()}</div>";
+    }
+
     private function generateChildren(array $children): string
     {
         $parts = [];
@@ -395,6 +439,64 @@ final class HtmlBackend extends CodegenBackend
         }
         if ($style->has(StyleProperty::Height)) {
             $css[] = "height: {$style->get(StyleProperty::Height)}px";
+        }
+        if ($style->has(StyleProperty::MinWidth)) {
+            $css[] = "min-width: {$style->get(StyleProperty::MinWidth)}px";
+        }
+        if ($style->has(StyleProperty::MinHeight)) {
+            $css[] = "min-height: {$style->get(StyleProperty::MinHeight)}px";
+        }
+        if ($style->has(StyleProperty::MaxWidth)) {
+            $css[] = "max-width: {$style->get(StyleProperty::MaxWidth)}px";
+        }
+        if ($style->has(StyleProperty::MaxHeight)) {
+            $css[] = "max-height: {$style->get(StyleProperty::MaxHeight)}px";
+        }
+        if ($style->has(StyleProperty::Margin)) {
+            $css[] = "margin: {$style->get(StyleProperty::Margin)}px";
+        }
+        if ($style->has(StyleProperty::BorderWidth)) {
+            $css[] = "border-width: {$style->get(StyleProperty::BorderWidth)}px";
+        }
+        if ($style->has(StyleProperty::BorderColor)) {
+            $css[] = "border-color: {$style->get(StyleProperty::BorderColor)}";
+        }
+        if ($style->has(StyleProperty::PaddingTop)) {
+            $css[] = "padding-top: {$style->get(StyleProperty::PaddingTop)}px";
+        }
+        if ($style->has(StyleProperty::PaddingBottom)) {
+            $css[] = "padding-bottom: {$style->get(StyleProperty::PaddingBottom)}px";
+        }
+        if ($style->has(StyleProperty::PaddingLeading)) {
+            $css[] = "padding-left: {$style->get(StyleProperty::PaddingLeading)}px";
+        }
+        if ($style->has(StyleProperty::PaddingTrailing)) {
+            $css[] = "padding-right: {$style->get(StyleProperty::PaddingTrailing)}px";
+        }
+        if ($style->has(StyleProperty::FontWeight)) {
+            $css[] = "font-weight: {$this->mapFontWeight($style->get(StyleProperty::FontWeight))}";
+        }
+        if ($style->has(StyleProperty::FontFamily)) {
+            $css[] = "font-family: \"{$style->get(StyleProperty::FontFamily)}\"";
+        }
+        if ($style->has(StyleProperty::TextAlignment)) {
+            $css[] = "text-align: {$this->mapTextAlignment($style->get(StyleProperty::TextAlignment))}";
+        }
+        if ($style->has(StyleProperty::TextDecoration)) {
+            $css[] = "text-decoration: {$this->mapTextDecoration($style->get(StyleProperty::TextDecoration))}";
+        }
+        if ($style->has(StyleProperty::LineSpacing)) {
+            $css[] = "line-height: {$style->get(StyleProperty::LineSpacing)}px";
+        }
+
+        // Box-shadow: combine ShadowOffsetX, ShadowOffsetY, ShadowRadius, ShadowColor
+        $shadowX = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
+        $shadowY = $style->has(StyleProperty::ShadowOffsetY) ? $style->get(StyleProperty::ShadowOffsetY) : 0;
+        $shadowBlur = $style->has(StyleProperty::ShadowRadius) ? $style->get(StyleProperty::ShadowRadius) : 0;
+        $shadowColor = $style->has(StyleProperty::ShadowColor) ? $style->get(StyleProperty::ShadowColor) : null;
+        if ($style->has(StyleProperty::ShadowColor) || $style->has(StyleProperty::ShadowRadius)
+            || $style->has(StyleProperty::ShadowOffsetX) || $style->has(StyleProperty::ShadowOffsetY)) {
+            $css[] = "box-shadow: {$shadowX}px {$shadowY}px {$shadowBlur}px {$shadowColor}";
         }
 
         if (empty($css)) {

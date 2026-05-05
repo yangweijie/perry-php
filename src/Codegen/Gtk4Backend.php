@@ -7,15 +7,19 @@ namespace Perry\Codegen;
 use Perry\Build\Target;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
-use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\VStack;
 use Perry\UI\WidgetKind;
 
@@ -77,6 +81,10 @@ final class Gtk4Backend extends CodegenBackend
             WidgetKind::ScrollView => $this->generateScrollView($widget),
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::ListWidget => $this->generateListWidget($widget),
+            WidgetKind::NavigationView => $this->generateNavigationView($widget),
+            WidgetKind::TabView => $this->generateTabView($widget),
             default => '',
         };
     }
@@ -201,10 +209,66 @@ final class Gtk4Backend extends CodegenBackend
     {
         $id = $this->nextId();
         $label = htmlspecialchars($widget->label());
-
         return <<<XML
         {$this->indentStr()}<object class="GtkSwitch" id="{$id}">
         {$this->indentStr()}    <property name="active">false</property>
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateSlider(Slider $widget): string
+    {
+        $id = $this->nextId();
+        $binding = $widget->value();
+        $name = $binding->name;
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        return <<<XML
+        {$this->indentStr()}<object class="GtkScale" id="{$id}">
+        {$this->indentStr()}    <property name="orientation">horizontal</property>
+        {$this->indentStr()}    <property name="digits">1</property>
+        {$this->indentStr()}    <property name="value">{$min}</property>
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
+    {
+        $id = $this->nextId();
+        $this->indent++;
+        $items = $this->generateChildren($widget->items());
+        $this->indent--;
+        return <<<XML
+        {$this->indentStr()}<object class="GtkBox" id="{$id}">
+        {$this->indentStr()}    <property name="orientation">vertical</property>
+        {$items}
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateNavigationView(NavigationView $widget): string
+    {
+        $id = $this->nextId();
+        $this->indent++;
+        $screens = $this->generateChildren($widget->screens());
+        $this->indent--;
+        return <<<XML
+        {$this->indentStr()}<object class="GtkStack" id="{$id}">
+        {$screens}
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateTabView(TabView $widget): string
+    {
+        $id = $this->nextId();
+        $this->indent++;
+        $tabs = $this->generateChildren($widget->tabs());
+        $this->indent--;
+        return <<<XML
+        {$this->indentStr()}<object class="GtkNotebook" id="{$id}">
+        {$tabs}
         {$this->indentStr()}</object>
         XML;
     }
@@ -227,22 +291,126 @@ final class Gtk4Backend extends CodegenBackend
         }
 
         $props = [];
+        $cssProps = [];
 
+        // Colors
+        if ($style->has(StyleProperty::BackgroundColor)) {
+            $props[] = "{$this->indentStr()}    <property name=\"background-color\">#{$style->get(StyleProperty::BackgroundColor)}</property>";
+        }
+        if ($style->has(StyleProperty::ForegroundColor)) {
+            $cssProps[] = "color: #{$style->get(StyleProperty::ForegroundColor)}";
+        }
+        if ($style->has(StyleProperty::BorderColor)) {
+            $cssProps[] = "border-color: #{$style->get(StyleProperty::BorderColor)}";
+        }
+
+        // Sizing
         if ($style->has(StyleProperty::Width)) {
             $props[] = "{$this->indentStr()}    <property name=\"width-request\">{$style->get(StyleProperty::Width)}</property>";
         }
         if ($style->has(StyleProperty::Height)) {
             $props[] = "{$this->indentStr()}    <property name=\"height-request\">{$style->get(StyleProperty::Height)}</property>";
         }
+        if ($style->has(StyleProperty::MinWidth)) {
+            $props[] = "{$this->indentStr()}    <property name=\"min-width-request\">{$style->get(StyleProperty::MinWidth)}</property>";
+        }
+        if ($style->has(StyleProperty::MinHeight)) {
+            $props[] = "{$this->indentStr()}    <property name=\"min-height-request\">{$style->get(StyleProperty::MinHeight)}</property>";
+        }
+        if ($style->has(StyleProperty::MaxWidth)) {
+            $cssProps[] = "max-width: {$style->get(StyleProperty::MaxWidth)}px";
+        }
+        if ($style->has(StyleProperty::MaxHeight)) {
+            $cssProps[] = "max-height: {$style->get(StyleProperty::MaxHeight)}px";
+        }
+
+        // Border
+        if ($style->has(StyleProperty::BorderWidth)) {
+            $cssProps[] = "border-width: {$style->get(StyleProperty::BorderWidth)}px";
+        }
+        if ($style->has(StyleProperty::CornerRadius)) {
+            $cssProps[] = "border-radius: {$style->get(StyleProperty::CornerRadius)}px";
+        }
+
+        // Margin & Padding
+        if ($style->has(StyleProperty::Margin)) {
+            $v = $style->get(StyleProperty::Margin);
+            $cssProps[] = "margin: {$v}px";
+        }
+        if ($style->has(StyleProperty::Padding)) {
+            $v = $style->get(StyleProperty::Padding);
+            $cssProps[] = "padding: {$v}px";
+        }
+        if ($style->has(StyleProperty::PaddingTop)) {
+            $v = $style->get(StyleProperty::PaddingTop);
+            $cssProps[] = "padding-top: {$v}px";
+        }
+        if ($style->has(StyleProperty::PaddingBottom)) {
+            $v = $style->get(StyleProperty::PaddingBottom);
+            $cssProps[] = "padding-bottom: {$v}px";
+        }
+        if ($style->has(StyleProperty::PaddingLeading)) {
+            $v = $style->get(StyleProperty::PaddingLeading);
+            $cssProps[] = "padding-left: {$v}px";
+        }
+        if ($style->has(StyleProperty::PaddingTrailing)) {
+            $v = $style->get(StyleProperty::PaddingTrailing);
+            $cssProps[] = "padding-right: {$v}px";
+        }
+
+        // Opacity
         if ($style->has(StyleProperty::Opacity)) {
             $props[] = "{$this->indentStr()}    <property name=\"opacity\">{$style->get(StyleProperty::Opacity)}</property>";
         }
 
-        if (empty($props)) {
+        // Shadow (GTK4 CSS box-shadow)
+        if ($style->has(StyleProperty::ShadowRadius) || $style->has(StyleProperty::ShadowColor)) {
+            $radius = $style->has(StyleProperty::ShadowRadius) ? $style->get(StyleProperty::ShadowRadius) : 4;
+            $color = $style->has(StyleProperty::ShadowColor) ? '#' . $style->get(StyleProperty::ShadowColor) : '#000000';
+            $offsetX = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
+            $offsetY = $style->has(StyleProperty::ShadowOffsetY) ? $style->get(StyleProperty::ShadowOffsetY) : 2;
+            $cssProps[] = "box-shadow: {$offsetX}px {$offsetY}px {$radius}px {$color}";
+        }
+
+        // Font
+        if ($style->has(StyleProperty::FontSize)) {
+            $cssProps[] = "font-size: {$style->get(StyleProperty::FontSize)}px";
+        }
+        if ($style->has(StyleProperty::FontWeight)) {
+            $v = $style->get(StyleProperty::FontWeight);
+            $map = ['bold' => '700', 'semibold' => '600', 'medium' => '500', 'normal' => '400', 'light' => '300'];
+            $weight = $map[$v] ?? '400';
+            $cssProps[] = "font-weight: {$weight}";
+        }
+        if ($style->has(StyleProperty::FontFamily)) {
+            $v = $style->get(StyleProperty::FontFamily);
+            $cssProps[] = "font-family: \"{$v}\"";
+        }
+        if ($style->has(StyleProperty::TextAlignment)) {
+            $v = $style->get(StyleProperty::TextAlignment);
+            $map = ['left' => 'left', 'center' => 'center', 'right' => 'right'];
+            $align = $map[$v] ?? 'left';
+            $cssProps[] = "text-align: {$align}";
+        }
+        if ($style->has(StyleProperty::TextDecoration)) {
+            $v = $style->get(StyleProperty::TextDecoration);
+            $cssProps[] = "text-decoration: {$v}";
+        }
+        if ($style->has(StyleProperty::LineSpacing)) {
+            $cssProps[] = "line-height: {$style->get(StyleProperty::LineSpacing)}px";
+        }
+
+        // Generate CSS style tag if any CSS properties
+        $css = '';
+        if (!empty($cssProps)) {
+            $css = "{$this->indentStr()}    <style>css=\"" . implode('; ', $cssProps) . "\"</style>";
+        }
+
+        if (empty($props) && empty($css)) {
             return '';
         }
 
-        return "\n" . implode("\n", $props);
+        return "\n" . implode("\n", $props) . $css;
     }
 
     private function indentStr(): string
