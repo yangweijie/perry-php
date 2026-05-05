@@ -72,23 +72,44 @@ final class AndroidXmlBackend extends CodegenBackend
     private function generateText(Text $widget): string
     {
         $text = htmlspecialchars($widget->content());
-        return <<<XML
-        {$this->indentStr()}<TextView
-        {$this->indentStr()}    android:layout_width="wrap_content"
-        {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:text="{$text}" />
-        XML;
+        $binding = $widget->getBinding();
+        $idLine = '';
+        if ($binding !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/tv_{$binding->name}\"\n";
+        }
+        return "{$this->indentStr()}<TextView\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:text=\"{$text}\" />";
     }
 
     private function generateButton(Button $widget): string
     {
         $label = htmlspecialchars($widget->label());
-        return <<<XML
-        {$this->indentStr()}<Button
-        {$this->indentStr()}    android:layout_width="wrap_content"
-        {$this->indentStr()}    android:layout_height="wrap_content"
-        {$this->indentStr()}    android:text="{$label}" />
-        XML;
+        $btnId = $this->buttonLabelToId($widget->label());
+        return "{$this->indentStr()}<Button\n"
+            . "{$this->indentStr()}    android:id=\"@+id/{$btnId}\"\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:text=\"{$label}\" />";
+    }
+
+    private function buttonLabelToId(string $label): string
+    {
+        return match ($label) {
+            '=' => 'btn_eq',
+            '+' => 'btn_plus',
+            '-' => 'btn_minus',
+            'x' => 'btn_mul',
+            '÷' => 'btn_div',
+            '.' => 'btn_dot',
+            '%' => 'btn_percent',
+            '+/-' => 'btn_negate',
+            'C' => 'btn_clear',
+            '⌫' => 'btn_backspace',
+            default => 'btn_' . preg_replace('/[^a-zA-Z0-9]/', '', $label),
+        };
     }
 
     private function generateVStack(VStack $widget): string
@@ -140,13 +161,16 @@ final class AndroidXmlBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
 
-        return <<<XML
-        {$this->indentStr()}<ScrollView
-        {$this->indentStr()}    android:layout_width="match_parent"
-        {$this->indentStr()}    android:layout_height="match_parent">
-        {$children}
-        {$this->indentStr()}</ScrollView>
-        XML;
+        return "{$this->indentStr()}<ScrollView\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"match_parent\">\n"
+            . "{$this->indentStr()}    <LinearLayout\n"
+            . "{$this->indentStr()}        android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}        android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}        android:orientation=\"vertical\">\n"
+            . $children . "\n"
+            . "{$this->indentStr()}    </LinearLayout>\n"
+            . "{$this->indentStr()}</ScrollView>";
     }
 
     private function generateTextInput(TextInput $widget): string
