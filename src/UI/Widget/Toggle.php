@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace Perry\UI\Widget;
 
-use Perry\UI\StateId;
+use Perry\UI\Action;
 use Perry\UI\Widget;
 use Perry\UI\WidgetKind;
 
 final class Toggle extends Widget
 {
+    private ?Action $onToggleObj = null;
+
     public function __construct(
-        private StateId $isOn,
-        private string $label = '',
+        private string $label,
+        ?Action $onToggle = null,
     ) {
         parent::__construct();
+        if ($onToggle instanceof Action) {
+            $this->onToggleObj = $onToggle;
+        }
     }
 
     public function kind(): WidgetKind
@@ -22,13 +27,13 @@ final class Toggle extends Widget
         return WidgetKind::Toggle;
     }
 
-    public function isOn(): StateId
-    {
-        return $this->isOn;
-    }
-
     public function label(): string
     {
         return $this->label;
+    }
+
+    public function getOnToggle(): ?Action
+    {
+        return $this->onToggleObj;
     }
 }

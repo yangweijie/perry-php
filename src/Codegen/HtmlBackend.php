@@ -343,12 +343,6 @@ final class HtmlBackend extends CodegenBackend
         return "<div style=\"overflow:auto;max-height:100vh\">{$children}</div>";
     }
 
-    private function generateTextInput(TextInput $widget): string
-    {
-        $placeholder = htmlspecialchars($widget->placeholder());
-        return "<input type=\"text\" placeholder=\"{$placeholder}\">";
-    }
-
     private function generateTextEditorHtml(\Perry\UI\Widget\TextEditor $widget): string
     {
         $binding = $widget->getBinding();
@@ -358,21 +352,57 @@ final class HtmlBackend extends CodegenBackend
         return "<textarea id=\"{$id}\" placeholder=\"{$placeholder}\"{$style}></textarea>";
     }
 
-    private function generateToggle(Toggle $widget): string
-    {
-        $label = htmlspecialchars($widget->label());
-        return "<div class=\"toggle\"><input type=\"checkbox\"><span>{$label}</span></div>";
-    }
-
     private function generateSlider(Slider $widget): string
     {
+        $id = 'slider_' . $this->nextId();
         $binding = $widget->value();
         $name = $binding->name;
         $min = $widget->min();
         $max = $widget->max();
         $step = $widget->step();
         $style = $this->generateStyle($widget->getStyle());
-        return "<input type=\"range\" id=\"{$name}\" min=\"{$min}\" max=\"{$max}\" step=\"{$step}\"{$style}>";
+
+        $oninput = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $funcName = $this->generateActionFunction($action);
+            $oninput = " oninput=\"{$funcName}()\"";
+        }
+
+        return "<input type=\"range\" id=\"{$id}\" min=\"{$min}\" max=\"{$max}\" step=\"{$step}\"$oninput{$style}>";
+    }
+
+    private function generateTextInput(TextInput $widget): string
+    {
+        $id = 'textinput_' . $this->nextId();
+        $placeholder = htmlspecialchars($widget->placeholder());
+        $binding = $widget->value();
+        $name = $binding->name;
+        $style = $this->generateStyle($widget->getStyle());
+
+        $oninput = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $funcName = $this->generateActionFunction($action);
+            $oninput = " oninput=\"{$funcName}()\"";
+        }
+
+        return "<input type=\"text\" id=\"{$id}\" placeholder=\"{$placeholder}\"$oninput{$style}>";
+    }
+
+    private function generateToggle(Toggle $widget): string
+    {
+        $id = 'toggle_' . $this->nextId();
+        $label = htmlspecialchars($widget->label());
+
+        $onclick = '';
+        $action = $widget->getOnToggle();
+        if ($action !== null) {
+            $funcName = $this->generateActionFunction($action);
+            $onclick = " onclick=\"{$funcName}()\"";
+        }
+
+        return "<label{$onclick}><input type=\"checkbox\" id=\"{$id}\"> {$label}</label>";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string

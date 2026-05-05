@@ -235,22 +235,6 @@ CS;
         XAML;
     }
 
-    private function generateTextInput(TextInput $widget): string
-    {
-        $placeholder = htmlspecialchars($widget->placeholder());
-        return <<<XAML
-        {$this->indentStr()}<TextBox PlaceholderText="{$placeholder}" />
-        XAML;
-    }
-
-    private function generateToggle(Toggle $widget): string
-    {
-        $label = htmlspecialchars($widget->label());
-        return <<<XAML
-        {$this->indentStr()}<ToggleSwitch Header="{$label}" />
-        XAML;
-    }
-
     private function generateSlider(Slider $widget): string
     {
         $binding = $widget->value();
@@ -258,12 +242,62 @@ CS;
         $min = $widget->min();
         $max = $widget->max();
         $step = $widget->step();
+        $props = $this->generateProperties($widget->getStyle());
+
+        $onChange = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $methodName = 'On' . ucfirst($name) . 'Change';
+            $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
+            $onChange = " ValueChanged=\"{$methodName}\"";
+        }
+
         return <<<XAML
         {$this->indentStr()}<Slider
             Minimum="{$min}"
             Maximum="{$max}"
             Step="{$step}"
-            Value="{Binding ElementName={$name}}" />
+            Value="{Binding ElementName={$name}}"{$onChange}{$props} />
+        XAML;
+    }
+
+    private function generateTextInput(TextInput $widget): string
+    {
+        $placeholder = htmlspecialchars($widget->placeholder());
+        $binding = $widget->value();
+        $name = $binding->name;
+        $props = $this->generateProperties($widget->getStyle());
+
+        $onChange = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $methodName = 'On' . ucfirst($name) . 'Change';
+            $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
+            $onChange = " TextChanged=\"{$methodName}\"";
+        }
+
+        return <<<XAML
+        {$this->indentStr()}<TextBox
+            PlaceholderText="{$placeholder}"
+            Text="{Binding ElementName={$name}}"{$onChange}{$props} />
+        XAML;
+    }
+
+    private function generateToggle(Toggle $widget): string
+    {
+        $label = htmlspecialchars($widget->label());
+        $props = $this->generateProperties($widget->getStyle());
+
+        $onToggle = '';
+        $action = $widget->getOnToggle();
+        if ($action !== null) {
+            $methodName = 'On' . ucfirst($label) . 'Toggle';
+            $this->buttonActions[] = ['id' => $label, 'method' => $methodName, 'action' => $action];
+            $onToggle = " IsCheckedChanged=\"{$methodName}\"";
+        }
+
+        return <<<XAML
+        {$this->indentStr()}<ToggleSwitch Header="{$label}"{$onToggle}{$props} />
         XAML;
     }
 

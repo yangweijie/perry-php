@@ -268,7 +268,15 @@ final class ComposeBackend extends CodegenBackend
         $min = $widget->min();
         $max = $widget->max();
         $step = $widget->step();
-        return "Slider(value = {$name}, valueRange = {$min}f..{$max}f, steps = {(int)(({$max} - {$min}) / {$step})}, onValueChange = {{ {$name} = it }})";
+        $mods = $this->generateModifiers($widget->getStyle());
+
+        $onChange = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $onChange = ', onValueChange = {' . $this->generateAction($action) . '}';
+        }
+
+        return "Slider(value = {$name}, valueRange = {$min}f..{$max}f, steps = {(int)(({$max} - {$min}) / {$step})}, onValueChange = {{$name} = it{$onChange}}{$mods})";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string

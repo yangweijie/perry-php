@@ -292,7 +292,17 @@ final class SwiftUIBackend extends CodegenBackend
     private function generateTextInput(TextInput $widget): string
     {
         $placeholder = addslashes($widget->placeholder());
-        return "TextField(\"{$placeholder}\", text: .constant(\"\"))";
+        $binding = $widget->value();
+        $name = $binding->name;
+        $modifiers = $this->generateModifiers($widget->getStyle());
+
+        $action = $widget->getOnChange();
+        $onChange = '';
+        if ($action !== null) {
+            $onChange = ' onEditingChanged: {' . $this->generateAction($action) . '}';
+        }
+
+        return "TextField(\"{$placeholder}\", text: \${$name}){$modifiers}{$onChange}";
     }
 
     private function generateTextEditorWidget(TextEditor $widget): string
@@ -324,7 +334,14 @@ final class SwiftUIBackend extends CodegenBackend
         $max = $widget->max();
         $step = $widget->step();
         $modifiers = $this->generateModifiers($widget->getStyle());
-        return "Slider(value: \${$name}, in: {$min}...{$max}, step: {$step}){$modifiers}";
+
+        $action = $widget->getOnChange();
+        $onChange = '';
+        if ($action !== null) {
+            $onChange = ' onEditingChanged: {' . $this->generateAction($action) . '}';
+        }
+
+        return "Slider(value: \${$name}, in: {$min}...{$max}, step: {$step}){$modifiers}{$onChange}";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
@@ -354,7 +371,12 @@ final class SwiftUIBackend extends CodegenBackend
     private function generateToggle(Toggle $widget): string
     {
         $label = addslashes($widget->label());
-        return "Toggle(\"{$label}\", isOn: .constant(false))";
+        $action = $widget->getOnToggle();
+        $onToggle = '';
+        if ($action !== null) {
+            $onToggle = ' onTapGesture: {' . $this->generateAction($action) . '}';
+        }
+        return "Toggle(\"{$label}\", isOn: .constant(false)){$onToggle}";
     }
 
     private function generateChildren(array $children): string

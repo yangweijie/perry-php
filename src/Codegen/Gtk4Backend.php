@@ -261,46 +261,6 @@ C;
         XML;
     }
 
-    private function generateTextInput(TextInput $widget): string
-    {
-        $id = $this->nextId();
-        $placeholder = htmlspecialchars($widget->placeholder());
-
-        return <<<XML
-        {$this->indentStr()}<object class="GtkEntry" id="{$id}">
-        {$this->indentStr()}    <property name="placeholder-text">{$placeholder}</property>
-        {$this->indentStr()}</object>
-        XML;
-    }
-
-    private function generateToggle(Toggle $widget): string
-    {
-        $id = $this->nextId();
-        $label = htmlspecialchars($widget->label());
-        return <<<XML
-        {$this->indentStr()}<object class="GtkSwitch" id="{$id}">
-        {$this->indentStr()}    <property name="active">false</property>
-        {$this->indentStr()}</object>
-        XML;
-    }
-
-    private function generateSlider(Slider $widget): string
-    {
-        $id = $this->nextId();
-        $binding = $widget->value();
-        $name = $binding->name;
-        $min = $widget->min();
-        $max = $widget->max();
-        $step = $widget->step();
-        return <<<XML
-        {$this->indentStr()}<object class="GtkScale" id="{$id}">
-        {$this->indentStr()}    <property name="orientation">horizontal</property>
-        {$this->indentStr()}    <property name="digits">1</property>
-        {$this->indentStr()}    <property name="value">{$min}</property>
-        {$this->indentStr()}</object>
-        XML;
-    }
-
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
     {
         $id = $this->nextId();

@@ -540,18 +540,30 @@ final class AndroidXmlBackend extends CodegenBackend
 
     private function generateSlider(Slider $widget): string
     {
+        $id = $this->nextId();
         $binding = $widget->value();
         $name = $binding->name;
         $min = $widget->min();
         $max = $widget->max();
         $step = $widget->step();
-        return "{$this->indentStr()}<SeekBar\n"
-            . "{$this->indentStr()}    android:id=\"@+id/sb_{$name}\"\n"
-            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
-            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
-            . "{$this->indentStr()}    android:min=\"{$min}\"\n"
-            . "{$this->indentStr()}    android:max=\"{$max}\"\n"
-            . "{$this->indentStr()}    android:keyProgressIncrement=\"{$step}\" />";
+
+        $onChange = '';
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $methodName = 'on' . ucfirst($name) . 'Change';
+            $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
+            $onChange = " android:onSeekBarChangeListener=\"{$methodName}\"";
+        }
+
+        return <<<XML
+        {$this->indentStr()}<SeekBar
+            android:id="@+id/{$id}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="{$min}dp"
+            android:maxHeight="{$max}dp"
+            android:stepSize="{$step}"{$onChange} />
+        XML;
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
