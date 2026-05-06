@@ -803,6 +803,54 @@ $action = Action::clear($display);         // display = "0"
 $action = Action::custom('display.text = ""');  // passed through as-is
 ```
 
+### Widget Actions
+
+Interactive widgets support `Action` for event handling:
+
+```php
+use Perry\UI\Action;
+use Perry\UI\Binding;
+use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Slider;
+use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toggle;
+
+$display = new Binding('display', '0');
+$operand1 = new Binding('operand1', 0.0);
+$operation = new Binding('operation', '');
+
+// Button — action on click
+$btn = new Button('7', Action::append($display, '7'));
+
+// Slider — action on value change
+$slider = new Slider(0, 100, $operand1, onChange: Action::set($operand1, 50));
+
+// TextInput — action on text change
+$input = new TextInput($display, onChange: Action::set($display, ''));
+
+// Toggle — action on toggle
+$toggle = new Toggle(true, onToggle: Action::set($display, 'toggled'));
+```
+
+**Supported event properties:**
+
+| Widget | Event Property | Description |
+|-------|----------------|-------------|
+| `Button` | `action` (constructor) | Fires on click/tap |
+| `Slider` | `onChange` | Fires when value changes |
+| `TextInput` | `onChange` | Fires when text changes |
+| `Toggle` | `onToggle` | Fires when checked state changes |
+
+**Action types work across all widgets:**
+
+| ActionType | Button | Slider | TextInput | Toggle |
+|------------|--------|--------|-----------|--------|
+| `SetValue` | ✅ | ✅ | ✅ | ✅ |
+| `Append` | ✅ | — | — | — |
+| `Clear` | ✅ | — | — | — |
+| `Custom` | ✅ | ✅ | ✅ | ✅ |
+| `Closure` | ✅ | ✅ | ✅ | ✅ |
+
 ---
 
 ### Closure Actions
@@ -1013,6 +1061,35 @@ $merged = $base->merge($highlight);
 ---
 
 ### Platform Support Matrix
+
+All 6 backends now support the full set of **28 StyleProperties** and **event system** (Button/Slider/TextInput/Toggle Actions):
+
+| Feature | macOS (SwiftUI) | iOS (SwiftUI) | Android (XML) | Android (Compose) | Web (HTML) | Linux (Gtk4) | Windows (WinUI) |
+|---------|------------------|---------------|-----------------|--------------------|--------------|----------------|---------------|
+| **StyleProperties** |
+| BackgroundColor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ForegroundColor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| BorderWidth/BorderColor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CornerRadius | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Padding (all edges) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Margin (all edges) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Width / Height | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| FontSize / FontWeight / FontFamily | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TextAlignment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Shadow (color/radius/offset) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TextDecoration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| LineSpacing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Min/Max Width/Height | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Opacity | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Event System** |
+| Button action (Click) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Slider onChange | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TextInput onChange | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Toggle onToggle | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Widgets** |
+| Slider / TextInput / Toggle | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| NavigationView / TabView | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| List | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ```php
 use Perry\UI\Styling\StyleMatrix;
