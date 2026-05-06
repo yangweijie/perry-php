@@ -208,8 +208,13 @@ final class Compiler
 
         exec($cmd, $output, $exitCode);
 
+        // On macOS cross-compilation, WinExe produces .dll instead of .exe
+        $dllFile = $this->buildDir . '/' . $outputName . '.dll';
         if ($exitCode === 0 && file_exists($outputFile)) {
             return CompileResult::success($outputFile, $mainWindowCsFile);
+        }
+        if ($exitCode === 0 && file_exists($dllFile)) {
+            return CompileResult::success($dllFile, $mainWindowCsFile);
         }
 
         return CompileResult::failure(
