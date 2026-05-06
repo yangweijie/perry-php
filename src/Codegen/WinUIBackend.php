@@ -79,6 +79,14 @@ using System.Windows;
 using System.Windows.Controls;
 
 namespace PerryApp {
+    public partial class App : Application {
+        protected override void OnStartup(StartupEventArgs e) {
+            base.OnStartup(e);
+            var mainWindow = new MainWindow();
+            mainWindow.Show();
+        }
+    }
+
     public partial class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();

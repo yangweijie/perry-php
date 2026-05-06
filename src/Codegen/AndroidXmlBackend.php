@@ -648,13 +648,13 @@ KOTLIN;
     private function generateActionMethodBody(\Perry\UI\Action $action): string
     {
         if ($action->type === \Perry\UI\ActionType::Custom) {
-            $code = $action->generate(new \Perry\Generator\KotlinGenerator());
-            return $this->indentLines($code, 2);
+            // Custom code is expected to be valid Kotlin
+            return '        ' . str_replace("\n", "\n        ", $action->customCode);
         }
 
         if ($action->type === \Perry\UI\ActionType::Closure) {
-            $code = $action->generate(new \Perry\Generator\KotlinGenerator());
-            return $this->indentLines($code, 2);
+            // Bypass broken KotlinGenerator - use IR and generate correct Kotlin
+            return $this->generateFromIr($action->getIr());
         }
 
         if ($action->type === \Perry\UI\ActionType::SetValue) {
@@ -676,6 +676,160 @@ KOTLIN;
         }
 
         return '        // Action type not yet supported for Android: ' . $action->type->value;
+    }
+
+    private function generateFromIr($ir): string
+    {
+        // Generate Kotlin code from IR (Program object)
+        // This bypasses the broken KotlinGenerator
+        $lines = [];
+        
+        // Get statements from IR
+        // Program should have a stmts property or getStmts() method
+        if (method_exists($ir, 'getStmts')) {
+            $stmts = $ir->getStmts();
+        } elseif (property_exists($ir, 'stmts')) {
+            $stmts = $ir->stmts;
+        } else {
+            return '        // Could not extract statements from IR';
+        }
+        
+        foreach ($stmts as $stmt) {
+            $line = $this->generateStmtKotlin($stmt, 2);
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+        
+        return implode("\n", $lines);
+    }
+
+    private function generateStmtKotlin($stmt, int $indentLevel): string
+    {
+        $indent = str_repeat('        ', $indentLevel);
+        
+        // Handle Expression statement
+        if ($stmt instanceof \PhpParser\Node\Stmt\Expression) {
+            return $indent . $this->generateExprKotlin($stmt->expr);
+        }
+        
+        // Handle If statement
+        if ($stmt instanceof \PhpParser\Node\Stmt\If_) {
+            $cond = $this->generateExprKotlin($stmt->cond);
+            $thenLines = [];
+            foreach ($stmt->stmts as $s) {
+                $thenLines[] = $this->generateStmtKotlin($s, $indentLevel + 1);
+            }
+            $result = $indent . "if ({$cond}) {\n";
+            $result .= implode("\n", array_filter($thenLines)) . "\n";
+            $result .= $indent . "}";
+            
+            // Handle else
+            if ($stmt->else !== null) {
+                $elseLines = [];
+                foreach ($stmt->else->stmts as $s) {
+                    $elseLines[] = $this->generateStmtKotlin($s, $indentLevel + 1);
+                }
+                $result .= " else {\n";
+                $result .= implode("\n", array_filter($elseLines)) . "\n";
+                $result .= $indent . "}";
+            }
+            
+            return $result;
+        }
+        
+        return $indent . '// Unsupported statement: ' . get_class($stmt);
+    }
+
+    private function generateExprKotlin($expr): string
+    {
+        // Assignment
+        if ($expr instanceof \PhpParser\Node\Expr\Assign) {
+            $var = $this->generateExprKotlin($expr->var);
+            $value = $this->generateExprKotlin($expr->expr);
+            return "{$var} = {$value}";
+        }
+        
+        // Variable
+        if ($expr instanceof \PhpParser\Node\Expr\Variable) {
+            return $expr->name;
+        }
+        
+        // String literal
+        if ($expr instanceof \PhpParser\Node\Scalar\String_) {
+            return '"' . addslashes($expr->value) . '"';
+        }
+        
+        // Int literal
+        if ($expr instanceof \PhpParser\Node\Scalar\LNumber) {
+            return (string) $expr->value;
+        }
+        
+        // Float literal
+        if ($expr instanceof \PhpParser\Node\Scalar\DNumber) {
+            $str = (string) $expr->value;
+            if (!str_contains($str, '.')) {
+                $str .= '.0';
+            }
+            return $str;
+        }
+        
+        // Method call
+        if ($expr instanceof \PhpParser\Node\Expr\MethodCall) {
+            $var = $this->generateExprKotlin($expr->var);
+            $method = $expr->name->name;
+            $args = [];
+            foreach ($expr->args as $arg) {
+                $args[] = $this->generateExprKotlin($arg->value);
+            }
+            $argsStr = implode(', ', $args);
+            
+            // Map PHP methods to Kotlin
+            $methodMap = [
+                'toDoubleOrNull' => 'toDoubleOrNull',
+                'isEmpty' => 'isEmpty()',
+                'dropLast' => 'dropLast',
+                'length' => 'length',
+            ];
+            
+            $kotlinMethod = $methodMap[$method] ?? $method;
+            return "{$var}.{$kotlinMethod}({$argsStr})";
+        }
+        
+        // Ternary
+        if ($expr instanceof \PhpParser\Node\Expr\Ternary) {
+            $cond = $this->generateExprKotlin($expr->cond);
+            $if = $this->generateExprKotlin($expr->if);
+            $else = $this->generateExprKotlin($expr->else);
+            return "if ({$cond}) {$if} else {$else}";
+        }
+        
+        // Binary op
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp) {
+            $left = $this->generateExprKotlin($expr->left);
+            $right = $this->generateExprKotlin($expr->right);
+            $op = $this->getBinaryOpKotlin($expr);
+            return "{$left} {$op} {$right}";
+        }
+        
+        return '/* Unsupported expression: ' . get_class($expr) . ' */';
+    }
+
+    private function getBinaryOpKotlin($expr): string
+    {
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Concat) return '+';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Plus) return '+';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Minus) return '-';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Muliply) return '*';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Divide) return '/';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Modulo) return '%';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Equal) return '==';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\NotEqual) return '!=';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Greater) return '>';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\GreaterOrEqual) return '>=';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Smaller) return '<';
+        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\SmallerOrEqual) return '<=';
+        return '/* unknown op */';
     }
 
     private function formatValueForKotlin(mixed $value): string

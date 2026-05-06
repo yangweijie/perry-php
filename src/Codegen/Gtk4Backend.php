@@ -90,6 +90,14 @@ void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_set_visible(window, TRUE);
     g_object_unref(builder);
 }
+
+int main(int argc, char **argv) {
+    GtkApplication *app = gtk_application_new("com.perry.{$outputName}", G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    int status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
+    return status;
+}
 {$handlers}
 C;
     }
@@ -97,12 +105,34 @@ C;
     private function generateActionBody(\Perry\UI\Action $action): string
     {
         if ($action->type === \Perry\UI\ActionType::Custom) {
+            // For Gtk4, custom actions are C functions - just output as comment for now
             return '    // Custom action: ' . $action->customCode;
         }
 
         if ($action->type === \Perry\UI\ActionType::Closure) {
-            $code = $action->generate(new \Perry\Generator\SwiftGenerator());
-            return $this->indentC($code, 1);
+            // TODO: Need a C code generator for Closure actions
+            // For now, generate a simple placeholder
+            return '    // Closure actions not yet fully supported for Gtk4';
+        }
+
+        if ($action->type === \Perry\UI\ActionType::SetValue) {
+            $target = $action->target;
+            $value = $action->value;
+            if (is_string($value)) {
+                return "    g_print(\"Set {$target} to {$value}\\n\");";
+            }
+            return "    g_print(\"Set {$target} to {$value}\\n\");";
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Append) {
+            $target = $action->target;
+            $value = $action->value;
+            return "    g_print(\"Append {$value} to {$target}\\n\");";
+        }
+
+        if ($action->type === \Perry\UI\ActionType::Clear) {
+            $target = $action->target;
+            return "    g_print(\"Clear {$target}\\n\");";
         }
 
         return '    // Action type not yet fully supported for Gtk4: ' . $action->type->value;
