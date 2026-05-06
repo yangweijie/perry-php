@@ -34,13 +34,13 @@ class CSharpGenerator implements IR\Generator
     public function generateAssignment(IR\Assignment $node): string
     {
         if (in_array($node->variable, $this->stateVars)) {
-            return "{$node->variable} = {$node->value->accept($this)}";
+            return "{$node->variable} = {$node->value->accept($this)};";
         }
         if (!in_array($node->variable, $this->declaredVars)) {
             $this->declaredVars[] = $node->variable;
-            return "var {$node->variable} = {$node->value->accept($this)}";
+            return "var {$node->variable} = {$node->value->accept($this)};";
         }
-        return "{$node->variable} = {$node->value->accept($this)}";
+        return "{$node->variable} = {$node->value->accept($this)};";
     }
 
     public function generateIf(IR\IfStatement $node): string
@@ -79,6 +79,18 @@ class CSharpGenerator implements IR\Generator
 
         if ($node->right instanceof IR\Literal && $node->right->value === false && $op === '==') {
             return "!{$node->left->accept($this)}";
+        }
+
+        if ($node->left instanceof IR\FunctionCall && $node->left->name === 'strpos') {
+            if ($op === '===') {
+                if ($node->right instanceof IR\Literal && $node->right->value === false) {
+                    return "{$node->left->accept($this)} == -1";
+                }
+            } elseif ($op === '!==') {
+                if ($node->right instanceof IR\Literal && $node->right->value === false) {
+                    return "{$node->left->accept($this)} != -1";
+                }
+            }
         }
 
         return "{$node->left->accept($this)} {$op} {$node->right->accept($this)}";

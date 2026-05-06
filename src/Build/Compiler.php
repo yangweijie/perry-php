@@ -183,15 +183,23 @@ final class Compiler
 
     private function compileWindows(string $source, string $outputName, CodegenBackend $backend): CompileResult
     {
-        $xamlFile = $this->buildDir . '/' . $outputName . '.xaml';
-        $csFile = $this->buildDir . '/' . $outputName . '.cs';
+        $appXamlFile = $this->buildDir . '/App.xaml';
+        $appCsFile = $this->buildDir . '/App.xaml.cs';
+        $mainWindowXamlFile = $this->buildDir . '/MainWindow.xaml';
+        $mainWindowCsFile = $this->buildDir . '/MainWindow.xaml.cs';
         $csprojFile = $this->buildDir . '/' . $outputName . '.csproj';
         $outputFile = $this->buildDir . '/' . $outputName . '.exe';
 
-        file_put_contents($xamlFile, $source);
+        $appXaml = $this->generateAppXaml();
+        file_put_contents($appXamlFile, $appXaml);
+
+        $appCs = $this->generateAppXamlCs();
+        file_put_contents($appCsFile, $appCs);
+
+        file_put_contents($mainWindowXamlFile, $source);
 
         $csSource = $backend->generateMainActivity($outputName);
-        file_put_contents($csFile, $csSource);
+        file_put_contents($mainWindowCsFile, $csSource);
 
         $csproj = $this->generateCsproj($outputName);
         file_put_contents($csprojFile, $csproj);
@@ -201,13 +209,38 @@ final class Compiler
         exec($cmd, $output, $exitCode);
 
         if ($exitCode === 0 && file_exists($outputFile)) {
-            return CompileResult::success($outputFile, $csFile);
+            return CompileResult::success($outputFile, $mainWindowCsFile);
         }
 
         return CompileResult::failure(
             "Windows compilation failed. Install .NET SDK.\n" . implode("\n", $output),
-            $csFile
+            $mainWindowCsFile
         );
+    }
+
+    private function generateAppXaml(): string
+    {
+        return <<<XAML
+<Application x:Class="PerryApp.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+</Application>
+XAML;
+    }
+
+    private function generateAppXamlCs(): string
+    {
+        return <<<CS
+using System.Windows;
+
+namespace PerryApp
+{
+    public partial class App : Application
+    {
+    }
+}
+CS;
     }
 
     private function compileAndroid(CodegenBackend $backend, string $source, string $outputName, array $colors = []): CompileResult
@@ -517,12 +550,13 @@ SETTINGS;
         <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
                 <OutputType>WinExe</OutputType>
-                <TargetFramework>net8.0-windows</TargetFramework>
+                <TargetFramework>net10.0-windows</TargetFramework>
                 <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
                 <EnableWindowsTargeting>true</EnableWindowsTargeting>
                 <UseWPF>true</UseWPF>
                 <RootNamespace>PerryApp</RootNamespace>
                 <AssemblyName>{$appName}</AssemblyName>
+                <Nullable>enable</Nullable>
             </PropertyGroup>
         </Project>
         XML;

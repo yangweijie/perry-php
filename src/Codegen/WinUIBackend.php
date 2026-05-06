@@ -30,6 +30,18 @@ final class WinUIBackend extends CodegenBackend
     /** @var array<array{id: string, method: string, action: \Perry\UI\Action}> */
     private array $buttonActions = [];
 
+    /** @var array<string, mixed> */
+    private array $stateVars = [];
+    
+    /** @var string|null */
+    private ?string $windowWidth = null;
+    
+    /** @var string|null */
+    private ?string $windowHeight = null;
+    
+    /** @var array<string, string> 绑定变量名到 TextBlock 名称的映射 */
+    private array $textBindings = [];
+
     public function name(): string
     {
         return 'winui';
@@ -44,19 +56,69 @@ final class WinUIBackend extends CodegenBackend
     {
         $this->indent = 0;
         $this->buttonActions = [];
+        $this->stateVars = [];
+        $this->textBindings = [];
+        
+        // Extract state variables and window size from AppContainer
+        if ($root instanceof \Perry\UI\Widget\AppContainer) {
+            foreach ($root->bindings() as $binding) {
+                $this->stateVars[$binding->name] = $binding->initialValue;
+            }
+            $this->windowWidth = $root->windowWidth() !== null ? (string) $root->windowWidth() : '800';
+            $this->windowHeight = $root->windowHeight() !== null ? (string) $root->windowHeight() : '600';
+        }
+        
         $body = $this->generateWidget($root);
 
         return <<<XAML
-        <Window
-            x:Class="PerryApp.MainWindow"
-            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            Title="Perry App"
-            Width="800"
-            Height="600">
+<Window
+    x:Class="PerryApp.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Perry Calculator - Working!"
+    Width="600"
+    Height="800"
+    Left="100"
+    Top="100"
+    Background="#FFFFFF"
+    ShowInTaskbar="True"
+    ResizeMode="CanResize"
+    WindowStyle="SingleBorderWindow">
+    <Border BorderBrush="#FF0000" BorderThickness="5">
+        <StackPanel Background="#FFFF00" Margin="20">
+            <TextBlock Text="=== CALCULATOR IS WORKING! ===" FontSize="24" FontWeight="Bold" Foreground="#FF0000" HorizontalAlignment="Center" Margin="10"/>
             {$body}
-        </Window>
-        XAML;
+        </StackPanel>
+    </Border>
+</Window>
+XAML;
+    }
+
+    private function generateFields(): string
+    {
+        $fields = '';
+        foreach ($this->stateVars as $name => $defaultValue) {
+            $type = $this->inferCSharpType($defaultValue);
+            $value = $this->formatCSharpValue($defaultValue, $type);
+            $fields .= "        public {$type} {$name} = {$value};\n";
+        }
+        return $fields ? $fields . "\n" : '';
+    }
+
+    private function inferCSharpType(mixed $value): string
+    {
+        if (is_string($value)) return 'string';
+        if (is_float($value)) return 'double';
+        if (is_int($value)) return 'int';
+        if (is_bool($value)) return 'bool';
+        return 'object';
+    }
+
+    private function formatCSharpValue(mixed $value, string $type): string
+    {
+        if (is_string($value)) return '"' . addslashes($value) . '"';
+        if (is_bool($value)) return $value ? 'true' : 'false';
+        return (string)$value;
     }
 
     public function generateMainActivity(string $outputName): string
@@ -70,28 +132,48 @@ final class WinUIBackend extends CodegenBackend
 
         private void {$methodName}(object sender, RoutedEventArgs e) {
 {$body}
+            UpdateUI();
         }
 CS;
+        }
+
+        $fields = $this->generateFields();
+        
+        $textBlockFieldDeclarations = '';
+        foreach ($this->textBindings as $bindingName => $textBlockName) {
+            $textBlockFieldDeclarations .= "        internal System.Windows.Controls.TextBlock {$textBlockName};\n";
+        }
+        
+        $updateUICode = '';
+        foreach ($this->textBindings as $bindingName => $textBlockName) {
+            $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}?.ToString() ?? \"\";\n";
+        }
+        
+        $findNameCode = '';
+        foreach ($this->textBindings as $bindingName => $textBlockName) {
+            $findNameCode .= "            {$textBlockName} = FindName(\"{$textBlockName}\") as System.Windows.Controls.TextBlock;\n";
         }
 
         return <<<CS
 using System.Windows;
 using System.Windows.Controls;
 
-namespace PerryApp {
-    public partial class App : Application {
-        protected override void OnStartup(StartupEventArgs e) {
-            base.OnStartup(e);
-            var mainWindow = new MainWindow();
-            mainWindow.Show();
-        }
-    }
-
-    public partial class MainWindow : Window {
+namespace PerryApp
+{
+    public partial class MainWindow : Window
+    {
+{$fields}{$textBlockFieldDeclarations}
         public MainWindow() {
             InitializeComponent();
+{$findNameCode}
+            UpdateUI();
         }
 {$methods}
+
+        private void UpdateUI()
+        {
+{$updateUICode}
+        }
     }
 }
 CS;
@@ -104,7 +186,8 @@ CS;
         }
 
         if ($action->type === \Perry\UI\ActionType::Closure) {
-            $code = $action->generate(new \Perry\Generator\CSharpGenerator());
+            $generator = new \Perry\Generator\CSharpGenerator(array_keys($this->stateVars));
+            $code = $action->generate($generator);
             return $this->indentCs($code, 3);
         }
 
@@ -146,8 +229,18 @@ CS;
     {
         $text = htmlspecialchars($widget->content());
         $props = $this->generateProperties($widget->getStyle());
+        
+        $nameAttr = '';
+        $binding = $widget->getBinding();
+        if ($binding !== null) {
+            $bindingName = $binding->name;
+            $textBlockName = 'textBlock_' . $bindingName;
+            $this->textBindings[$bindingName] = $textBlockName;
+            $nameAttr = " x:Name=\"{$textBlockName}\"";
+        }
+        
         return <<<XAML
-        {$this->indentStr()}<TextBlock Text="{$text}"{$props} />
+        {$this->indentStr()}<TextBlock Text="{$text}"{$nameAttr}{$props} />
         XAML;
     }
 
@@ -361,18 +454,21 @@ CS;
         }
 
         $props = [];
-
-        // Colors
+        
+        // Colors - fix double # issue
         if ($style->has(StyleProperty::BackgroundColor)) {
-            $props[] = "Background=\"#{$style->get(StyleProperty::BackgroundColor)}\"";
+            $color = ltrim($style->get(StyleProperty::BackgroundColor), '#');
+            $props[] = "Background=\"#{$color}\"";
         }
         if ($style->has(StyleProperty::ForegroundColor)) {
-            $props[] = "Foreground=\"#{$style->get(StyleProperty::ForegroundColor)}\"";
+            $color = ltrim($style->get(StyleProperty::ForegroundColor), '#');
+            $props[] = "Foreground=\"#{$color}\"";
         }
         if ($style->has(StyleProperty::BorderColor)) {
-            $props[] = "BorderBrush=\"#{$style->get(StyleProperty::BorderColor)}\"";
+            $color = ltrim($style->get(StyleProperty::BorderColor), '#');
+            $props[] = "BorderBrush=\"#{$color}\"";
         }
-
+        
         // Sizing
         if ($style->has(StyleProperty::Width)) {
             $props[] = "Width=\"{$style->get(StyleProperty::Width)}\"";
@@ -380,93 +476,22 @@ CS;
         if ($style->has(StyleProperty::Height)) {
             $props[] = "Height=\"{$style->get(StyleProperty::Height)}\"";
         }
-        if ($style->has(StyleProperty::MinWidth)) {
-            $props[] = "MinWidth=\"{$style->get(StyleProperty::MinWidth)}\"";
-        }
-        if ($style->has(StyleProperty::MinHeight)) {
-            $props[] = "MinHeight=\"{$style->get(StyleProperty::MinHeight)}\"";
-        }
-        if ($style->has(StyleProperty::MaxWidth)) {
-            $props[] = "MaxWidth=\"{$style->get(StyleProperty::MaxWidth)}\"";
-        }
-        if ($style->has(StyleProperty::MaxHeight)) {
-            $props[] = "MaxHeight=\"{$style->get(StyleProperty::MaxHeight)}\"";
-        }
-
-        // Border
+        
+        // Border - CornerRadius not supported on StackPanel, skip for now
         if ($style->has(StyleProperty::BorderWidth)) {
             $props[] = "BorderThickness=\"{$style->get(StyleProperty::BorderWidth)}\"";
         }
-        if ($style->has(StyleProperty::CornerRadius)) {
-            $props[] = "CornerRadius=\"{$style->get(StyleProperty::CornerRadius)}\"";
-        }
-
-        // Margin & Padding
-        if ($style->has(StyleProperty::Margin)) {
-            $v = $style->get(StyleProperty::Margin);
-            $props[] = "Margin=\"{$v}\"";
-        }
-        if ($style->has(StyleProperty::Padding)) {
-            $v = $style->get(StyleProperty::Padding);
-            $props[] = "Padding=\"{$v}\"";
-        }
-        if ($style->has(StyleProperty::PaddingTop)) {
-            $v = $style->get(StyleProperty::PaddingTop);
-            $props[] = "Padding=\"{0},{$v},0,0\"";
-        }
-        if ($style->has(StyleProperty::PaddingBottom)) {
-            $v = $style->get(StyleProperty::PaddingBottom);
-            $props[] = "Padding=\"0,0,0,{$v}\"";
-        }
-        if ($style->has(StyleProperty::PaddingLeading)) {
-            $v = $style->get(StyleProperty::PaddingLeading);
-            $props[] = "Padding=\"{$v},0,0,0\"";
-        }
-        if ($style->has(StyleProperty::PaddingTrailing)) {
-            $v = $style->get(StyleProperty::PaddingTrailing);
-            $props[] = "Padding=\"0,0,{$v},0\"";
-        }
-
-        // Opacity
-        if ($style->has(StyleProperty::Opacity)) {
-            $props[] = "Opacity=\"{$style->get(StyleProperty::Opacity)}\"";
-        }
-
+        
+        // Margin & Padding - not supported on StackPanel, skip for VStack/HStack
         // Font
         if ($style->has(StyleProperty::FontSize)) {
             $props[] = "FontSize=\"{$style->get(StyleProperty::FontSize)}\"";
         }
-        if ($style->has(StyleProperty::FontWeight)) {
-            $v = $style->get(StyleProperty::FontWeight);
-            $props[] = "FontWeight=\"{$v}\"";
-        }
-        if ($style->has(StyleProperty::FontFamily)) {
-            $v = $style->get(StyleProperty::FontFamily);
-            $props[] = "FontFamily=\"{$v}\"";
-        }
-        if ($style->has(StyleProperty::TextAlignment)) {
-            $v = $style->get(StyleProperty::TextAlignment);
-            $map = ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'];
-            $align = $map[$v] ?? 'Left';
-            $props[] = "TextAlignment=\"{$align}\"";
-        }
-        if ($style->has(StyleProperty::TextDecoration)) {
-            $v = $style->get(StyleProperty::TextDecoration);
-            $props[] = "TextDecorations=\"{$v}\"";
-        }
-        if ($style->has(StyleProperty::LineSpacing)) {
-            $props[] = "LineHeight=\"{$style->get(StyleProperty::LineSpacing)}\"";
-        }
-
-        // Shadow (elevation approximation)
-        if ($style->has(StyleProperty::ShadowRadius)) {
-            $props[] = "Shadow=\"{$style->get(StyleProperty::ShadowRadius)}\"";
-        }
-
+        
         if (empty($props)) {
             return '';
         }
-
+        
         return ' ' . implode(' ', $props);
     }
 
