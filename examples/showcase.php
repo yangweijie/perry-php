@@ -70,6 +70,12 @@ $increment = Action::fromClosure(
     }
 );
 
+$decrement = Action::fromClosure(
+    function () use ($counter) {
+        $counter--;
+    }
+);
+
 $reset = Action::set($counter, 0);
 
 $submitName = Action::fromClosure(
@@ -88,8 +94,40 @@ $root = new AppContainer(
         new HStack(
             new Text('Status:'),
             new Spacer(),
-            new Text($counter        )->style(Style::make()->fontWeight('bold')),
+            new Text($counter)->style(Style::make()->fontWeight('bold')),
         )->style(Style::make()),
+        
+        new HStack(
+            new Button('-', $decrement)->style(
+                Style::make()
+                    ->backgroundColor('#FF3B30')
+                    ->foregroundColor('#ffffff')
+                    ->fontSize(18)
+                    ->fontWeight('bold')
+                    ->cornerRadius(8)
+                    ->padding(8, 16, 8, 16)
+                    ->width(48)
+            ),
+            new Button('+', $increment)->style(
+                Style::make()
+                    ->backgroundColor('#34C759')
+                    ->foregroundColor('#ffffff')
+                    ->fontSize(18)
+                    ->fontWeight('bold')
+                    ->cornerRadius(8)
+                    ->padding(8, 16, 8, 16)
+                    ->width(48)
+            ),
+            new Button('Reset', $reset)->style(
+                Style::make()
+                    ->backgroundColor('#FF9500')
+                    ->foregroundColor('#ffffff')
+                    ->fontSize(14)
+                    ->fontWeight('bold')
+                    ->cornerRadius(8)
+                    ->padding(8, 16, 8, 16)
+            ),
+        )->style(Style::make()->padding(4)),
         
         new HStack(
             new Text('Agree to terms:'),
@@ -120,8 +158,9 @@ $root = new AppContainer(
                 new Text('Line 3'),
                 new Text('Line 4'),
                 new Text('Line 5'),
-            )->style(Style::make()->padding(16)))
-        )->style(Style::make()->height(100)),
+            )->style(Style::make()->padding(16))
+        )->style(Style::make()->height(100))
+    ),
     null, null, // windowWidth, windowHeight
     $title, $name, $agree, $brightness, $counter // extra bindings
 )->style(

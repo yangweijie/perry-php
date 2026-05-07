@@ -380,12 +380,12 @@ class CSharpGenerator implements IR\Generator
 
     public function generateIncrement(IR\Increment $node): string
     {
-        return $node->prefix ? "++{$node->variable}" : "{$node->variable}++";
+        return ($node->prefix ? "++{$node->variable}" : "{$node->variable}++") . ';';
     }
 
     public function generateDecrement(IR\Decrement $node): string
     {
-        return $node->prefix ? "--{$node->variable}" : "{$node->variable}--";
+        return ($node->prefix ? "--{$node->variable}" : "{$node->variable}--") . ';';
     }
 
     // ============================================================

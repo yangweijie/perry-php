@@ -198,7 +198,31 @@ CS;
             return $this->indentCs($code, 3);
         }
 
+        if ($action->type === \Perry\UI\ActionType::SetValue) {
+            $targetVar = $action->target->name;
+            $value = $this->formatActionValue($action->value);
+            return "            {$targetVar} = {$value};";
+        }
+
         return '            // Action type not yet fully supported for WinUI: ' . $action->type->value;
+    }
+
+    private function formatActionValue(mixed $value): string
+    {
+        if (is_string($value)) {
+            return '"' . addslashes($value) . '"';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (is_float($value)) {
+            $str = (string) $value;
+            return str_contains($str, '.') ? $str : $str . '.0';
+        }
+        if (is_null($value)) {
+            return 'null';
+        }
+        return (string) $value;
     }
 
     private function indentCs(string $code, int $level): string
@@ -244,16 +268,23 @@ XAML);
 
     private function generateText(Text $widget): string
     {
-        $text = htmlspecialchars($widget->content());
         $props = $this->generateProperties($widget->getStyle());
         
         $nameAttr = '';
+        $text = '';
         $binding = $widget->getBinding();
         if ($binding !== null) {
             $bindingName = $binding->name;
             $textBlockName = 'textBlock_' . $bindingName;
             $this->textBindings[$bindingName] = $textBlockName;
             $nameAttr = " x:Name=\"{$textBlockName}\"";
+            // Use binding's initial value as the initial XAML display text
+            $initial = $binding->initialValue;
+            if ($initial !== null) {
+                $text = htmlspecialchars((string) $initial);
+            }
+        } else {
+            $text = htmlspecialchars($widget->content());
         }
         
         return trim(<<<XAML
@@ -264,7 +295,16 @@ XAML);
     private function generateButton(Button $widget): string
     {
         $label = htmlspecialchars($widget->label());
-        $props = $this->generateProperties($widget->getStyle());
+        $style = $widget->getStyle();
+
+        // WPF Button 不支持 CornerRadius 属性（仅 Border 支持），需将其分离出来
+        $cornerRadius = null;
+        if ($style !== null && $style->has(StyleProperty::CornerRadius)) {
+            $cornerRadius = $style->get(StyleProperty::CornerRadius);
+        }
+
+        // 生成按钮属性时排除 CornerRadius，后续通过 ControlTemplate 处理
+        $buttonProps = $this->generateProperties($style, ['cornerRadius']);
 
         $action = $widget->getAction();
         $clickAttr = '';
@@ -275,8 +315,23 @@ XAML);
             $clickAttr = " Click=\"{$methodName}\"";
         }
 
+        if ($cornerRadius !== null) {
+            return trim(<<<XAML
+        {$this->indentStr()}<Button{$buttonProps}{$clickAttr}>
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border CornerRadius="{$cornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Button.Template>
+            <TextBlock Text="{$label}" />
+        </Button>
+XAML);
+        }
+
         return trim(<<<XAML
-        {$this->indentStr()}<Button Content="{$label}"{$props}{$clickAttr} />
+        {$this->indentStr()}<Button Content="{$label}"{$buttonProps}{$clickAttr} />
 XAML);
     }
 
@@ -490,8 +545,9 @@ XAML);
         $this->indent--;
 
         $props = $this->generateProperties($widget->getStyle());
+        $scrollAttrs = ' VerticalScrollBarVisibility="Auto"';
         return trim(<<<XAML
-        {$this->indentStr()}<ScrollViewer{$props}>
+        {$this->indentStr()}<ScrollViewer{$props}{$scrollAttrs}>
         {$children}
         {$this->indentStr()}</ScrollViewer>
 XAML);
