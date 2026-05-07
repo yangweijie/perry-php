@@ -563,6 +563,14 @@ SETTINGS;
                 <AssemblyName>{$appName}</AssemblyName>
                 <Nullable>enable</Nullable>
             </PropertyGroup>
+            <ItemGroup>
+                <Page Include="MainWindow.xaml" />
+                <Page Include="App.xaml" />
+            </ItemGroup>
+            <ItemGroup>
+                <Compile Include="MainWindow.xaml.cs" />
+                <Compile Include="App.xaml.cs" />
+            </ItemGroup>
         </Project>
         XML;
     }

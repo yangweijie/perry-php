@@ -69,29 +69,23 @@ final class WinUIBackend extends CodegenBackend
         }
         
         $body = $this->generateWidget($root);
+        $indentedBody = implode("\n", array_map(
+            fn($line) => '            ' . $line,
+            explode("\n", $body)
+        ));
 
-        return <<<XAML
-<Window
-    x:Class="PerryApp.MainWindow"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Perry Calculator - Working!"
-    Width="600"
-    Height="800"
-    Left="100"
-    Top="100"
-    Background="#FFFFFF"
-    ShowInTaskbar="True"
-    ResizeMode="CanResize"
-    WindowStyle="SingleBorderWindow">
-    <Border BorderBrush="#FF0000" BorderThickness="5">
-        <StackPanel Background="#FFFF00" Margin="20">
-            <TextBlock Text="=== CALCULATOR IS WORKING! ===" FontSize="24" FontWeight="Bold" Foreground="#FF0000" HorizontalAlignment="Center" Margin="10"/>
-            {$body}
-        </StackPanel>
-    </Border>
+        return trim(<<<XAML
+<Window x:Class="PerryApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Perry App"
+        Width="{$this->windowWidth}"
+        Height="{$this->windowHeight}"
+        Background="White"
+        WindowStartupLocation="CenterScreen">
+{$indentedBody}
 </Window>
-XAML;
+XAML);
     }
 
     private function generateFields(): string
@@ -139,22 +133,14 @@ CS;
 
         $fields = $this->generateFields();
         
-        $textBlockFieldDeclarations = '';
-        foreach ($this->textBindings as $bindingName => $textBlockName) {
-            $textBlockFieldDeclarations .= "        internal System.Windows.Controls.TextBlock {$textBlockName};\n";
-        }
-        
         $updateUICode = '';
         foreach ($this->textBindings as $bindingName => $textBlockName) {
             $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}?.ToString() ?? \"\";\n";
         }
-        
-        $findNameCode = '';
-        foreach ($this->textBindings as $bindingName => $textBlockName) {
-            $findNameCode .= "            {$textBlockName} = FindName(\"{$textBlockName}\") as System.Windows.Controls.TextBlock;\n";
-        }
 
         return <<<CS
+using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -162,10 +148,9 @@ namespace PerryApp
 {
     public partial class MainWindow : Window
     {
-{$fields}{$textBlockFieldDeclarations}
+{$fields}
         public MainWindow() {
             InitializeComponent();
-{$findNameCode}
             UpdateUI();
         }
 {$methods}
@@ -239,9 +224,9 @@ CS;
             $nameAttr = " x:Name=\"{$textBlockName}\"";
         }
         
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<TextBlock Text="{$text}"{$nameAttr}{$props} />
-        XAML;
+XAML);
     }
 
     private function generateButton(Button $widget): string
@@ -258,9 +243,9 @@ CS;
             $clickAttr = " Click=\"{$methodName}\"";
         }
 
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<Button Content="{$label}"{$props}{$clickAttr} />
-        XAML;
+XAML);
     }
 
     private function safeMethodName(string $label): string
@@ -287,11 +272,11 @@ CS;
         $this->indent--;
 
         $props = $this->generateProperties($widget->getStyle());
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<StackPanel Orientation="Vertical"{$props}>
         {$children}
         {$this->indentStr()}</StackPanel>
-        XAML;
+XAML);
     }
 
     private function generateHStack(HStack $widget): string
@@ -301,26 +286,26 @@ CS;
         $this->indent--;
 
         $props = $this->generateProperties($widget->getStyle());
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<StackPanel Orientation="Horizontal"{$props}>
         {$children}
         {$this->indentStr()}</StackPanel>
-        XAML;
+XAML);
     }
 
     private function generateSpacer(Spacer $widget): string
     {
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<Border />
-        XAML;
+XAML);
     }
 
     private function generateImage(Image $widget): string
     {
         $src = htmlspecialchars($widget->source());
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<Image Source="{$src}" />
-        XAML;
+XAML);
     }
 
     private function generateScrollView(ScrollView $widget): string
@@ -329,11 +314,11 @@ CS;
         $children = $this->generateChildren($widget->children());
         $this->indent--;
 
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<ScrollViewer>
         {$children}
         {$this->indentStr()}</ScrollViewer>
-        XAML;
+XAML);
     }
 
     private function generateSlider(Slider $widget): string
@@ -353,13 +338,13 @@ CS;
             $onChange = " ValueChanged=\"{$methodName}\"";
         }
 
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<Slider
             Minimum="{$min}"
             Maximum="{$max}"
             Step="{$step}"
             Value="{Binding ElementName={$name}}"{$onChange}{$props} />
-        XAML;
+XAML);
     }
 
     private function generateTextInput(TextInput $widget): string
@@ -377,11 +362,11 @@ CS;
             $onChange = " TextChanged=\"{$methodName}\"";
         }
 
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<TextBox
             PlaceholderText="{$placeholder}"
             Text="{Binding ElementName={$name}}"{$onChange}{$props} />
-        XAML;
+XAML);
     }
 
     private function generateToggle(Toggle $widget): string
@@ -397,9 +382,9 @@ CS;
             $onToggle = " IsCheckedChanged=\"{$methodName}\"";
         }
 
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<ToggleSwitch Header="{$label}"{$onToggle}{$props} />
-        XAML;
+XAML);
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
@@ -407,11 +392,11 @@ CS;
         $this->indent++;
         $items = $this->generateChildren($widget->items());
         $this->indent--;
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<ItemsControl>
         {$items}
         {$this->indentStr()}</ItemsControl>
-        XAML;
+XAML);
     }
 
     private function generateNavigationView(NavigationView $widget): string
@@ -419,11 +404,11 @@ CS;
         $this->indent++;
         $screens = $this->generateChildren($widget->screens());
         $this->indent--;
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<Frame>
         {$screens}
         {$this->indentStr()}</Frame>
-        XAML;
+XAML);
     }
 
     private function generateTabView(TabView $widget): string
@@ -431,11 +416,11 @@ CS;
         $this->indent++;
         $tabs = $this->generateChildren($widget->tabs());
         $this->indent--;
-        return <<<XAML
+        return trim(<<<XAML
         {$this->indentStr()}<TabControl>
         {$tabs}
         {$this->indentStr()}</TabControl>
-        XAML;
+XAML);
     }
 
     private function generateChildren(array $children): string

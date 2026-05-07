@@ -77,16 +77,12 @@ class CSharpGenerator implements IR\Generator
             default => $node->op,
         };
 
-        if ($node->right instanceof IR\Literal && $node->right->value === false && $op === '==') {
-            return "!{$node->left->accept($this)}";
-        }
-
         if ($node->left instanceof IR\FunctionCall && $node->left->name === 'strpos') {
-            if ($op === '===') {
+            if ($op === '==') {
                 if ($node->right instanceof IR\Literal && $node->right->value === false) {
                     return "{$node->left->accept($this)} == -1";
                 }
-            } elseif ($op === '!==') {
+            } elseif ($op === '!=') {
                 if ($node->right instanceof IR\Literal && $node->right->value === false) {
                     return "{$node->left->accept($this)} != -1";
                 }
@@ -98,6 +94,10 @@ class CSharpGenerator implements IR\Generator
 
     public function generateUnaryOp(IR\UnaryOp $node): string
     {
+        // Handle !strpos() - C# can't use ! on int, need to use == -1
+        if ($node->op === '!' && $node->operand instanceof IR\FunctionCall && $node->operand->name === 'strpos') {
+            return "{$node->operand->accept($this)} == -1";
+        }
         return "{$node->op}{$node->operand->accept($this)}";
     }
 
