@@ -27,7 +27,7 @@ final class WinUIBackend extends CodegenBackend
 {
     private int $indent = 0;
 
-    /** @var array<array{id: string, method: string, action: \Perry\UI\Action}> */
+    /** @var array<array{id: string, method: string, action: \Perry\UI\Action, eventType?: string, bindingName?: string}> */
     private array $buttonActions = [];
 
     /** @var array<string, mixed> */
@@ -118,14 +118,31 @@ XAML);
     public function generateMainActivity(string $outputName): string
     {
         $methods = '';
+        $hasSliderEvent = false;
+        $hasTextChanged = false;
         foreach ($this->buttonActions as $item) {
             $action = $item['action'];
             $methodName = $item['method'];
+            
+            $eventArgsType = 'RoutedEventArgs';
+            $prependCode = '';
+            if (isset($item['eventType'])) {
+                if ($item['eventType'] === 'ValueChanged') {
+                    $hasSliderEvent = true;
+                    $eventArgsType = 'RoutedPropertyChangedEventArgs<double>';
+                    $prependCode = "            {$item['bindingName']} = e.NewValue;\n";
+                } elseif ($item['eventType'] === 'TextChanged') {
+                    $hasTextChanged = true;
+                    $eventArgsType = 'TextChangedEventArgs';
+                    $prependCode = "            {$item['bindingName']} = ((TextBox)sender).Text;\n";
+                }
+            }
+            
             $body = $this->generateActionBody($action);
             $methods .= <<<CS
 
-        private void {$methodName}(object sender, RoutedEventArgs e) {
-{$body}
+        private void {$methodName}(object sender, {$eventArgsType} e) {
+{$prependCode}{$body}
             UpdateUI();
         }
 CS;
@@ -135,15 +152,17 @@ CS;
         
         $updateUICode = '';
         foreach ($this->textBindings as $bindingName => $textBlockName) {
-            $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}?.ToString() ?? \"\";\n";
+            $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}.ToString() ?? \"\";\n";
         }
 
-        return <<<CS
-using System;
-using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
+        $usings = "using System;\n";
+        if ($hasSliderEvent) {
+            $usings .= "using System.Windows.Controls.Primitives;\n";
+        }
+        $usings .= "using System.Windows;\nusing System.Windows.Controls;\n";
 
+        return <<<CS
+{$usings}
 namespace PerryApp
 {
     public partial class MainWindow : Window
@@ -334,16 +353,22 @@ XAML);
         $action = $widget->getOnChange();
         if ($action !== null) {
             $methodName = 'On' . ucfirst($name) . 'Change';
-            $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
+            $this->buttonActions[] = [
+                'id' => $name,
+                'method' => $methodName,
+                'action' => $action,
+                'eventType' => 'ValueChanged',
+                'bindingName' => $name,
+            ];
             $onChange = " ValueChanged=\"{$methodName}\"";
         }
 
         return trim(<<<XAML
         {$this->indentStr()}<Slider
+            x:Name="slider_{$name}"
             Minimum="{$min}"
             Maximum="{$max}"
-            Step="{$step}"
-            Value="{Binding ElementName={$name}}"{$onChange}{$props} />
+            TickFrequency="{$step}"{$onChange}{$props} />
 XAML);
     }
 
@@ -358,14 +383,20 @@ XAML);
         $action = $widget->getOnChange();
         if ($action !== null) {
             $methodName = 'On' . ucfirst($name) . 'Change';
-            $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
+            $this->buttonActions[] = [
+                'id' => $name,
+                'method' => $methodName,
+                'action' => $action,
+                'eventType' => 'TextChanged',
+                'bindingName' => $name,
+            ];
             $onChange = " TextChanged=\"{$methodName}\"";
         }
 
         return trim(<<<XAML
         {$this->indentStr()}<TextBox
-            PlaceholderText="{$placeholder}"
-            Text="{Binding ElementName={$name}}"{$onChange}{$props} />
+            x:Name="textbox_{$name}"
+            PlaceholderText="{$placeholder}"{$onChange}{$props} />
 XAML);
     }
 
@@ -377,13 +408,14 @@ XAML);
         $onToggle = '';
         $action = $widget->getOnToggle();
         if ($action !== null) {
-            $methodName = 'On' . ucfirst($label) . 'Toggle';
-            $this->buttonActions[] = ['id' => $label, 'method' => $methodName, 'action' => $action];
-            $onToggle = " IsCheckedChanged=\"{$methodName}\"";
+            $safeId = $this->safeMethodName($widget->label());
+            $methodName = 'On' . $safeId . 'Toggle';
+            $this->buttonActions[] = ['id' => $widget->label(), 'method' => $methodName, 'action' => $action];
+            $onToggle = " Click=\"{$methodName}\"";
         }
 
         return trim(<<<XAML
-        {$this->indentStr()}<ToggleSwitch Header="{$label}"{$onToggle}{$props} />
+        {$this->indentStr()}<CheckBox Content="{$label}"{$onToggle}{$props} />
 XAML);
     }
 

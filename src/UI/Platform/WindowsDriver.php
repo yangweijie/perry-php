@@ -55,7 +55,7 @@ final class WindowsDriver extends AbstractPlatformDriver
 
     protected function createToggle(Widget $widget): array
     {
-        return ['type' => 'ToggleSwitch', 'header' => $widget->label()];
+        return ['type' => 'CheckBox', 'content' => $widget->label()];
     }
 
     protected function applyStyleProperty(mixed $native, string $property, mixed $value): void
