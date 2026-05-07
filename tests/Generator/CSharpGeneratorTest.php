@@ -10,7 +10,7 @@ test('CSharpGenerator generates var declaration', function () {
     $gen = new CSharpGenerator([]);
     $result = $gen->generate($assign);
     
-    expect($result)->toBe('var count = 0');
+    expect($result)->toBe('var count = 0;');
 });
 
 test('CSharpGenerator generates state var assignment', function () {
@@ -20,7 +20,7 @@ test('CSharpGenerator generates state var assignment', function () {
     $gen = new CSharpGenerator(['display']);
     $result = $gen->generate($assign);
     
-    expect($result)->toBe('display = "0"');
+    expect($result)->toBe('display = "0";');
 });
 
 test('CSharpGenerator generates Convert.ToDouble', function () {

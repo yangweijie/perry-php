@@ -360,7 +360,7 @@ final class AndroidXmlBackend extends CodegenBackend
     private function generateToggle(Toggle $widget): string
     {
         $label = htmlspecialchars($widget->label());
-        $binding = $widget->getBinding();
+        $binding = $widget->getIsOn();
         $idLine = '';
         if ($binding !== null) {
             $idLine = "{$this->indentStr()}    android:id=\"@+id/sw_{$binding->name}\"\n";
@@ -547,12 +547,10 @@ final class AndroidXmlBackend extends CodegenBackend
         $max = $widget->max();
         $step = $widget->step();
 
-        $onChange = '';
         $action = $widget->getOnChange();
         if ($action !== null) {
             $methodName = 'on' . ucfirst($name) . 'Change';
             $this->buttonActions[] = ['id' => $name, 'method' => $methodName, 'action' => $action];
-            $onChange = " android:onSeekBarChangeListener=\"{$methodName}\"";
         }
 
         return <<<XML
@@ -562,7 +560,7 @@ final class AndroidXmlBackend extends CodegenBackend
             android:layout_height="wrap_content"
             android:minHeight="{$min}dp"
             android:maxHeight="{$max}dp"
-            android:stepSize="{$step}"{$onChange} />
+            android:stepSize="{$step}" />
         XML;
     }
 
@@ -628,7 +626,7 @@ KOTLIN;
         }
 
         return <<<KOTLIN
-package com.perry.{$outputName}
+package com.perry.showcase
 
 import android.os.Bundle
 import android.view.View

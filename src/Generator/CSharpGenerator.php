@@ -249,9 +249,9 @@ class CSharpGenerator implements IR\Generator
 
     public function generateFor(IR\ForStatement $node): string
     {
-        $init = !empty($node->init) ? implode('; ', array_map(fn($n) => $n->accept($this), $node->init)) : '';
-        $cond = !empty($node->cond) ? implode('; ', array_map(fn($n) => $n->accept($this), $node->cond)) : '';
-        $loop = !empty($node->loop) ? implode('; ', array_map(fn($n) => $n->accept($this), $node->loop)) : '';
+        $init = !empty($node->init) ? rtrim(implode('; ', array_map(fn($n) => rtrim($n->accept($this), ';'), $node->init)), ';') : '';
+        $cond = !empty($node->cond) ? rtrim(implode('; ', array_map(fn($n) => rtrim($n->accept($this), ';'), $node->cond)), ';') : '';
+        $loop = !empty($node->loop) ? rtrim(implode('; ', array_map(fn($n) => rtrim($n->accept($this), ';'), $node->loop)), ';') : '';
 
         $result = "for ({$init}; {$cond}; {$loop})\n";
         $result .= $this->indent() . "{\n";

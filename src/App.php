@@ -18,6 +18,7 @@ final class App
     private ?PlatformDriver $driver = null;
     private BuildPipeline $pipeline;
     private CodegenFactory $codegen;
+    private ?Target $overrideTarget = null;
 
     public function __construct(?Target $target = null)
     {
@@ -75,13 +76,20 @@ final class App
         return $backend->generate($this->root);
     }
 
+    public function setTarget(Target $target): void
+    {
+        $this->overrideTarget = $target;
+        $this->pipeline = new BuildPipeline($target);
+    }
+
     public function generateForTarget(): string
     {
         if ($this->root === null) {
             throw new \RuntimeException('No root widget set. Call setRoot() before generateForTarget().');
         }
 
-        $backend = $this->codegen->forTarget($this->pipeline->target());
+        $target = $this->overrideTarget ?? $this->pipeline->target();
+        $backend = $this->codegen->forTarget($target);
         return $backend->generate($this->root);
     }
 

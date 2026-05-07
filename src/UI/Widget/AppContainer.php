@@ -57,7 +57,22 @@ final class AppContainer extends Widget
         if ($widget instanceof Text && $widget->getBinding()) {
             $this->bindings[$widget->getBinding()->name] = $widget->getBinding();
         }
-
+        
+        if (method_exists($widget, 'getBinding') && $widget->getBinding()) {
+            $binding = $widget->getBinding();
+            $this->bindings[$binding->name] = $binding;
+        }
+        
+        if (method_exists($widget, 'value') && $widget->value() instanceof \Perry\UI\Binding) {
+            $binding = $widget->value();
+            $this->bindings[$binding->name] = $binding;
+        }
+        
+        if (method_exists($widget, 'getIsOn') && $widget->getIsOn()) {
+            $binding = $widget->getIsOn();
+            $this->bindings[$binding->name] = $binding;
+        }
+        
         foreach ($widget->children() as $child) {
             $this->collectBindings($child);
         }

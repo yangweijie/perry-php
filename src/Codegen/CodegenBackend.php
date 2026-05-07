@@ -9,11 +9,22 @@ use Perry\UI\Widget;
 
 abstract class CodegenBackend
 {
+    protected int $objectId = 0;
+
     abstract public function name(): string;
 
     abstract public function supports(Target $target): bool;
 
     abstract public function generate(Widget $root): string;
+
+    /**
+     * Generate a unique ID for widgets.
+     * Override in subclasses if you need a specific prefix.
+     */
+    protected function nextId(): string
+    {
+        return 'widget_' . (string) ++$this->objectId;
+    }
 
     /**
      * Generate platform-specific main activity/entry point code.

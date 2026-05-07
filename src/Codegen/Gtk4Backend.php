@@ -27,10 +27,18 @@ use Perry\UI\Action;
 final class Gtk4Backend extends CodegenBackend
 {
     private int $indent = 0;
-    private int $objectId = 0;
 
     /** @var array<array{id: string, method: string, action: Action}> */
     private array $buttonActions = [];
+    
+    /** @var array<array{id: string, action: Action}> */
+    private array $sliderActions = [];
+    
+    /** @var array<array{id: string, action: Action}> */
+    private array $textInputActions = [];
+    
+    /** @var array<array{id: string, action: Action}> */
+    private array $toggleActions = [];
 
     public function name(): string
     {
@@ -47,6 +55,9 @@ final class Gtk4Backend extends CodegenBackend
         $this->indent = 0;
         $this->objectId = 0;
         $this->buttonActions = [];
+        $this->sliderActions = [];
+        $this->textInputActions = [];
+        $this->toggleActions = [];
         $body = $this->generateWidget($root);
 
         return <<<XML
@@ -143,11 +154,6 @@ C;
         $lines = explode("\n", $code);
         $indent = str_repeat('    ', $level);
         return implode("\n", array_map(fn($line) => $indent . $line, $lines));
-    }
-
-    private function nextId(): string
-    {
-        return 'obj_' . (++$this->objectId);
     }
 
     private function generateWidget(Widget $widget): string
@@ -474,5 +480,92 @@ C;
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    private function generateSlider(\Perry\UI\Widget\Slider $widget): string
+    {
+        $id = $this->nextId();
+        $binding = $widget->value();
+        $min = $widget->min();
+        $max = $widget->max();
+        $step = $widget->step();
+        $onChange = $widget->getOnChange();
+
+        $props = $this->generateProperties($widget->getStyle());
+        $bindingExpr = $binding ? '$' . $binding->name : '$0';
+        
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkScale" id="{$id}">
+{$this->indentStr()}    <property name="orientation">horizontal</property>
+{$this->indentStr()}    <property name="adjustment">
+{$this->indentStr()}        <object class="GtkAdjustment">
+{$this->indentStr()}            <property name="lower">{$min}</property>
+{$this->indentStr()}            <property name="upper">{$max}</property>
+{$this->indentStr()}            <property name="value">{$bindingExpr}</property>
+{$this->indentStr()}            <property name="step_increment">{$step}</property>
+{$this->indentStr()}        </object>
+{$this->indentStr()}    </property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+
+        if ($onChange !== null) {
+            $this->sliderActions[] = ['id' => $id, 'action' => $onChange];
+            $result .= "{$this->indentStr()}<signal name=\"value-changed\" handler=\"on_{$id}_value_changed\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateTextInput(\Perry\UI\Widget\TextInput $widget): string
+    {
+        $id = $this->nextId();
+        $placeholder = addslashes($widget->placeholder());
+        $binding = $widget->binding();
+        $onChange = $widget->getOnChange();
+
+        $props = $this->generateProperties($widget->getStyle());
+        $bindingExpr = $binding ? '$' . $binding->id : '""';
+        
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkEntry" id="{$id}">
+{$this->indentStr()}    <property name="placeholder-text">{$placeholder}</property>
+{$this->indentStr()}    <property name="text">{$bindingExpr}</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+
+        if ($onChange !== null) {
+            $this->textInputActions[] = ['id' => $id, 'action' => $onChange];
+            $result .= "{$this->indentStr()}<signal name=\"changed\" handler=\"on_{$id}_changed\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateToggle(\Perry\UI\Widget\Toggle $widget): string
+    {
+        $id = $this->nextId();
+        $label = addslashes($widget->label());
+        $isOn = $widget->getIsOn();
+        $onToggle = $widget->getOnToggle();
+
+        $props = $this->generateProperties($widget->getStyle());
+        $isOnExpr = $isOn ? '$' . $isOn->name : 'false';
+        
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkCheckButton" id="{$id}">
+{$this->indentStr()}    <property name="label">{$label}</property>
+{$this->indentStr()}    <property name="active">{$isOnExpr}</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+
+        if ($onToggle !== null) {
+            $this->toggleActions[] = ['id' => $id, 'action' => $onToggle];
+            $result .= "{$this->indentStr()}<signal name=\"state-set\" handler=\"on_{$id}_state_set\"/>\n";
+        }
+
+        return rtrim($result);
     }
 }

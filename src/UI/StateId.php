@@ -8,6 +8,7 @@ final readonly class StateId
 {
     public function __construct(
         public string $id,
+        public string $name = '',
     ) {}
 
     public static function next(): self

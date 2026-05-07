@@ -536,4 +536,38 @@ final class HtmlBackend extends CodegenBackend
         $styleStr = implode('; ', $css);
         return " style=\"{$styleStr}\"";
     }
+
+    private function mapFontWeight($weight): string
+    {
+        $map = [
+            'bold' => 'bold',
+            'normal' => 'normal',
+            'light' => 'lighter',
+            'semibold' => '600',
+            'medium' => '500',
+            'regular' => 'normal',
+        ];
+        return $map[$weight] ?? $weight;
+    }
+
+    private function mapTextAlignment(string $alignment): string
+    {
+        return match ($alignment) {
+            'left' => 'left',
+            'right' => 'right',
+            'center' => 'center',
+            'justify' => 'justify',
+            default => 'left',
+        };
+    }
+
+    private function mapTextDecoration(string $decoration): string
+    {
+        return match ($decoration) {
+            'underline' => 'underline',
+            'line-through' => 'line-through',
+            'overline' => 'overline',
+            default => 'none',
+        };
+    }
 }

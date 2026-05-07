@@ -220,7 +220,8 @@ final class SwiftUIBackend extends CodegenBackend
     {
         $binding = $widget->getBinding();
         if ($binding) {
-            $content = $binding->name;
+            // SwiftUI Text needs string interpolation for state variables
+            $content = '"\\(' . $binding->name . ')"';
         } else {
             $content = '"' . addslashes($widget->content()) . '"';
         }
@@ -334,14 +335,16 @@ final class SwiftUIBackend extends CodegenBackend
         $max = $widget->max();
         $step = $widget->step();
         $modifiers = $this->generateModifiers($widget->getStyle());
-
+        
         $action = $widget->getOnChange();
-        $onChange = '';
+        $onEditingChanged = '';
         if ($action !== null) {
-            $onChange = ' onEditingChanged: {' . $this->generateAction($action) . '}';
+            // onEditingChanged expects (Bool) -> Void closure
+            $actionBody = $this->generateAction($action);
+            $onEditingChanged = ", onEditingChanged: { _ in\n" . $this->indentStr() . "    " . $actionBody . "\n" . $this->indentStr() . "}";
         }
 
-        return "Slider(value: \${$name}, in: {$min}...{$max}, step: {$step}){$modifiers}{$onChange}";
+        return "Slider(value: \${$name}, in: {$min}...{$max}, step: {$step}{$onEditingChanged}){$modifiers}";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
@@ -371,12 +374,26 @@ final class SwiftUIBackend extends CodegenBackend
     private function generateToggle(Toggle $widget): string
     {
         $label = addslashes($widget->label());
-        $action = $widget->getOnToggle();
-        $onToggle = '';
-        if ($action !== null) {
-            $onToggle = ' onTapGesture: {' . $this->generateAction($action) . '}';
+        $isOn = $widget->getIsOn();
+        $onToggle = $widget->getOnToggle();
+
+        $isOnExpr = '.constant(false)';
+        if ($isOn !== null) {
+            $isOnExpr = '$' . $isOn->name;
         }
-        return "Toggle(\"{$label}\", isOn: .constant(false)){$onToggle}";
+
+        $result = "Toggle(\"{$label}\", isOn: {$isOnExpr})";
+        
+        if ($onToggle !== null) {
+            // onChange needs wrapped value (without $), not Binding
+            $onChangeExpr = $isOnExpr;
+            if (str_starts_with($isOnExpr, '$')) {
+                $onChangeExpr = substr($isOnExpr, 1);
+            }
+            $result .= ".onChange(of: " . $onChangeExpr . ") {" . $this->generateAction($onToggle) . "}";
+        }
+
+        return $result;
     }
 
     private function generateChildren(array $children): string
@@ -487,15 +504,20 @@ final class SwiftUIBackend extends CodegenBackend
         return sprintf('Color(red: %.2f, green: %.2f, blue: %.2f)', $r, $g, $b);
     }
 
-    private function mapFontWeight(int $weight): string
+    private function mapFontWeight(string $weight): string
     {
-        return match ($weight) {
-            700 => 'Font.Weight.bold',
-            600 => 'Font.Weight.semibold',
-            500 => 'Font.Weight.medium',
-            300 => 'Font.Weight.light',
-            default => 'Font.Weight.regular',
-        };
+        $map = [
+            'bold' => '.bold',
+            'semibold' => '.semibold',
+            'medium' => '.medium',
+            'light' => '.light',
+            'regular' => '.regular',
+            700 => '.bold',
+            600 => '.semibold',
+            500 => '.medium',
+            300 => '.light',
+        ];
+        return $map[$weight] ?? '.regular';
     }
 
     private function mapTextAlignment(string $alignment): string
