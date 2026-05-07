@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\Codegen;
 
 use Perry\Build\Target;
+use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\Button;
@@ -135,6 +136,8 @@ XAML);
                     $hasTextChanged = true;
                     $eventArgsType = 'TextChangedEventArgs';
                     $prependCode = "            {$item['bindingName']} = ((TextBox)sender).Text;\n";
+                } elseif ($item['eventType'] === 'CheckChanged') {
+                    $prependCode = "            {$item['bindingName']} = ((CheckBox)sender).IsChecked ?? false;\n";
                 }
             }
             
@@ -208,7 +211,17 @@ CS;
     private function generateWidget(Widget $widget): string
     {
         if ($widget instanceof AppContainer) {
-            return $this->generateWidget($widget->content());
+            $content = $this->generateWidget($widget->content());
+            $containerStyle = $widget->getStyle();
+            if ($containerStyle !== null) {
+                $props = $this->generateProperties($containerStyle);
+                $content = trim(<<<XAML
+        {$this->indentStr()}<Border{$props}>
+{$content}
+        {$this->indentStr()}</Border>
+XAML);
+            }
+            return $content;
         }
 
         return match ($widget->kind()) {
@@ -284,38 +297,181 @@ XAML);
         return $map[$label] ?? ucfirst(preg_replace('/[^a-zA-Z0-9]/', '', $label));
     }
 
+    private const PADDING_PROPS = [
+        'padding', 'padding_top', 'padding_bottom', 'padding_leading', 'padding_trailing',
+    ];
+
     private function generateVStack(VStack $widget): string
     {
+        $children = $widget->children();
+        if ($this->hasSpacerChild($children)) {
+            return $this->generateVStackGrid($widget, $children);
+        }
+
+        $style = $widget->getStyle();
+        $hasPadding = $style !== null && $this->styleHasPadding($style);
+
         $this->indent++;
-        $children = $this->generateChildren($widget->children());
+        $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $props = $this->generateProperties($widget->getStyle());
-        return trim(<<<XAML
-        {$this->indentStr()}<StackPanel Orientation="Vertical"{$props}>
-        {$children}
+        $stackProps = $hasPadding
+            ? $this->generateProperties($style, self::PADDING_PROPS)
+            : $this->generateProperties($style);
+
+        $stackPanel = trim(<<<XAML
+        {$this->indentStr()}<StackPanel Orientation="Vertical"{$stackProps}>
+        {$childXaml}
         {$this->indentStr()}</StackPanel>
 XAML);
+
+        if ($hasPadding) {
+            $borderProps = $this->generateProperties($style, [], self::PADDING_PROPS);
+            return trim(<<<XAML
+        {$this->indentStr()}<Border{$borderProps}>
+{$stackPanel}
+        {$this->indentStr()}</Border>
+XAML);
+        }
+
+        return $stackPanel;
     }
 
     private function generateHStack(HStack $widget): string
     {
+        $children = $widget->children();
+        if ($this->hasSpacerChild($children)) {
+            return $this->generateHStackGrid($widget, $children);
+        }
+
+        $style = $widget->getStyle();
+        $hasPadding = $style !== null && $this->styleHasPadding($style);
+
         $this->indent++;
-        $children = $this->generateChildren($widget->children());
+        $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $props = $this->generateProperties($widget->getStyle());
-        return trim(<<<XAML
-        {$this->indentStr()}<StackPanel Orientation="Horizontal"{$props}>
-        {$children}
+        $stackProps = $hasPadding
+            ? $this->generateProperties($style, self::PADDING_PROPS)
+            : $this->generateProperties($style);
+
+        $stackPanel = trim(<<<XAML
+        {$this->indentStr()}<StackPanel Orientation="Horizontal"{$stackProps}>
+        {$childXaml}
         {$this->indentStr()}</StackPanel>
 XAML);
+
+        if ($hasPadding) {
+            $borderProps = $this->generateProperties($style, [], self::PADDING_PROPS);
+            return trim(<<<XAML
+        {$this->indentStr()}<Border{$borderProps}>
+{$stackPanel}
+        {$this->indentStr()}</Border>
+XAML);
+        }
+
+        return $stackPanel;
+    }
+
+    private function styleHasPadding(Style $style): bool
+    {
+        return $style->has(StyleProperty::Padding)
+            || $style->has(StyleProperty::PaddingTop)
+            || $style->has(StyleProperty::PaddingBottom)
+            || $style->has(StyleProperty::PaddingLeading)
+            || $style->has(StyleProperty::PaddingTrailing);
+    }
+
+    /**
+     * @param array<int, Widget> $children
+     */
+    private function hasSpacerChild(array $children): bool
+    {
+        foreach ($children as $child) {
+            if ($child instanceof Spacer) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param array<int, Widget> $children
+     */
+    private function generateHStackGrid(HStack $widget, array $children): string
+    {
+        $this->indent++;
+        $colDefs = '';
+        $childParts = [];
+        foreach ($children as $i => $child) {
+            $colDefs .= "                <ColumnDefinition Width=\"" . ($child instanceof Spacer ? '*' : 'Auto') . "\" />\n";
+            if ($child instanceof Spacer) {
+                $childParts[] = $this->indentStr() . "<Rectangle Grid.Column=\"{$i}\" Fill=\"Transparent\" />";
+            } else {
+                $xaml = $this->generateWidget($child);
+                $xaml = $this->addGridPosition($xaml, $i, 'Column');
+                $childParts[] = $xaml;
+            }
+        }
+        $this->indent--;
+        $colDefs = rtrim($colDefs);
+        $childrenXaml = implode("\n", $childParts);
+
+        return <<<XAML
+        {$this->indentStr()}<Grid>
+        {$this->indentStr()}    <Grid.ColumnDefinitions>
+{$colDefs}
+        {$this->indentStr()}    </Grid.ColumnDefinitions>
+        {$childrenXaml}
+        {$this->indentStr()}</Grid>
+XAML;
+    }
+
+    /**
+     * @param array<int, Widget> $children
+     */
+    private function generateVStackGrid(VStack $widget, array $children): string
+    {
+        $this->indent++;
+        $rowDefs = '';
+        $childParts = [];
+        foreach ($children as $i => $child) {
+            $rowDefs .= "                <RowDefinition Height=\"" . ($child instanceof Spacer ? '*' : 'Auto') . "\" />\n";
+            if ($child instanceof Spacer) {
+                $childParts[] = $this->indentStr() . "<Rectangle Grid.Row=\"{$i}\" Fill=\"Transparent\" />";
+            } else {
+                $xaml = $this->generateWidget($child);
+                $xaml = $this->addGridPosition($xaml, $i, 'Row');
+                $childParts[] = $xaml;
+            }
+        }
+        $this->indent--;
+        $rowDefs = rtrim($rowDefs);
+        $childrenXaml = implode("\n", $childParts);
+
+        return <<<XAML
+        {$this->indentStr()}<Grid>
+        {$this->indentStr()}    <Grid.RowDefinitions>
+{$rowDefs}
+        {$this->indentStr()}    </Grid.RowDefinitions>
+        {$childrenXaml}
+        {$this->indentStr()}</Grid>
+XAML;
+    }
+
+    private function addGridPosition(string $xaml, int $index, string $axis): string
+    {
+        return preg_replace(
+            '/^(<[a-zA-Z]+(\s[^>]*?)?)(\s*\/?>)/',
+            '$1 Grid.' . $axis . '="' . $index . '"$3',
+            $xaml
+        );
     }
 
     private function generateSpacer(Spacer $widget): string
     {
         return trim(<<<XAML
-        {$this->indentStr()}<Border />
+        {$this->indentStr()}<Rectangle Fill="Transparent" />
 XAML);
     }
 
@@ -333,8 +489,9 @@ XAML);
         $children = $this->generateChildren($widget->children());
         $this->indent--;
 
+        $props = $this->generateProperties($widget->getStyle());
         return trim(<<<XAML
-        {$this->indentStr()}<ScrollViewer>
+        {$this->indentStr()}<ScrollViewer{$props}>
         {$children}
         {$this->indentStr()}</ScrollViewer>
 XAML);
@@ -407,10 +564,18 @@ XAML);
 
         $onToggle = '';
         $action = $widget->getOnToggle();
+        $isOn = $widget->getIsOn();
         if ($action !== null) {
             $safeId = $this->safeMethodName($widget->label());
             $methodName = 'On' . $safeId . 'Toggle';
-            $this->buttonActions[] = ['id' => $widget->label(), 'method' => $methodName, 'action' => $action];
+            $bindingName = $isOn !== null ? $isOn->name : '';
+            $this->buttonActions[] = [
+                'id' => $widget->label(),
+                'method' => $methodName,
+                'action' => $action,
+                'eventType' => 'CheckChanged',
+                'bindingName' => $bindingName,
+            ];
             $onToggle = " Click=\"{$methodName}\"";
         }
 
@@ -464,52 +629,137 @@ XAML);
         return implode("\n", $parts);
     }
 
-    private function generateProperties(?\Perry\UI\Styling\Style $style): string
+    /**
+     * @param array<string> $excludeProps Property value strings to exclude
+     * @param array<string> $onlyProps    If non-empty, only include these property value strings
+     */
+    private function generateProperties(?Style $style, array $excludeProps = [], array $onlyProps = []): string
     {
         if ($style === null) {
             return '';
         }
 
+        $includeProp = function (StyleProperty $prop) use ($excludeProps, $onlyProps): bool {
+            if (in_array($prop->value, $excludeProps, true)) {
+                return false;
+            }
+            if ($onlyProps !== [] && !in_array($prop->value, $onlyProps, true)) {
+                return false;
+            }
+            return true;
+        };
+
         $props = [];
         
         // Colors - fix double # issue
-        if ($style->has(StyleProperty::BackgroundColor)) {
+        if ($style->has(StyleProperty::BackgroundColor) && $includeProp(StyleProperty::BackgroundColor)) {
             $color = ltrim($style->get(StyleProperty::BackgroundColor), '#');
             $props[] = "Background=\"#{$color}\"";
         }
-        if ($style->has(StyleProperty::ForegroundColor)) {
+        if ($style->has(StyleProperty::ForegroundColor) && $includeProp(StyleProperty::ForegroundColor)) {
             $color = ltrim($style->get(StyleProperty::ForegroundColor), '#');
             $props[] = "Foreground=\"#{$color}\"";
         }
-        if ($style->has(StyleProperty::BorderColor)) {
+        if ($style->has(StyleProperty::BorderColor) && $includeProp(StyleProperty::BorderColor)) {
             $color = ltrim($style->get(StyleProperty::BorderColor), '#');
             $props[] = "BorderBrush=\"#{$color}\"";
         }
         
         // Sizing
-        if ($style->has(StyleProperty::Width)) {
+        if ($style->has(StyleProperty::Width) && $includeProp(StyleProperty::Width)) {
             $props[] = "Width=\"{$style->get(StyleProperty::Width)}\"";
         }
-        if ($style->has(StyleProperty::Height)) {
+        if ($style->has(StyleProperty::Height) && $includeProp(StyleProperty::Height)) {
             $props[] = "Height=\"{$style->get(StyleProperty::Height)}\"";
         }
+        if ($style->has(StyleProperty::MinWidth) && $includeProp(StyleProperty::MinWidth)) {
+            $props[] = "MinWidth=\"{$style->get(StyleProperty::MinWidth)}\"";
+        }
+        if ($style->has(StyleProperty::MinHeight) && $includeProp(StyleProperty::MinHeight)) {
+            $props[] = "MinHeight=\"{$style->get(StyleProperty::MinHeight)}\"";
+        }
+        if ($style->has(StyleProperty::MaxWidth) && $includeProp(StyleProperty::MaxWidth)) {
+            $props[] = "MaxWidth=\"{$style->get(StyleProperty::MaxWidth)}\"";
+        }
+        if ($style->has(StyleProperty::MaxHeight) && $includeProp(StyleProperty::MaxHeight)) {
+            $props[] = "MaxHeight=\"{$style->get(StyleProperty::MaxHeight)}\"";
+        }
         
-        // Border - CornerRadius not supported on StackPanel, skip for now
-        if ($style->has(StyleProperty::BorderWidth)) {
+        // Border
+        if ($style->has(StyleProperty::BorderWidth) && $includeProp(StyleProperty::BorderWidth)) {
             $props[] = "BorderThickness=\"{$style->get(StyleProperty::BorderWidth)}\"";
         }
-        
-        // Margin & Padding - not supported on StackPanel, skip for VStack/HStack
-        // Font
-        if ($style->has(StyleProperty::FontSize)) {
-            $props[] = "FontSize=\"{$style->get(StyleProperty::FontSize)}\"";
+        if ($style->has(StyleProperty::CornerRadius) && $includeProp(StyleProperty::CornerRadius)) {
+            $props[] = "CornerRadius=\"{$style->get(StyleProperty::CornerRadius)}\"";
         }
         
+        // Font
+        if ($style->has(StyleProperty::FontSize) && $includeProp(StyleProperty::FontSize)) {
+            $props[] = "FontSize=\"{$style->get(StyleProperty::FontSize)}\"";
+        }
+        if ($style->has(StyleProperty::FontWeight) && $includeProp(StyleProperty::FontWeight)) {
+            $props[] = "FontWeight=\"" . $this->mapFontWeight($style->get(StyleProperty::FontWeight)) . "\"";
+        }
+        if ($style->has(StyleProperty::FontFamily) && $includeProp(StyleProperty::FontFamily)) {
+            $props[] = "FontFamily=\"{$style->get(StyleProperty::FontFamily)}\"";
+        }
+        if ($style->has(StyleProperty::TextAlignment) && $includeProp(StyleProperty::TextAlignment)) {
+            $props[] = "TextAlignment=\"" . $this->mapTextAlignment($style->get(StyleProperty::TextAlignment)) . "\"";
+        }
+        
+        // Layout
+        if ($style->has(StyleProperty::Padding) && $includeProp(StyleProperty::Padding)) {
+            $props[] = "Padding=\"{$style->get(StyleProperty::Padding)}\"";
+        }
+        if ($style->has(StyleProperty::PaddingTop) && $includeProp(StyleProperty::PaddingTop)) {
+            $props[] = "Padding=\"{$style->get(StyleProperty::PaddingTop)},0,0,0\"";
+        }
+        if ($style->has(StyleProperty::PaddingBottom) && $includeProp(StyleProperty::PaddingBottom)) {
+            $props[] = "Padding=\"0,0,0,{$style->get(StyleProperty::PaddingBottom)}\"";
+        }
+        if ($style->has(StyleProperty::PaddingLeading) && $includeProp(StyleProperty::PaddingLeading)) {
+            $props[] = "Padding=\"{$style->get(StyleProperty::PaddingLeading)},0,0,0\"";
+        }
+        if ($style->has(StyleProperty::PaddingTrailing) && $includeProp(StyleProperty::PaddingTrailing)) {
+            $props[] = "Padding=\"0,0,{$style->get(StyleProperty::PaddingTrailing)},0\"";
+        }
+        if ($style->has(StyleProperty::Margin) && $includeProp(StyleProperty::Margin)) {
+            $props[] = "Margin=\"{$style->get(StyleProperty::Margin)}\"";
+        }
+        if ($style->has(StyleProperty::Opacity) && $includeProp(StyleProperty::Opacity)) {
+            $props[] = "Opacity=\"{$style->get(StyleProperty::Opacity)}\"";
+        }
+
         if (empty($props)) {
             return '';
         }
         
         return ' ' . implode(' ', $props);
+    }
+
+    private function mapFontWeight(string $weight): string
+    {
+        $map = [
+            'bold' => 'Bold',
+            'semibold' => 'SemiBold',
+            'medium' => 'Medium',
+            'light' => 'Light',
+            'regular' => 'Normal',
+            'thin' => 'Thin',
+            'black' => 'Black',
+        ];
+        return $map[strtolower($weight)] ?? 'Normal';
+    }
+
+    private function mapTextAlignment(string $alignment): string
+    {
+        return match (strtolower($alignment)) {
+            'left' => 'Left',
+            'right' => 'Right',
+            'center' => 'Center',
+            'justify' => 'Justify',
+            default => 'Left',
+        };
     }
 
     private function indentStr(): string

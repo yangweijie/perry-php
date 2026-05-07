@@ -71,6 +71,9 @@ final class SwiftUIBackend extends CodegenBackend
             $frameCode = ".frame(width: {$width}, height: {$height})";
         }
 
+        // Apply AppContainer style modifiers
+        $containerMods = $this->generateModifiers($app->getStyle());
+
         $importWebKit = $this->hasWebView ? "\nimport WebKit\n" : '';
         $webViewStruct = $this->hasWebView ? <<<'SWIFT'
 
@@ -139,9 +142,8 @@ final class SwiftUIBackend extends CodegenBackend
             {$stateVars}
 
             var body: some View {
-        {$body}
+        {$body}{$containerMods}
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
             }
         }
         {$webViewStruct}

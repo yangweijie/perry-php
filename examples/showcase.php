@@ -82,7 +82,7 @@ $submitName = Action::fromClosure(
 
 $root = new AppContainer(
     new VStack(
-        new Text($title),
+        new Text($title)->style($titleStyle),
         new Text('Counter: ')->style(Style::make()->fontSize(14)->foregroundColor('#666')),
         
         new HStack(
