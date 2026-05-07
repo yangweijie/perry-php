@@ -1,0 +1,278 @@
+{
+  "D:\\git\\php\\perry-php\\bin\\perry": {
+    "mtime": 1778158698.8965871,
+    "hash": "2e92314c59b39adcb8ae188d4a1938d2"
+  },
+  "D:\\git\\php\\perry-php\\examples\\calculator.php": {
+    "mtime": 1778031315.988422,
+    "hash": "18c34f4d175eba17409b5447a74d2fe2"
+  },
+  "D:\\git\\php\\perry-php\\examples\\mango.php": {
+    "mtime": 1778031315.9894333,
+    "hash": "5a5941a9aa257827ae04cd758ec13888"
+  },
+  "D:\\git\\php\\perry-php\\examples\\pry.php": {
+    "mtime": 1778031315.9894333,
+    "hash": "105e7eb931dff74599a5cb2a0702db20"
+  },
+  "D:\\git\\php\\perry-php\\examples\\showcase.php": {
+    "mtime": 1778113995.1436346,
+    "hash": "23f16fcace8a156f98bec690a8d28d33"
+  },
+  "D:\\git\\php\\perry-php\\examples\\test_ast.php": {
+    "mtime": 1778031315.9899485,
+    "hash": "7bfbe131a6d78cd88e0b543e37b8635b"
+  },
+  "D:\\git\\php\\perry-php\\examples\\test_closure.php": {
+    "mtime": 1778031315.9899485,
+    "hash": "7a5c090c52465298797f43f25d0e66c0"
+  },
+  "D:\\git\\php\\perry-php\\src\\App.php": {
+    "mtime": 1778113995.1446402,
+    "hash": "56129b26dfa1b0ba14b7926b1ad42b8a"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\AndroidXmlBackend.php": {
+    "mtime": 1778158698.8980868,
+    "hash": "518d447dd8ddfb62bd2a407b8492bc92"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\CodegenBackend.php": {
+    "mtime": 1778113995.1461399,
+    "hash": "ae7e9a3ade2ed0571a3046dfe8b6bfef"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\CodegenFactory.php": {
+    "mtime": 1778031315.9924521,
+    "hash": "c031eb6a82d733c302ba0be1db62668c"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\ComposeBackend.php": {
+    "mtime": 1778031315.9924521,
+    "hash": "4c69506d5375cd954348d9d3a3b53a10"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\Gtk4Backend.php": {
+    "mtime": 1778113995.1466396,
+    "hash": "218f230951f2eb40b1ae55cfaa3ed66b"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\HtmlBackend.php": {
+    "mtime": 1778158698.8985868,
+    "hash": "56a028bdd3acbf041149f4b79a176c00"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\SwiftUIBackend.php": {
+    "mtime": 1778113995.1476395,
+    "hash": "6c02e3d7158c60544ef692921522e20a"
+  },
+  "D:\\git\\php\\perry-php\\src\\Codegen\\WinUIBackend.php": {
+    "mtime": 1778163060.1062355,
+    "hash": "df8315081290915134b8372ebb7838fd"
+  },
+  "D:\\git\\php\\perry-php\\src\\Generator\\CSharpGenerator.php": {
+    "mtime": 1778122436.5433455,
+    "hash": "d14e0c3cf584ad03f72b4769444e365b"
+  },
+  "D:\\git\\php\\perry-php\\src\\Generator\\DartGenerator.php": {
+    "mtime": 1778031315.9949803,
+    "hash": "7bab5db4d0d52a8846383b8d2c432edd"
+  },
+  "D:\\git\\php\\perry-php\\src\\Generator\\JavaScriptGenerator.php": {
+    "mtime": 1778031315.9954808,
+    "hash": "abd9265e072a4e408a27ceec2e5aaecf"
+  },
+  "D:\\git\\php\\perry-php\\src\\Generator\\KotlinGenerator.php": {
+    "mtime": 1778031315.9954808,
+    "hash": "2ec8419dc8cf0a231a7cdd4ca5003271"
+  },
+  "D:\\git\\php\\perry-php\\src\\Generator\\SwiftGenerator.php": {
+    "mtime": 1778031315.99598,
+    "hash": "defd56f3d5dd1cfe3f75b1dba4b169eb"
+  },
+  "D:\\git\\php\\perry-php\\src\\IR\\AstToIrVisitor.php": {
+    "mtime": 1778031315.9964805,
+    "hash": "f4ba451125ec52468f8eb3a4d6f37f81"
+  },
+  "D:\\git\\php\\perry-php\\src\\IR\\Builder.php": {
+    "mtime": 1778031315.9969814,
+    "hash": "9c52be898c0599663df86773830548ca"
+  },
+  "D:\\git\\php\\perry-php\\src\\IR\\Generator.php": {
+    "mtime": 1778031315.9969814,
+    "hash": "2ac587582dc7852ee159c2614d7a6193"
+  },
+  "D:\\git\\php\\perry-php\\src\\IR\\Node.php": {
+    "mtime": 1778031315.9974735,
+    "hash": "ffbb27a9fc2156b077b35082af03e59c"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Action.php": {
+    "mtime": 1778031315.99798,
+    "hash": "205cbc0b1b3a08c47c6f6c97a5a6c4bb"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Binding.php": {
+    "mtime": 1778031315.99798,
+    "hash": "523deaf7a0015de5e79aba4d036d1e12"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\State.php": {
+    "mtime": 1778031316.0014808,
+    "hash": "edd04f05fde21de3584af9e7202fa924"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\StateId.php": {
+    "mtime": 1778113995.1486475,
+    "hash": "3683118a2c96c1fbb052467017c7d91a"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget.php": {
+    "mtime": 1778031316.002981,
+    "hash": "2e8e8ed2d00b6cbe45a0facc33b54a79"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\WidgetHandle.php": {
+    "mtime": 1778031316.0069802,
+    "hash": "c2faff0885c32e0858d045343033eb2f"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\WidgetKind.php": {
+    "mtime": 1778031316.0069802,
+    "hash": "316df94340bcd566acd0e1a23f4fd233"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\AbstractPlatformDriver.php": {
+    "mtime": 1778031315.9984808,
+    "hash": "5cc4de1bc7b625e5b91a5dd583f678b0"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\AndroidDriver.php": {
+    "mtime": 1778031315.9984808,
+    "hash": "b7452e70c987b5f976a195ea73d8eb2b"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\DriverFactory.php": {
+    "mtime": 1778031315.9993784,
+    "hash": "dfc607d6e566269e2295a150a580bb9d"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\Gtk4Driver.php": {
+    "mtime": 1778031315.9993784,
+    "hash": "c7ed35352afb0cbd6bbde15fa1be157c"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\IosDriver.php": {
+    "mtime": 1778031315.9999807,
+    "hash": "0ed8160a0050f9b6cbcad5bfe59ac11c"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\MacOsDriver.php": {
+    "mtime": 1778031315.9999807,
+    "hash": "c6f758e5ee31e504db0c7b05592c5831"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\PlatformDriver.php": {
+    "mtime": 1778031316.0004814,
+    "hash": "2d6072308ad111882152b54262dec525"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\WebDriver.php": {
+    "mtime": 1778031316.0009806,
+    "hash": "e93627c82728fd9a9c7be42efd55a18a"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Platform\\WindowsDriver.php": {
+    "mtime": 1778161337.9921668,
+    "hash": "f5912596e5061dd25939d54e0e657a97"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Styling\\Style.php": {
+    "mtime": 1778031316.0024803,
+    "hash": "a54145edec4ec8aa92c26c9758c91053"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Styling\\StyleMatrix.php": {
+    "mtime": 1778031316.0024803,
+    "hash": "009f5d5d791a10947e7af978f609f523"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Styling\\StyleProperty.php": {
+    "mtime": 1778031316.002981,
+    "hash": "999ec9eb04d28ead1cf9ee65484a1890"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\AppContainer.php": {
+    "mtime": 1778113995.1491413,
+    "hash": "a3b581d7d786a3d2b1c5616fc28fb31d"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Button.php": {
+    "mtime": 1778031316.0034807,
+    "hash": "bd1c27ff72c96f9a5b210643685f45bb"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\HStack.php": {
+    "mtime": 1778031316.0039804,
+    "hash": "94c874dd3f23f99ad78fd2d117b47363"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Image.php": {
+    "mtime": 1778031316.0039804,
+    "hash": "8cc10eaccbeb34d4cbd4816aa9a31627"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\ListWidget.php": {
+    "mtime": 1778031316.0044804,
+    "hash": "832e6a6497c7d18940cae2182f85986a"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\NavigationView.php": {
+    "mtime": 1778031316.004981,
+    "hash": "025d2176ea9a4055b7b352a161c4223b"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\ScrollView.php": {
+    "mtime": 1778031316.004981,
+    "hash": "043a6c362409e87b45e092b1873330ef"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Slider.php": {
+    "mtime": 1778113995.1496568,
+    "hash": "008c36bc08f399a531947328b41ff046"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Spacer.php": {
+    "mtime": 1778031316.00548,
+    "hash": "da48511959dae88da4da6ff42c623c46"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\TabView.php": {
+    "mtime": 1778031316.00548,
+    "hash": "d8b23c5140dba7900a1f8bf2c3f5c5b8"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Text.php": {
+    "mtime": 1778031316.00548,
+    "hash": "daf1af91e33780f886ebdb81da71e11b"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\TextEditor.php": {
+    "mtime": 1778031316.0059807,
+    "hash": "5ddaa8266cc2a47954d48332c5476e8a"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\TextInput.php": {
+    "mtime": 1778031316.0059807,
+    "hash": "0fcdd9eb096bc47d2a988766cd4e2554"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\Toggle.php": {
+    "mtime": 1778113995.1496568,
+    "hash": "fe221ba100312b109fd48e86b453bc92"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\VStack.php": {
+    "mtime": 1778031316.0064802,
+    "hash": "e271e3e2e744dced128d10a2d42d0472"
+  },
+  "D:\\git\\php\\perry-php\\src\\UI\\Widget\\WebView.php": {
+    "mtime": 1778031316.0064802,
+    "hash": "67a3b017498340fec1f65a3637a7c595"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Codegen\\CalculatorTest.php": {
+    "mtime": 1778031316.0069802,
+    "hash": "af90720319c9534c3149fefd2a7032f7"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\CSharpGeneratorTest.php": {
+    "mtime": 1778113995.1501403,
+    "hash": "ada78d482ed7748c7960f1bc7e36769b"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\DartGeneratorTest.php": {
+    "mtime": 1778031316.0085063,
+    "hash": "11ac44125cbbc4bb711810ca2e330446"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\IRNodesTest.php": {
+    "mtime": 1778031316.0090055,
+    "hash": "de4045d7cfb10bbba4a306da2ababefc"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\JavaScriptGeneratorTest.php": {
+    "mtime": 1778031316.0090055,
+    "hash": "1d126e067b2328f99cb3cac05d2c320e"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\KotlinGeneratorTest.php": {
+    "mtime": 1778031316.0095055,
+    "hash": "efb97db585ccc88f9f1e573597d59e6f"
+  },
+  "D:\\git\\php\\perry-php\\tests\\Generator\\SwiftGeneratorTest.php": {
+    "mtime": 1778031316.0095055,
+    "hash": "ced075303fc319f9da0d869441ee418e"
+  },
+  "D:\\git\\php\\perry-php\\README.md": {
+    "mtime": 1778158698.8960872,
+    "hash": "6a5661e66f71264e44bb263c55a08181"
+  },
+  "D:\\git\\php\\perry-php\\task_plan.md": {
+    "mtime": 1778031316.0069802,
+    "hash": "8e5c0f00c93608f37df31f93ba05c6f4"
+  }
+}
