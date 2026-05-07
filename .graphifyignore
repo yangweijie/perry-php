@@ -1,0 +1,21 @@
+# Dependencies
+vendor/
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Cache
+graphify-out/cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+
+# OS
+.DS_Store
+Thumbs.db
