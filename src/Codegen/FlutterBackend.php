@@ -466,9 +466,6 @@ final class FlutterBackend extends CodegenBackend
         if ($style->has($props::FontFamily)) {
             $parts[] = "fontFamily: '{$style->get($props::FontFamily)}'";
         }
-        if ($style->has($props::LetterSpacing)) {
-            $parts[] = "letterSpacing: {$style->get($props::LetterSpacing)}";
-        }
         if ($style->has($props::LineSpacing)) {
             $parts[] = "height: {$style->get($props::LineSpacing)}";
         }

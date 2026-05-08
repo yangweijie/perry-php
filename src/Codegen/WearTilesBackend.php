@@ -210,9 +210,6 @@ final class WearTilesBackend extends CodegenBackend
             if ($style->has($props::LineSpacing)) {
                 $txt .= "\n{$this->indentStr()}.setLineHeight({$style->get($props::LineSpacing)})";
             }
-            if ($style->has($props::LetterSpacing)) {
-                $txt .= "\n{$this->indentStr()}.setLetterSpacing({$style->get($props::LetterSpacing)})";
-            }
             if ($style->has($props::Width)) {
                 $txt .= "\n{$this->indentStr()}.setWidth({$style->get($props::Width)})";
             }
@@ -335,7 +332,7 @@ final class WearTilesBackend extends CodegenBackend
         $r = hexdec(substr($hex, 0, 2));
         $g = hexdec(substr($hex, 2, 2));
         $b = hexdec(substr($hex, 4, 2));
-        return "LayoutElementBuilders.ColorRep.Builder().setArgb(0xFF{$r}{$g}{$b}).build()";
+        return sprintf("LayoutElementBuilders.ColorRep.Builder().setArgb(0xFF%02X%02X%02X).build()", $r, $g, $b);
     }
 
     private function indentStr(): string

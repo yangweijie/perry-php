@@ -736,3 +736,198 @@ test('Slider with defaults', function () {
         expect(strlen($out))->toBeGreaterThan(0, "$name Slider empty");
     }
 });
+
+// ---------------------------------------------------------------------------
+// Per-property style tests
+// ---------------------------------------------------------------------------
+
+test('each property produces non-empty output across all backends', function () {
+    $factory = new CodegenFactory();
+    $sample = fn(StyleProperty $p) => match ($p) {
+        StyleProperty::FontSize => 16,
+        StyleProperty::FontWeight => 'bold',
+        StyleProperty::FontFamily => 'Arial',
+        StyleProperty::ForegroundColor => '#ff0000',
+        StyleProperty::BackgroundColor => '#00ff00',
+        StyleProperty::Padding => 8,
+        StyleProperty::PaddingTop => 4,
+        StyleProperty::PaddingBottom => 4,
+        StyleProperty::PaddingLeading => 8,
+        StyleProperty::PaddingTrailing => 8,
+        StyleProperty::CornerRadius => 4,
+        StyleProperty::Opacity => 0.5,
+        StyleProperty::Width => 200,
+        StyleProperty::Height => 100,
+        StyleProperty::Margin => 8,
+        StyleProperty::BorderWidth => 1,
+        StyleProperty::BorderColor => '#000000',
+        StyleProperty::TextAlignment => 'center',
+        StyleProperty::TextDecoration => 'underline',
+        StyleProperty::LineSpacing => 1.5,
+        StyleProperty::MinWidth => 50,
+        StyleProperty::MinHeight => 30,
+        StyleProperty::MaxWidth => 500,
+        StyleProperty::MaxHeight => 400,
+        StyleProperty::ShadowColor => '#000000',
+        StyleProperty::ShadowRadius => 4,
+        StyleProperty::ShadowOffsetX => 2,
+        StyleProperty::ShadowOffsetY => 2,
+    };
+    foreach ($factory->available() as $name) {
+        $backend = $factory->get($name);
+        $supported = $backend->supportedStyleProperties();
+        foreach ($supported as $prop) {
+            $style = (new Style())->set($prop, $sample($prop));
+            $widget = (new Perry\UI\Widget\Text('StyleTest'))->style($style);
+            $out = $backend->generate($widget);
+            expect(strlen($out))->toBeGreaterThan(0, "$name: $prop->value produced empty output");
+        }
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Targeted: SwiftUI style property assertions
+// ---------------------------------------------------------------------------
+
+test('SwiftUI fontSize + fontWeight + foregroundColor on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontSize, 24)
+        ->set(StyleProperty::FontWeight, 'bold')
+        ->set(StyleProperty::ForegroundColor, '#ff0000');
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('font(.system(size: 24))');
+    expect($out)->toContain('fontWeight(.bold)');
+    expect($out)->toContain('foregroundColor(Color(red: 1.00, green: 0.00, blue: 0.00))');
+});
+
+test('SwiftUI padding + cornerRadius + opacity on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Padding, 16)
+        ->set(StyleProperty::CornerRadius, 8)
+        ->set(StyleProperty::Opacity, 0.5);
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('.padding(16)');
+    expect($out)->toContain('.cornerRadius(8)');
+    expect($out)->toContain('.opacity(0.5)');
+});
+
+test('SwiftUI width + height on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Width, 200)
+        ->set(StyleProperty::Height, 100);
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('.frame(width: 200, height: 100)');
+});
+
+test('SwiftUI textAlignment + lineSpacing + textDecoration on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::TextAlignment, 'center')
+        ->set(StyleProperty::LineSpacing, 1.5)
+        ->set(StyleProperty::TextDecoration, 'underline');
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('multilineTextAlignment(TextAlignment.center)');
+    expect($out)->toContain('lineSpacing(1.5)');
+    expect($out)->toContain('underline');
+});
+
+test('SwiftUI fontFamily on Text', function () {
+    $style = (new Style())->set(StyleProperty::FontFamily, 'Georgia');
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('custom("Georgia"');
+});
+
+test('SwiftUI shadow on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::ShadowColor, '#000000')
+        ->set(StyleProperty::ShadowRadius, 4)
+        ->set(StyleProperty::ShadowOffsetX, 2)
+        ->set(StyleProperty::ShadowOffsetY, 3);
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('.shadow(color:');
+    expect($out)->toContain('radius: 4');
+    expect($out)->toContain('x: 2');
+    expect($out)->toContain('y: 3');
+});
+
+// ---------------------------------------------------------------------------
+// Targeted: Html style property assertions
+// ---------------------------------------------------------------------------
+
+test('Html style produces CSS properties on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontSize, 20)
+        ->set(StyleProperty::ForegroundColor, '#ff0000')
+        ->set(StyleProperty::BackgroundColor, '#00ff00')
+        ->set(StyleProperty::FontWeight, 'bold')
+        ->set(StyleProperty::TextAlignment, 'center')
+        ->set(StyleProperty::Padding, 16)
+        ->set(StyleProperty::CornerRadius, 8);
+    $out = backendGet('html')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('font-size: 20px');
+    expect($out)->toContain('color: #ff0000');
+    expect($out)->toContain('background-color: #00ff00');
+    expect($out)->toContain('font-weight: bold');
+    expect($out)->toContain('text-align: center');
+    expect($out)->toContain('padding: 16px');
+    expect($out)->toContain('border-radius: 8px');
+});
+
+// ---------------------------------------------------------------------------
+// Targeted: Compose style property assertions
+// ---------------------------------------------------------------------------
+
+test('Compose fontSize + fontWeight + color on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontSize, 22)
+        ->set(StyleProperty::FontWeight, 'bold')
+        ->set(StyleProperty::ForegroundColor, '#ff0000');
+    $out = backendGet('compose')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('fontSize(22.sp)');
+    expect($out)->toContain('fontWeight(FontWeight.Bold)');
+    expect($out)->toContain('Color(0xFFff0000)');
+});
+
+test('Compose padding + width + height on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Padding, 12)
+        ->set(StyleProperty::Width, 200)
+        ->set(StyleProperty::Height, 80);
+    $out = backendGet('compose')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('.padding(12.dp)');
+    expect($out)->toContain('.size(200.dp, 80.dp)');
+});
+
+// ---------------------------------------------------------------------------
+// Targeted: Glance style property assertions
+// ---------------------------------------------------------------------------
+
+test('Glance text style produces modifier chain', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontSize, 18)
+        ->set(StyleProperty::FontWeight, 'bold')
+        ->set(StyleProperty::ForegroundColor, '#ff0000')
+        ->set(StyleProperty::TextAlignment, 'center');
+    $out = backendGet('glance')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('fontSize = 18.sp');
+    expect($out)->toContain('FontWeight.Bold');
+    expect($out)->toContain('TextAlign.Center');
+    expect($out)->toContain('ColorProvider');
+});
+
+// ---------------------------------------------------------------------------
+// Targeted: WearTiles style property assertions
+// ---------------------------------------------------------------------------
+
+test('WearTiles text style produces builder setters', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontSize, 16)
+        ->set(StyleProperty::FontWeight, 'bold')
+        ->set(StyleProperty::ForegroundColor, '#ff0000')
+        ->set(StyleProperty::TextAlignment, 'center');
+    $out = backendGet('wear-tiles')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('.setFontSize(16)');
+    expect($out)->toContain('.setFontWeight(FontWeight.BOLD)');
+    expect($out)->toContain('ColorRep.Builder');
+    expect($out)->toContain('0xFFFF0000');
+    expect($out)->toContain('TextAlignment.CENTER');
+});
