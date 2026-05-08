@@ -520,6 +520,10 @@ final class AndroidXmlBackend extends CodegenBackend
             $v = $style->get(StyleProperty::LineSpacing);
             $attrs[] = "{$this->indentStr()}    android:lineSpacingExtra=\"{$v}sp\"";
         }
+        if ($style->has(StyleProperty::LetterSpacing)) {
+            $v = $style->get(StyleProperty::LetterSpacing);
+            $attrs[] = "{$this->indentStr()}    android:letterSpacing=\"{$v}\"";
+        }
 
         // Max dimensions
         if ($style->has(StyleProperty::MaxWidth)) {
@@ -529,6 +533,16 @@ final class AndroidXmlBackend extends CodegenBackend
         if ($style->has(StyleProperty::MaxHeight)) {
             $v = (int)$style->get(StyleProperty::MaxHeight);
             $attrs[] = "{$this->indentStr()}    android:maxHeight=\"{$v}dp\"";
+        }
+
+        // Min dimensions
+        if ($style->has(StyleProperty::MinWidth)) {
+            $v = (int)$style->get(StyleProperty::MinWidth);
+            $attrs[] = "{$this->indentStr()}    android:minWidth=\"{$v}dp\"";
+        }
+        if ($style->has(StyleProperty::MinHeight)) {
+            $v = (int)$style->get(StyleProperty::MinHeight);
+            $attrs[] = "{$this->indentStr()}    android:minHeight=\"{$v}dp\"";
         }
 
         if (empty($attrs)) {
@@ -619,6 +633,8 @@ final class AndroidXmlBackend extends CodegenBackend
             StyleProperty::ShadowRadius, StyleProperty::FontWeight, StyleProperty::FontFamily,
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
             StyleProperty::MaxWidth, StyleProperty::MaxHeight,
+            StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::LetterSpacing,
         ];
     }
 

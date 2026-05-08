@@ -466,6 +466,9 @@ final class WasmBackend extends CodegenBackend
         if ($style->has(StyleProperty::LineSpacing)) {
             $this->addLine("perry_ui_setStyle(w{$handle}, 'line-height', '{$style->get(StyleProperty::LineSpacing)}px');");
         }
+        if ($style->has(StyleProperty::LetterSpacing)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'letter-spacing', '{$style->get(StyleProperty::LetterSpacing)}px');");
+        }
 
         // Shadow
         $sx = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
@@ -612,7 +615,7 @@ final class WasmBackend extends CodegenBackend
             StyleProperty::Margin, StyleProperty::BorderWidth, StyleProperty::BorderColor,
             StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
             StyleProperty::PaddingTrailing, StyleProperty::FontWeight, StyleProperty::TextAlignment,
-            StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::ShadowColor,
+            StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::LetterSpacing, StyleProperty::ShadowColor,
             StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
         ];
     }

@@ -406,17 +406,25 @@ final class ArkTsBackend extends CodegenBackend
         if ($style->has($props::LineSpacing)) {
             $mods[] = ".lineHeight({$style->get($props::LineSpacing)})";
         }
+        if ($style->has($props::LetterSpacing)) {
+            $mods[] = ".letterSpacing({$style->get($props::LetterSpacing)})";
+        }
+        $pad = [];
         if ($style->has($props::PaddingTop)) {
-            $mods[] = ".padding({ top: {$style->get($props::PaddingTop)} })";
+            $pad['top'] = (int) $style->get($props::PaddingTop);
         }
         if ($style->has($props::PaddingBottom)) {
-            $mods[] = ".padding({ bottom: {$style->get($props::PaddingBottom)} })";
+            $pad['bottom'] = (int) $style->get($props::PaddingBottom);
         }
         if ($style->has($props::PaddingLeading)) {
-            $mods[] = ".padding({ left: {$style->get($props::PaddingLeading)} })";
+            $pad['left'] = (int) $style->get($props::PaddingLeading);
         }
         if ($style->has($props::PaddingTrailing)) {
-            $mods[] = ".padding({ right: {$style->get($props::PaddingTrailing)} })";
+            $pad['right'] = (int) $style->get($props::PaddingTrailing);
+        }
+        if ($pad) {
+            $parts = implode(', ', array_map(fn($d, $v) => "{$d}: {$v}", array_keys($pad), $pad));
+            $mods[] = ".padding({ {$parts} })";
         }
 
         return $mods ? "\n        " . implode("\n        ", $mods) : '';
@@ -479,6 +487,7 @@ final class ArkTsBackend extends CodegenBackend
             StyleProperty::ShadowColor, StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX,
             StyleProperty::ShadowOffsetY, StyleProperty::FontWeight, StyleProperty::FontFamily,
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::LetterSpacing,
             StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
             StyleProperty::PaddingTrailing,
         ];

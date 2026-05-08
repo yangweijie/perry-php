@@ -30,6 +30,7 @@ enum StyleProperty: string
     case ShadowOffsetY = 'shadow_offset_y';
     case TextDecoration = 'text_decoration';
     case LineSpacing = 'line_spacing';
+    case LetterSpacing = 'letter_spacing';
     case MinWidth = 'min_width';
     case MinHeight = 'min_height';
     case MaxWidth = 'max_width';

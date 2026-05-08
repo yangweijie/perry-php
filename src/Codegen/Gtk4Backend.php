@@ -488,6 +488,9 @@ C;
         if ($style->has(StyleProperty::LineSpacing)) {
             $cssProps[] = "line-height: {$style->get(StyleProperty::LineSpacing)}px";
         }
+        if ($style->has(StyleProperty::LetterSpacing)) {
+            $cssProps[] = "letter-spacing: {$style->get(StyleProperty::LetterSpacing)}px";
+        }
 
         // Generate CSS style tag if any CSS properties
         $css = '';
@@ -606,7 +609,7 @@ XML;
             StyleProperty::PaddingTrailing, StyleProperty::Opacity, StyleProperty::ShadowRadius,
             StyleProperty::ShadowColor, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
             StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::FontFamily,
-            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::LetterSpacing,
         ];
     }
 }

@@ -2,9 +2,9 @@
 
 ## OVERVIEW
 
-PHP DSL that defines cross-platform UIs declaratively and generates native source code for SwiftUI (Apple), Jetpack Compose (Android), GTK4 (Linux), WinUI (Windows), and HTML/CSS/JS (Web). Codegen only — no runtime.
+PHP DSL that defines cross-platform UIs declaratively and generates native source code for 11 platforms (SwiftUI, HTML, Android XML, Jetpack Compose, GTK4, WinUI, Wasm, ArkTS/HarmonyOS, Glance, Wear Tiles, Flutter). Codegen only — no runtime.
 
-This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). Perry-ts is a full compiler pipeline (30 crates, 379k LOC); perry-php focuses exclusively on the UI definition + codegen portion (~11.5k PHP LOC).
+This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). Perry-ts is a full compiler pipeline (30 crates, 379k LOC); perry-php focuses exclusively on the UI definition + codegen portion (~14.4k PHP LOC).
 
 ## STRUCTURE
 
@@ -12,12 +12,12 @@ This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). P
 src/
 ├── App.php       # Entry point (setRoot, generateCode, generateForTarget)
 ├── Build/        # Build pipeline orchestration
-├── Codegen/      # Platform code generators (SwiftUI, Compose, GTK4, WinUI, HTML, AndroidXml)
+├── Codegen/      # 11 platform code generators (SwiftUI, Html, AndroidXml, WinUI, Gtk4, Compose, Wasm, ArkTs, Glance, WearTiles, Flutter)
 ├── Generator/    # Language-specific code generators (Swift, Kotlin, Dart, JS, C#)
 ├── IR/           # PHP AST→IR (for Closure transpilation), 54 node types
 └── UI/           # DSL components
     ├── Platform/   # Platform-specific drivers (macOS, iOS, Android, GTK4, Windows, Web)
-    ├── Styling/    # Style system (Style::make()->fontSize()), 28 properties, platform matrix
+     ├── Styling/    # Style system (Style::make()->fontSize()), 29 properties, platform matrix
     └── Widget/     # Widget class hierarchy (16 widgets: VStack, HStack, Button, Text, etc.)
 ```
 
@@ -32,22 +32,25 @@ src/
 | UI Codegen (Rust) | perry-codegen-{swiftui,js,wasm,arkts,glance,wear-tiles} | 57k | Codegen/ + Generator/ + IR/ | 7.9k | **~14%** |
 | UI Widget abstraction | perry-ui (6 rs, 1.5k LOC) | 1.5k | UI/Widget/* + Widget.php | 2.0k | **100%+** (more widgets) |
 | CLI / Build | perry crate (25+ commands) | 33k | bin/perry + Build/ | 1.1k | **~3%** |
+| Tests | — | — | tests/ | 5.7k (288 tests, 1838 assertions) | **Growing** |
 | Native platform bindings | perry-ui-{macos,ios,android,gtk4,windows,visionos,watchos,tvos} | 31k | Codegen/* (generates source instead) | — | **N/A** (different approach) |
-| **TOTAL** | **30 crates** | **379k** | **src/** | **11.5k** | **UI layer only** |
+| **TOTAL** | **30 crates** | **379k** | **src/** | **14.4k** | **UI layer only** |
 
 ### Codegen Backend Comparison
 
 | Backend | perry-ts | perry-php | Notes |
 |---------|----------|-----------|-------|
-| SwiftUI | ✅ perry-codegen-swiftui (3.0k LOC) | ✅ SwiftUIBackend.php (556 loc) | Core emits working, needs coverage |
-| JavaScript | ✅ perry-codegen-js (8.2k LOC) | ✅ HtmlBackend.php (573 loc) | Diff approach: HTML+CSS+JS vs raw JS |
-| Jetpack Compose | Via perry-ui-android (native) | ✅ ComposeBackend.php (451 loc) | Unique to PHP |
-| Android XML | ❌ | ✅ AndroidXmlBackend.php (857 loc) | Unique to PHP |
-| GTK4 | Via perry-ui-gtk4 (native) | ✅ Gtk4Backend.php (571 loc) | Codegen vs native bindings |
-| WinUI | Via perry-ui-windows (native) | ✅ WinUIBackend.php (825 loc) | Codegen vs native bindings |
-| WASM | ✅ perry-codegen-wasm (20.4k LOC) | ❌ | Missing |
-| ArkTS/HarmonyOS | ✅ perry-codegen-arkts (20.2k LOC) | ❌ | Missing |
-| Glance/Wear Tiles | ✅ perry-codegen-glance + wear-tiles | ❌ | Missing |
+| SwiftUI | ✅ perry-codegen-swiftui (3.0k LOC) | ✅ SwiftUIBackend.php (627 loc) | Full app generation with state, actions, styling |
+| JavaScript | ✅ perry-codegen-js (8.2k LOC) | ✅ HtmlBackend.php (604 loc) | HTML+CSS+JS vs perry-ts raw JS |
+| Jetpack Compose | Via perry-ui-android (native) | ✅ ComposeBackend.php (490 loc) | Unique to PHP |
+| Android XML | ❌ | ✅ AndroidXmlBackend.php (888 loc) | Unique to PHP, most LOC backend |
+| GTK4 | Via perry-ui-gtk4 (native) | ✅ Gtk4Backend.php (615 loc) | Codegen vs native bindings |
+| WinUI | Via perry-ui-windows (native) | ✅ WinUIBackend.php (874 loc) | Codegen vs native bindings |
+| WASM | ✅ perry-codegen-wasm (20.4k LOC) | ✅ WasmBackend.php (622 loc) | Generates HTML+JS with perry_ui_* bridge API |
+| ArkTS/HarmonyOS | ✅ perry-codegen-arkts (20.2k LOC) | ✅ ArkTsBackend.php (495 loc) | Full ArkUI codegen with @State bindings |
+| Glance | ✅ perry-codegen-glance | ✅ GlanceBackend.php (447 loc) | Kotlin Glance composables for home screen widgets |
+| Wear Tiles | ✅ perry-codegen-wear-tiles | ✅ WearTilesBackend.php (406 loc) | Kotlin Wear OS TileService builder API |
+| Flutter | ❌ | ✅ FlutterBackend.php (608 loc) | Flutter Material Design widgets (unique to PHP) |
 
 ### Generator Language Coverage
 
@@ -72,15 +75,14 @@ TabView, AppContainer, WebView
 ### What Works (Production-Ready)
 - **Widget DSL**: All 16 widgets, fluent style API, binding system
 - **Closure→IR**: PHP closure transpilation via nikic/php-parser (AST→IR visitor)
-- **SwiftUI Codegen**: Full app generation with state management, actions, styling
-- **HTML Codegen**: Interactive web output with reactive state
-- **Build Target System**: 11 platform targets with auto-detection
+- **All 11 Codegen Backends**: Full app generation with state management, actions, styling for all 11 platforms
+- **Style System**: 29 style properties with per-backend supported-properties API
+- **Build Target System**: 16 platform targets with auto-detection
 
 ### What's Partial (Needs Work)
-- **Compose/GTK4/WinUI Backends**: Scaffolds exist, widget coverage is basic
-- **IR Generator Interface**: 50+ methods to implement per language
-- **PHP Function Mappings**: Each generator maps PHP builtins → target language (incomplete)
+- **IR Generator Interface**: 50+ methods to implement per language (basic coverage done, full PHP function mapping incomplete)
 - **Build Pipeline (Compiler/Linker)**: Stubs exist, real toolchain integration missing
+- **Edge case widget coverage**: Some backends may have gaps in niche widget configurations
 
 ### What's Not Ported (Out of Scope)
 - **Compiler**: parser, type system, HIR, transforms, LLVM codegen, dispatch

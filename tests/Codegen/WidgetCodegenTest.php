@@ -764,6 +764,7 @@ test('each property produces non-empty output across all backends', function () 
         StyleProperty::TextAlignment => 'center',
         StyleProperty::TextDecoration => 'underline',
         StyleProperty::LineSpacing => 1.5,
+        StyleProperty::LetterSpacing => 1,
         StyleProperty::MinWidth => 50,
         StyleProperty::MinHeight => 30,
         StyleProperty::MaxWidth => 500,
@@ -912,6 +913,22 @@ test('Glance text style produces modifier chain', function () {
     expect($out)->toContain('FontWeight.Bold');
     expect($out)->toContain('TextAlign.Center');
     expect($out)->toContain('ColorProvider');
+    // Verify TextStyle properties are merged into a single constructor call
+    expect($out)->toMatch('/TextStyle\(fontSize = 18\.sp, fontWeight = FontWeight\.Bold, textAlign = TextAlign\.Center\)/');
+});
+
+test('Glance text style supports FontFamily and TextDecoration', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FontFamily, 'Serif')
+        ->set(StyleProperty::TextDecoration, 'underline')
+        ->set(StyleProperty::LineSpacing, 4)
+        ->set(StyleProperty::LetterSpacing, 1);
+    $out = backendGet('glance')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
+    expect($out)->toContain('fontFamily = "Serif"');
+    expect($out)->toContain('TextDecoration.Underline');
+    expect($out)->toContain('lineHeight = 4.sp');
+    expect($out)->toContain('letterSpacing = 1.sp');
+    expect($out)->toMatch('/TextStyle\(fontFamily = "Serif", textDecoration = TextDecoration\.Underline, lineHeight = 4\.sp, letterSpacing = 1\.sp\)/');
 });
 
 // ---------------------------------------------------------------------------
@@ -930,4 +947,16 @@ test('WearTiles text style produces builder setters', function () {
     expect($out)->toContain('ColorRep.Builder');
     expect($out)->toContain('0xFFFF0000');
     expect($out)->toContain('TextAlignment.CENTER');
+});
+
+test('WearTiles container Opacity is emitted', function () {
+    $style = (new Style())->set(StyleProperty::Opacity, 50);
+    $out = backendGet('wear-tiles')->generate((new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('Hi')))->style($style));
+    expect($out)->toContain('.setOpacity(50)');
+});
+
+test('WearTiles button Opacity is emitted', function () {
+    $style = (new Style())->set(StyleProperty::Opacity, 75);
+    $out = backendGet('wear-tiles')->generate((new Perry\UI\Widget\Button('Press', null))->style($style));
+    expect($out)->toContain('.setOpacity(75)');
 });

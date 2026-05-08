@@ -787,22 +787,30 @@ XAML);
         if ($style->has(StyleProperty::TextAlignment) && $includeProp(StyleProperty::TextAlignment)) {
             $props[] = "TextAlignment=\"" . $this->mapTextAlignment($style->get(StyleProperty::TextAlignment)) . "\"";
         }
+        if ($style->has(StyleProperty::LetterSpacing) && $includeProp(StyleProperty::LetterSpacing)) {
+            $props[] = "CharacterSpacing=\"{$style->get(StyleProperty::LetterSpacing)}\"";
+        }
         
-        // Layout
+        // Layout — single Padding="left,top,right,bottom"
+        $left = 0; $top = 0; $right = 0; $bottom = 0;
         if ($style->has(StyleProperty::Padding) && $includeProp(StyleProperty::Padding)) {
-            $props[] = "Padding=\"{$style->get(StyleProperty::Padding)}\"";
+            $v = (int) $style->get(StyleProperty::Padding);
+            $left = $top = $right = $bottom = $v;
         }
         if ($style->has(StyleProperty::PaddingTop) && $includeProp(StyleProperty::PaddingTop)) {
-            $props[] = "Padding=\"{$style->get(StyleProperty::PaddingTop)},0,0,0\"";
+            $top = (int) $style->get(StyleProperty::PaddingTop);
         }
         if ($style->has(StyleProperty::PaddingBottom) && $includeProp(StyleProperty::PaddingBottom)) {
-            $props[] = "Padding=\"0,0,0,{$style->get(StyleProperty::PaddingBottom)}\"";
+            $bottom = (int) $style->get(StyleProperty::PaddingBottom);
         }
         if ($style->has(StyleProperty::PaddingLeading) && $includeProp(StyleProperty::PaddingLeading)) {
-            $props[] = "Padding=\"{$style->get(StyleProperty::PaddingLeading)},0,0,0\"";
+            $left = (int) $style->get(StyleProperty::PaddingLeading);
         }
         if ($style->has(StyleProperty::PaddingTrailing) && $includeProp(StyleProperty::PaddingTrailing)) {
-            $props[] = "Padding=\"0,0,{$style->get(StyleProperty::PaddingTrailing)},0\"";
+            $right = (int) $style->get(StyleProperty::PaddingTrailing);
+        }
+        if ($left || $top || $right || $bottom) {
+            $props[] = "Padding=\"{$left},{$top},{$right},{$bottom}\"";
         }
         if ($style->has(StyleProperty::Margin) && $includeProp(StyleProperty::Margin)) {
             $props[] = "Margin=\"{$style->get(StyleProperty::Margin)}\"";
@@ -860,6 +868,7 @@ XAML);
             StyleProperty::Padding, StyleProperty::PaddingTop, StyleProperty::PaddingBottom,
             StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Margin,
             StyleProperty::Opacity, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::LetterSpacing,
         ];
     }
 }

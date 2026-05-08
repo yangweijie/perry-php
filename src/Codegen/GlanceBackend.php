@@ -326,23 +326,42 @@ final class GlanceBackend extends CodegenBackend
         $modifierParts = [];
         $props = \Perry\UI\Styling\StyleProperty::class;
 
+        // Merge all TextStyle properties into a single TextStyle constructor call
+        $textStyleParts = [];
         if ($style->has($props::FontSize)) {
-            $mods[] = "style = TextStyle(fontSize = {$style->get($props::FontSize)}.sp)";
-        }
-        if ($style->has($props::ForegroundColor)) {
-            $mods[] = "colorFilter = ColorProvider({$this->colorExpr($style->get($props::ForegroundColor))})";
+            $textStyleParts[] = "fontSize = {$style->get($props::FontSize)}.sp";
         }
         if ($style->has($props::FontWeight)) {
             $v = $style->get($props::FontWeight);
             $map = ['bold' => 'FontWeight.Bold', 'semibold' => 'FontWeight.SemiBold', 'medium' => 'FontWeight.Medium', 'normal' => 'FontWeight.Normal', 'light' => 'FontWeight.Light'];
-            $weight = $map[$v] ?? 'FontWeight.Normal';
-            $mods[] = "style = TextStyle(fontWeight = {$weight})";
+            $textStyleParts[] = "fontWeight = {$map[$v]}";
         }
         if ($style->has($props::TextAlignment)) {
             $v = $style->get($props::TextAlignment);
             $map = ['left' => 'TextAlign.Start', 'center' => 'TextAlign.Center', 'right' => 'TextAlign.End'];
             $align = $map[$v] ?? 'TextAlign.Start';
-            $mods[] = "style = TextStyle(textAlign = {$align})";
+            $textStyleParts[] = "textAlign = {$align}";
+        }
+        if ($style->has($props::FontFamily)) {
+            $textStyleParts[] = "fontFamily = \"{$style->get($props::FontFamily)}\"";
+        }
+        if ($style->has($props::TextDecoration)) {
+            $v = $style->get($props::TextDecoration);
+            $map = ['underline' => 'TextDecoration.Underline', 'lineThrough' => 'TextDecoration.LineThrough'];
+            $textStyleParts[] = "textDecoration = {$map[$v]}";
+        }
+        if ($style->has($props::LineSpacing)) {
+            $textStyleParts[] = "lineHeight = {$style->get($props::LineSpacing)}.sp";
+        }
+        if ($style->has($props::LetterSpacing)) {
+            $textStyleParts[] = "letterSpacing = {$style->get($props::LetterSpacing)}.sp";
+        }
+        if ($textStyleParts !== []) {
+            $mods[] = "style = TextStyle(" . implode(', ', $textStyleParts) . ")";
+        }
+
+        if ($style->has($props::ForegroundColor)) {
+            $mods[] = "colorFilter = ColorProvider({$this->colorExpr($style->get($props::ForegroundColor))})";
         }
 
         // Padding
@@ -417,7 +436,9 @@ final class GlanceBackend extends CodegenBackend
     {
         return [
             StyleProperty::FontSize, StyleProperty::ForegroundColor, StyleProperty::FontWeight,
-            StyleProperty::TextAlignment, StyleProperty::Padding, StyleProperty::PaddingTop,
+            StyleProperty::TextAlignment, StyleProperty::FontFamily, StyleProperty::TextDecoration,
+            StyleProperty::LineSpacing, StyleProperty::LetterSpacing,
+            StyleProperty::Padding, StyleProperty::PaddingTop,
             StyleProperty::PaddingBottom, StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing,
             StyleProperty::Width, StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
             StyleProperty::BackgroundColor, StyleProperty::Opacity, StyleProperty::Margin,

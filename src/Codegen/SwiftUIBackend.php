@@ -525,6 +525,9 @@ final class SwiftUIBackend extends CodegenBackend
             $underline = $decoration === 'underline' || $decoration === 'lineThrough' ? 'true' : 'false';
             $mods[] = ".underline({$underline})";
         }
+        if ($style->has($props::LetterSpacing)) {
+            $mods[] = ".tracking({$style->get($props::LetterSpacing)})";
+        }
         if ($style->has($props::LineSpacing)) {
             $mods[] = ".lineSpacing({$style->get($props::LineSpacing)})";
         }

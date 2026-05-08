@@ -247,6 +247,9 @@ final class WearTilesBackend extends CodegenBackend
             if ($style->has($props::Height)) {
                 $result .= "\n{$this->indentStr()}.setHeight({$style->get($props::Height)})";
             }
+            if ($style->has($props::Opacity)) {
+                $result .= "\n{$this->indentStr()}.setOpacity({$style->get($props::Opacity)})";
+            }
         }
 
         $result .= "\n{$this->indentStr()}.build()";
@@ -258,16 +261,63 @@ final class WearTilesBackend extends CodegenBackend
     {
         $this->indent++;
         $children = $this->generateChildren($widget->children());
+        $style = $widget->getStyle();
+        $container = $this->applyContainerStyle('Column', $style);
         $this->indent--;
-        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE)\n{$children}\n{$this->indentStr()}.build()";
+        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
     }
 
     private function generateHStack(HStack $widget): string
     {
         $this->indent++;
         $children = $this->generateChildren($widget->children());
+        $style = $widget->getStyle();
+        $container = $this->applyContainerStyle('Row', $style);
         $this->indent--;
-        return "LayoutElementBuilders.Row.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE)\n{$children}\n{$this->indentStr()}.build()";
+        return "LayoutElementBuilders.Row.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
+    }
+
+    private function applyContainerStyle(string $builderType, ?Style $style): string
+    {
+        if ($style === null) {
+            return '';
+        }
+        $props = StyleProperty::class;
+        $result = '';
+        if ($style->has($props::BackgroundColor)) {
+            $result .= "\n{$this->indentStr()}.setBackground({$this->colorExpr($style->get($props::BackgroundColor))})";
+        }
+        $marginParts = [];
+        if ($style->has($props::Padding)) {
+            $v = (int) $style->get($props::Padding);
+            $marginParts['setTop'] = $v;
+            $marginParts['setBottom'] = $v;
+            $marginParts['setStart'] = $v;
+            $marginParts['setEnd'] = $v;
+        }
+        if ($style->has($props::PaddingTop)) {
+            $marginParts['setTop'] = (int) $style->get($props::PaddingTop);
+        }
+        if ($style->has($props::PaddingBottom)) {
+            $marginParts['setBottom'] = (int) $style->get($props::PaddingBottom);
+        }
+        if ($style->has($props::PaddingLeading)) {
+            $marginParts['setStart'] = (int) $style->get($props::PaddingLeading);
+        }
+        if ($style->has($props::PaddingTrailing)) {
+            $marginParts['setEnd'] = (int) $style->get($props::PaddingTrailing);
+        }
+        if ($marginParts) {
+            $builder = 'new Margin.Builder()';
+            foreach ($marginParts as $method => $v) {
+                $builder .= ".{$method}({$v})";
+            }
+            $result .= "\n{$this->indentStr()}.setPadding({$builder}.build())";
+        }
+        if ($style->has($props::Opacity)) {
+            $result .= "\n{$this->indentStr()}.setOpacity({$style->get($props::Opacity)})";
+        }
+        return $result;
     }
 
     private function generateImage(Image $widget): string
@@ -309,8 +359,10 @@ final class WearTilesBackend extends CodegenBackend
     {
         $this->indent++;
         $children = $this->generateChildren($widget->items());
+        $style = $widget->getStyle();
+        $container = $this->applyContainerStyle('Column', $style);
         $this->indent--;
-        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE)\n{$children}\n{$this->indentStr()}.build()";
+        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
     }
 
     private function generateChildren(array $children): string
@@ -346,7 +398,9 @@ final class WearTilesBackend extends CodegenBackend
         return [
             StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::TextAlignment,
             StyleProperty::ForegroundColor, StyleProperty::BackgroundColor, StyleProperty::LineSpacing,
-            StyleProperty::Width, StyleProperty::Height, StyleProperty::CornerRadius,
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::CornerRadius, StyleProperty::Opacity,
+            StyleProperty::Padding, StyleProperty::PaddingTop,
+            StyleProperty::PaddingBottom, StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing,
         ];
     }
 }

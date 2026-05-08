@@ -440,6 +440,9 @@ final class ComposeBackend extends CodegenBackend
             $decoration = $map[$v] ?? 'TextDecoration.None';
             $mods[] = ".textDecorationLine({$decoration})";
         }
+        if ($style->has($props::LetterSpacing)) {
+            $mods[] = ".letterSpacing({$style->get($props::LetterSpacing)}.sp)";
+        }
         if ($style->has($props::LineSpacing)) {
             $mods[] = ".lineHeight({$style->get($props::LineSpacing)}.sp)";
         }

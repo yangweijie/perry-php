@@ -398,6 +398,20 @@ final class FlutterBackend extends CodegenBackend
             }
         }
 
+        if ($style->has($props::MinWidth) || $style->has($props::MaxWidth) || $style->has($props::MaxHeight)) {
+            $parts = [];
+            if ($style->has($props::MinWidth)) {
+                $parts[] = "minWidth: {$style->get($props::MinWidth)}";
+            }
+            if ($style->has($props::MaxWidth)) {
+                $parts[] = "maxWidth: {$style->get($props::MaxWidth)}";
+            }
+            if ($style->has($props::MaxHeight)) {
+                $parts[] = "maxHeight: {$style->get($props::MaxHeight)}";
+            }
+            $wraps[] = "ConstrainedBox(\n{$this->indentStr()}    constraints: BoxConstraints(\n{$this->indentStr()}      " . implode(",\n{$this->indentStr()}      ", $parts) . ",\n{$this->indentStr()}    ),";
+        }
+
         if ($style->has($props::Padding)) {
             $p = $style->get($props::Padding);
             $wraps[] = "Padding(\n{$this->indentStr()}    padding: EdgeInsets.all({$p}),";
@@ -465,6 +479,9 @@ final class FlutterBackend extends CodegenBackend
         }
         if ($style->has($props::FontFamily)) {
             $parts[] = "fontFamily: '{$style->get($props::FontFamily)}'";
+        }
+        if ($style->has($props::LetterSpacing)) {
+            $parts[] = "letterSpacing: {$style->get($props::LetterSpacing)}";
         }
         if ($style->has($props::LineSpacing)) {
             $parts[] = "height: {$style->get($props::LineSpacing)}";
@@ -578,12 +595,14 @@ final class FlutterBackend extends CodegenBackend
     {
         return [
             StyleProperty::FontSize, StyleProperty::ForegroundColor, StyleProperty::FontWeight,
-            StyleProperty::FontFamily, StyleProperty::LineSpacing,
-            StyleProperty::TextDecoration, StyleProperty::Width, StyleProperty::Height,
-            StyleProperty::MinHeight, StyleProperty::Padding, StyleProperty::PaddingTop,
-            StyleProperty::PaddingBottom, StyleProperty::BackgroundColor, StyleProperty::Opacity,
-            StyleProperty::CornerRadius, StyleProperty::BorderWidth, StyleProperty::BorderColor,
-            StyleProperty::Margin, StyleProperty::ShadowColor, StyleProperty::ShadowRadius,
+            StyleProperty::FontFamily, StyleProperty::LetterSpacing, StyleProperty::LineSpacing,
+            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::Width,
+            StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::MaxWidth, StyleProperty::MaxHeight, StyleProperty::Padding,
+            StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::BackgroundColor,
+            StyleProperty::Opacity, StyleProperty::CornerRadius, StyleProperty::BorderWidth,
+            StyleProperty::BorderColor, StyleProperty::Margin, StyleProperty::ShadowColor,
+            StyleProperty::ShadowRadius,
         ];
     }
 }

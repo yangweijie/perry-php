@@ -521,6 +521,9 @@ final class HtmlBackend extends CodegenBackend
         if ($style->has(StyleProperty::TextDecoration)) {
             $css[] = "text-decoration: {$this->mapTextDecoration($style->get(StyleProperty::TextDecoration))}";
         }
+        if ($style->has(StyleProperty::LetterSpacing)) {
+            $css[] = "letter-spacing: {$style->get(StyleProperty::LetterSpacing)}px";
+        }
         if ($style->has(StyleProperty::LineSpacing)) {
             $css[] = "line-height: {$style->get(StyleProperty::LineSpacing)}px";
         }
