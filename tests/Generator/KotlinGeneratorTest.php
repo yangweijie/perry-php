@@ -127,6 +127,66 @@ test('KotlinGenerator generates listOf for array literal', function () {
     expect($result)->toBe('listOf("a", "b")');
 });
 
+test('KotlinGenerator generates Math.ceil', function () {
+    $call = new IR\FunctionCall('ceil', [new IR\Variable('x')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('Math.ceil(x).toInt()');
+});
+
+test('KotlinGenerator generates Math.round', function () {
+    $call = new IR\FunctionCall('round', [new IR\Variable('x')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('Math.round(x).toInt()');
+});
+
+test('KotlinGenerator generates .size for count', function () {
+    $call = new IR\FunctionCall('count', [new IR\Variable('arr')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('arr.size');
+});
+
+test('KotlinGenerator generates .add for array_push', function () {
+    $call = new IR\FunctionCall('array_push', [new IR\Variable('arr'), new IR\Variable('v')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('arr.add(v)');
+});
+
+test('KotlinGenerator generates json_decode', function () {
+    $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('org.json.JSONObject(s)');
+});
+
+test('KotlinGenerator generates json_encode', function () {
+    $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('v.toString()');
+});
+
+test('KotlinGenerator generates is_null', function () {
+    $call = new IR\FunctionCall('is_null', [new IR\Variable('x')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('x == null');
+});
+
+test('KotlinGenerator generates is_array', function () {
+    $call = new IR\FunctionCall('is_array', [new IR\Variable('x')]);
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($call))->toBe('x is Array<*>');
+});
+
+test('KotlinGenerator generates array type cast', function () {
+    $cast = new IR\Cast('array', new IR\Variable('x'));
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($cast))->toBe('x as Array<*>');
+});
+
+test('KotlinGenerator generates object type cast', function () {
+    $cast = new IR\Cast('object', new IR\Variable('x'));
+    $gen = new KotlinGenerator([]);
+    expect($gen->generate($cast))->toBe('x as Any');
+});
+
 test('KotlinGenerator generates filter for preg_split', function () {
     $call = new IR\FunctionCall('preg_split', [
         new IR\Literal('/[+\\-]/'),

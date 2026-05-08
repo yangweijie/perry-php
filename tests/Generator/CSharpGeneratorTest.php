@@ -120,6 +120,66 @@ test('CSharpGenerator generates ternary', function () {
     expect($result)->toBe('cond ? "yes" : "no"');
 });
 
+test('CSharpGenerator generates Math.Ceiling', function () {
+    $call = new IR\FunctionCall('ceil', [new IR\Variable('x')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('Math.Ceiling(x)');
+});
+
+test('CSharpGenerator generates Math.Round', function () {
+    $call = new IR\FunctionCall('round', [new IR\Variable('x')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('Math.Round(x)');
+});
+
+test('CSharpGenerator generates .Length for count', function () {
+    $call = new IR\FunctionCall('count', [new IR\Variable('arr')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('arr.Length');
+});
+
+test('CSharpGenerator generates .Add for array_push', function () {
+    $call = new IR\FunctionCall('array_push', [new IR\Variable('arr'), new IR\Variable('v')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('arr.Add(v)');
+});
+
+test('CSharpGenerator generates json_decode', function () {
+    $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('JsonSerializer.Deserialize(s)');
+});
+
+test('CSharpGenerator generates json_encode', function () {
+    $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('JsonSerializer.Serialize(v)');
+});
+
+test('CSharpGenerator generates is_null', function () {
+    $call = new IR\FunctionCall('is_null', [new IR\Variable('x')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('x == null');
+});
+
+test('CSharpGenerator generates is_array', function () {
+    $call = new IR\FunctionCall('is_array', [new IR\Variable('x')]);
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($call))->toBe('x is Array');
+});
+
+test('CSharpGenerator generates array type cast', function () {
+    $cast = new IR\Cast('array', new IR\Variable('x'));
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($cast))->toBe('(x).ToArray()');
+});
+
+test('CSharpGenerator generates object type cast', function () {
+    $cast = new IR\Cast('object', new IR\Variable('x'));
+    $gen = new CSharpGenerator([]);
+    expect($gen->generate($cast))->toBe('(x) as object');
+});
+
 test('CSharpGenerator generates array literal', function () {
     $arr = new IR\ArrayLiteral([
         new IR\Literal('a'),

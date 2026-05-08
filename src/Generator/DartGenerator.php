@@ -124,6 +124,14 @@ class DartGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last",
             'floor' => "{$args[0]}.floor()",
+            'ceil' => "{$args[0]}.ceil()",
+            'round' => "{$args[0]}.round()",
+            'count' => "{$args[0]}.length",
+            'array_push' => "{$args[0]}.add({$args[1]})",
+            'json_decode' => "jsonDecode({$args[0]})",
+            'json_encode' => "jsonEncode({$args[0]})",
+            'is_null' => "{$args[0]} == null",
+            'is_array' => "{$args[0]} is List",
             'array' => '[' . implode(', ', $args) . ']',
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -356,6 +364,8 @@ class DartGenerator implements IR\Generator
             'float', 'double' => "double.parse({$expr}.toString())",
             'string' => "{$expr}.toString()",
             'bool', 'boolean' => "{$expr} as bool",
+            'array' => "List.from({$expr})",
+            'object' => "{$expr} as dynamic",
             default => $expr,
         };
     }

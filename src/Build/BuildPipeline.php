@@ -32,6 +32,43 @@ final class BuildPipeline
         return $this->driver;
     }
 
+    /**
+     * Generate source code only, without invoking native toolchain.
+     *
+     * Uses the platform backend to produce the target-appropriate output
+     * (SwiftUI, Compose, GTK4 XML, HTML, etc.) and writes it to the
+     * specified file path. Skips the C-compilation and linker stages.
+     *
+     * Returns CompileResult with the generated file path (or failure).
+     */
+    public function generateOnly(\Perry\UI\Widget $root, string $outputFile): CompileResult
+    {
+        $factory = new \Perry\Codegen\CodegenFactory();
+        $backend = $factory->forTarget($this->target);
+        $source = $backend->generate($root);
+
+        $dir = dirname($outputFile);
+        if ($dir !== '' && $dir !== '.' && !is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        if (file_put_contents($outputFile, $source) === false) {
+            return CompileResult::failure("Failed to write: {$outputFile}");
+        }
+
+        return CompileResult::success($outputFile, $outputFile);
+    }
+
+    /**
+     * Get the generated source as a string without writing to disk.
+     */
+    public function generateSource(\Perry\UI\Widget $root): string
+    {
+        $factory = new \Perry\Codegen\CodegenFactory();
+        $backend = $factory->forTarget($this->target);
+        return $backend->generate($root);
+    }
+
     public function compile(string $sourceFile, string $outputFile): bool
     {
         $objectFile = $this->compileToObject($sourceFile);

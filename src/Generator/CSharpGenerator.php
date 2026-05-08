@@ -141,6 +141,14 @@ class CSharpGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.Last()",
             'floor' => "Math.Floor({$args[0]})",
+            'ceil' => "Math.Ceiling({$args[0]})",
+            'round' => "Math.Round({$args[0]})",
+            'count' => "{$args[0]}.Length",
+            'array_push' => "{$args[0]}.Add({$args[1]})",
+            'json_decode' => "JsonSerializer.Deserialize({$args[0]})",
+            'json_encode' => "JsonSerializer.Serialize({$args[0]})",
+            'is_null' => "{$args[0]} == null",
+            'is_array' => "{$args[0]} is Array",
             'array' => 'new[] { ' . implode(', ', $args) . ' }',
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -370,6 +378,8 @@ class CSharpGenerator implements IR\Generator
             'float', 'double' => "(double)({$expr})",
             'string' => "({$expr}).ToString()",
             'bool', 'boolean' => "(bool)({$expr})",
+            'array' => "({$expr}).ToArray()",
+            'object' => "({$expr}) as object",
             default => $expr,
         };
     }
@@ -380,12 +390,12 @@ class CSharpGenerator implements IR\Generator
 
     public function generateIncrement(IR\Increment $node): string
     {
-        return ($node->prefix ? "++{$node->variable}" : "{$node->variable}++") . ';';
+        return $node->prefix ? "++{$node->variable}" : "{$node->variable}++";
     }
 
     public function generateDecrement(IR\Decrement $node): string
     {
-        return ($node->prefix ? "--{$node->variable}" : "{$node->variable}--") . ';';
+        return $node->prefix ? "--{$node->variable}" : "{$node->variable}--";
     }
 
     // ============================================================

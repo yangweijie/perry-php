@@ -103,6 +103,30 @@ test('JavaScriptGenerator generates substr slice', function () {
     expect($result)->toBe('s.slice(-1)');
 });
 
+test('JavaScriptGenerator generates JSON.parse', function () {
+    $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
+    $gen = new JavaScriptGenerator([]);
+    expect($gen->generate($call))->toBe('JSON.parse(s)');
+});
+
+test('JavaScriptGenerator generates JSON.stringify', function () {
+    $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
+    $gen = new JavaScriptGenerator([]);
+    expect($gen->generate($call))->toBe('JSON.stringify(v)');
+});
+
+test('JavaScriptGenerator generates is_null', function () {
+    $call = new IR\FunctionCall('is_null', [new IR\Variable('x')]);
+    $gen = new JavaScriptGenerator([]);
+    expect($gen->generate($call))->toBe('x === null');
+});
+
+test('JavaScriptGenerator generates is_array', function () {
+    $call = new IR\FunctionCall('is_array', [new IR\Variable('x')]);
+    $gen = new JavaScriptGenerator([]);
+    expect($gen->generate($call))->toBe('Array.isArray(x)');
+});
+
 test('JavaScriptGenerator generates toFixed', function () {
     $call = new IR\FunctionCall('number_format', [
         new IR\Variable('n'),

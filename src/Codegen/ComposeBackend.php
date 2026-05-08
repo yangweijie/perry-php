@@ -21,9 +21,11 @@ use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
 use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
+use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
+use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
 
 final class ComposeBackend extends CodegenBackend
@@ -59,9 +61,9 @@ final class ComposeBackend extends CodegenBackend
 
         $width = $app->windowWidth();
         $height = $app->windowHeight();
-        $sizeCode = '';
+        $sizeCode = 'Modifier.fillMaxSize()';
         if ($width !== null && $height !== null) {
-            $sizeCode = ".size(width = {$width}.dp, height = {$height}.dp)";
+            $sizeCode = "Modifier.fillMaxSize().size(width = {$width}.dp, height = {$height}.dp)";
         }
 
         return <<<KOTLIN
@@ -91,7 +93,7 @@ final class ComposeBackend extends CodegenBackend
             {$stateVars}
 
             Surface(
-                modifier = Modifier.fillMaxSize(),
+                modifier = {$sizeCode},
                 color = MaterialTheme.colorScheme.background
             ) {
         {$body}
@@ -168,6 +170,8 @@ final class ComposeBackend extends CodegenBackend
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
+            WidgetKind::WebView => $this->generateWebViewWidget($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
@@ -277,6 +281,21 @@ final class ComposeBackend extends CodegenBackend
         }
 
         return "Slider(value = {$name}, valueRange = {$min}f..{$max}f, steps = {(int)(({$max} - {$min}) / {$step})}, onValueChange = {{$name} = it{$onChange}}{$mods})";
+    }
+
+    private function generateTextEditorWidget(TextEditor $widget): string
+    {
+        $binding = $widget->getBinding();
+        $name = $binding->name;
+        $placeholder = addslashes($widget->placeholder());
+        return 'OutlinedTextField(value = ' . $name . ', onValueChange = { ' . $name . ' = it}, placeholder = { Text("' . $placeholder . '") }, modifier = Modifier.fillMaxWidth(), minLines = 3)';
+    }
+
+    private function generateWebViewWidget(WebView $widget): string
+    {
+        $html = addslashes($widget->html());
+        // Use AndroidView + android.webkit.WebView for embedded HTML in Compose
+        return "AndroidView(factory = { context ->\n{$this->indentStr()}    android.webkit.WebView(context).apply {{\n{$this->indentStr()}        loadDataWithBaseURL(null, \"{$html}\", \"text/html\", \"UTF-8\", null)\n{$this->indentStr()}    }}\n{$this->indentStr()}})";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string

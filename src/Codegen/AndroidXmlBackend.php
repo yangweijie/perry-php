@@ -308,10 +308,10 @@ final class AndroidXmlBackend extends CodegenBackend
     private function generateTextInput(TextInput $widget): string
     {
         $hint = htmlspecialchars($widget->placeholder());
-        $binding = $widget->getBinding();
+        $state = $widget->value();
         $idLine = '';
-        if ($binding !== null) {
-            $idLine = "{$this->indentStr()}    android:id=\"@+id/et_{$binding->name}\"\n";
+        if ($state !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/et_{$state->name}\"\n";
         }
 
         return "{$this->indentStr()}<EditText\n"

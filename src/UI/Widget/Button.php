@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\UI\Widget;
 
 use Perry\UI\Action;
+use Perry\UI\ActionType;
 use Perry\UI\Widget;
 use Perry\UI\WidgetKind;
 
@@ -19,6 +20,8 @@ final class Button extends Widget
         parent::__construct();
         if ($action instanceof Action) {
             $this->actionObj = $action;
+        } elseif ($action instanceof \Closure) {
+            $this->actionObj = Action::fromClosure($action);
         }
     }
 

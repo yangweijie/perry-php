@@ -14,6 +14,7 @@ use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Spacer;
 use Perry\UI\Widget\Text;
+use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\AppContainer;
@@ -22,6 +23,7 @@ use Perry\UI\Widget\NavigationView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\VStack;
+use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
 
 final class WinUIBackend extends CodegenBackend
@@ -259,6 +261,8 @@ XAML);
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
+            WidgetKind::WebView => $this->generateWebViewWidget($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
@@ -637,6 +641,27 @@ XAML);
 
         return trim(<<<XAML
         {$this->indentStr()}<CheckBox Content="{$label}"{$onToggle}{$props} />
+XAML);
+    }
+
+    private function generateTextEditorWidget(TextEditor $widget): string
+    {
+        $binding = $widget->getBinding();
+        $name = $binding->name;
+        $this->textBindings[$name] = 'textblock_' . $name;
+        return trim(<<<XAML
+        {$this->indentStr()}<TextBox
+            x:Name="textblock_{$name}"
+            AcceptsReturn="True"
+            TextWrapping="Wrap"
+            VerticalScrollBarVisibility="Auto" />
+XAML);
+    }
+
+    private function generateWebViewWidget(WebView $widget): string
+    {
+        return trim(<<<XAML
+        {$this->indentStr()}<WebView2 Source="about:blank" />
 XAML);
     }
 

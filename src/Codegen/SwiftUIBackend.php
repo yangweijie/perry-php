@@ -154,9 +154,59 @@ final class SwiftUIBackend extends CodegenBackend
     {
         $body = $this->generateWidget($root);
 
+        $importWebKit = $this->hasWebView ? "\nimport WebKit\n" : '';
+        $webViewStruct = $this->hasWebView ? <<<'SWIFT'
+
+        struct WebViewWrapper: NSViewRepresentable {
+            let html: String
+
+            func makeNSView(context: Context) -> WKWebView {
+                let webView = WKWebView()
+                webView.uiDelegate = context.coordinator
+                webView.loadHTMLString(html, baseURL: nil)
+                return webView
+            }
+
+            func updateNSView(_ nsView: WKWebView, context: Context) {}
+
+            func makeCoordinator() -> Coordinator { Coordinator() }
+
+            class Coordinator: NSObject, WKUIDelegate {
+                func webView(_ webView: WKWebView,
+                             runJavaScriptTextInputPanelWithPrompt prompt: String,
+                             defaultText: String?,
+                             initiatedByFrame frame: WKFrameInfo,
+                             completionHandler: @escaping (String?) -> Void) {
+                    let alert = NSAlert()
+                    alert.messageText = prompt
+                    alert.addButton(withTitle: "OK")
+                    alert.addButton(withTitle: "Cancel")
+                    let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 480, height: 300))
+                    scrollView.hasVerticalScroller = true
+                    scrollView.borderType = .noBorder
+                    let textView = NSTextView(frame: scrollView.bounds)
+                    textView.isVerticallyResizable = true
+                    textView.isHorizontallyResizable = false
+                    textView.autoresizingMask = [.width, .height]
+                    textView.textContainer?.containerSize = NSSize(width: scrollView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+                    textView.textContainer?.widthTracksTextView = true
+                    textView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+                    textView.string = defaultText ?? ""
+                    scrollView.documentView = textView
+                    alert.accessoryView = scrollView
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        completionHandler(textView.string)
+                    } else {
+                        completionHandler(nil)
+                    }
+                }
+            }
+        }
+        SWIFT : '';
+
         return <<<SWIFT
         import SwiftUI
-
+        {$importWebKit}
         @main
         struct PerryApp: App {
             var body: some Scene {
@@ -165,6 +215,7 @@ final class SwiftUIBackend extends CodegenBackend
                 }
             }
         }
+        {$webViewStruct}
         SWIFT;
     }
 

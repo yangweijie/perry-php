@@ -18,9 +18,11 @@ use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
 use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
+use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
+use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
 use Perry\UI\Action;
 
@@ -173,6 +175,8 @@ C;
             WidgetKind::TextInput => $this->generateTextInput($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::Slider => $this->generateSlider($widget),
+            WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
+            WidgetKind::WebView => $this->generateWebViewWidget($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
@@ -293,6 +297,27 @@ C;
         return <<<XML
         {$this->indentStr()}<object class="GtkScrolledWindow" id="{$id}">
         {$children}
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateTextEditorWidget(TextEditor $widget): string
+    {
+        $id = $this->nextId();
+        $placeholder = htmlspecialchars($widget->placeholder());
+        return <<<XML
+        {$this->indentStr()}<object class="GtkTextView" id="{$id}">
+        {$this->indentStr()}    <property name="placeholder-text">{$placeholder}</property>
+        {$this->indentStr()}</object>
+        XML;
+    }
+
+    private function generateWebViewWidget(WebView $widget): string
+    {
+        $id = $this->nextId();
+        return <<<XML
+        {$this->indentStr()}<object class="GtkWebView" id="{$id}">
+        {$this->indentStr()}    <property name="visible">True</property>
         {$this->indentStr()}</object>
         XML;
     }
@@ -521,11 +546,11 @@ XML;
     {
         $id = $this->nextId();
         $placeholder = addslashes($widget->placeholder());
-        $binding = $widget->binding();
+        $state = $widget->value();
         $onChange = $widget->getOnChange();
 
         $props = $this->generateProperties($widget->getStyle());
-        $bindingExpr = $binding ? '$' . $binding->id : '""';
+        $bindingExpr = $state ? '$' . $state->id : '""';
         
         $result = <<<XML
 {$this->indentStr()}<object class="GtkEntry" id="{$id}">

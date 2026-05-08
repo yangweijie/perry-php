@@ -124,6 +124,14 @@ class KotlinGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last()",
             'floor' => "Math.floor({$args[0]}).toInt()",
+            'ceil' => "Math.ceil({$args[0]}).toInt()",
+            'round' => "Math.round({$args[0]}).toInt()",
+            'count' => "{$args[0]}.size",
+            'array_push' => "{$args[0]}.add({$args[1]})",
+            'json_decode' => "org.json.JSONObject({$args[0]})",
+            'json_encode' => "{$args[0]}.toString()",
+            'is_null' => "{$args[0]} == null",
+            'is_array' => "{$args[0]} is Array<*>",
             'array' => 'mutableListOf(' . implode(', ', $args) . ')',
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -341,6 +349,8 @@ class KotlinGenerator implements IR\Generator
             'float', 'double' => "{$expr}.toDouble()",
             'string' => "{$expr}.toString()",
             'bool', 'boolean' => "{$expr} as Boolean",
+            'array' => "{$expr} as Array<*>",
+            'object' => "{$expr} as Any",
             default => $expr,
         };
     }

@@ -152,6 +152,9 @@ class SwiftGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last!",
             'floor' => "floor({$args[0]})",
+            'ceil' => "ceil({$args[0]})",
+            'round' => "round({$args[0]})",
+            'array_push' => "{$args[0]}.append({$args[1]})",
             'json_decode' => $this->generateJsonDecode($args),
             'json_encode' => $this->generateJsonEncode($args),
             'json_last_error' => '0',
@@ -365,6 +368,8 @@ class SwiftGenerator implements IR\Generator
             'float' => "Double({$expr})",
             'string' => "String({$expr})",
             'bool' => "Bool({$expr})",
+            'array' => "Array({$expr})",
+            'object' => "{$expr} as AnyObject",
             default => $expr,
         };
     }

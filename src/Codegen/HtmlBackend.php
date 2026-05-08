@@ -352,6 +352,12 @@ final class HtmlBackend extends CodegenBackend
         return "<textarea id=\"{$id}\" placeholder=\"{$placeholder}\"{$style}></textarea>";
     }
 
+    private function generateWebViewHtml(\Perry\UI\Widget\WebView $widget): string
+    {
+        $html = htmlspecialchars($widget->html(), ENT_QUOTES);
+        return "<iframe srcdoc=\"{$html}\" style=\"width:100%;height:300px;border:none;\"></iframe>";
+    }
+
     private function generateSlider(Slider $widget): string
     {
         $id = 'slider_' . $this->nextId();
@@ -569,5 +575,10 @@ final class HtmlBackend extends CodegenBackend
             'overline' => 'overline',
             default => 'none',
         };
+    }
+
+    private function indentStr(): string
+    {
+        return str_repeat('    ', $this->indent);
     }
 }

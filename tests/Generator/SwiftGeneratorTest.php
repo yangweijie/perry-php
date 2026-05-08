@@ -104,6 +104,62 @@ test('SwiftGenerator generates in_array', function () {
     expect($result)->toBe('arr.contains(val)');
 });
 
+test('SwiftGenerator generates ceil', function () {
+    $call = new IR\FunctionCall('ceil', [new IR\Variable('x')]);
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($call))->toBe('ceil(x)');
+});
+
+test('SwiftGenerator generates round', function () {
+    $call = new IR\FunctionCall('round', [new IR\Variable('x')]);
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($call))->toBe('round(x)');
+});
+
+test('SwiftGenerator generates array_push', function () {
+    $call = new IR\FunctionCall('array_push', [new IR\Variable('arr'), new IR\Variable('v')]);
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($call))->toBe('arr.append(v)');
+});
+
+test('SwiftGenerator generates json_decode', function () {
+    $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('JSONSerialization.jsonObject(with:');
+});
+
+test('SwiftGenerator generates json_encode', function () {
+    $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('JSONSerialization.data(withJSONObject:');
+});
+
+test('SwiftGenerator generates is_null', function () {
+    $call = new IR\FunctionCall('is_null', [new IR\Variable('x')]);
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($call))->toBe('x == nil');
+});
+
+test('SwiftGenerator generates is_array', function () {
+    $call = new IR\FunctionCall('is_array', [new IR\Variable('x')]);
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($call))->toBe('x is NSArray');
+});
+
+test('SwiftGenerator generates array type cast', function () {
+    $cast = new IR\Cast('array', new IR\Variable('x'));
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($cast))->toBe('Array(x)');
+});
+
+test('SwiftGenerator generates object type cast', function () {
+    $cast = new IR\Cast('object', new IR\Variable('x'));
+    $gen = new SwiftGenerator([]);
+    expect($gen->generate($cast))->toBe('x as AnyObject');
+});
+
 test('SwiftGenerator generates preg_split', function () {
     $call = new IR\FunctionCall('preg_split', [
         new IR\Literal('/[+\\-]/'),

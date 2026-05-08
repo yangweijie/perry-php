@@ -19,6 +19,11 @@ final class CodegenFactory
         $this->register(new WinUIBackend());
         $this->register(new Gtk4Backend());
         $this->register(new ComposeBackend());
+        $this->register(new WasmBackend());
+        $this->register(new ArkTsBackend());
+        $this->register(new GlanceBackend());
+        $this->register(new WearTilesBackend());
+        $this->register(new FlutterBackend());
     }
 
     public function register(CodegenBackend $backend): void

@@ -12,9 +12,13 @@ enum Target: string
     case TvOs = 'tvos';
     case VisionOs = 'visionos';
     case WatchOs = 'watchos';
+    case Glance = 'glance';
+    case WearTiles = 'wear-tiles';
     case Android = 'android';
     case Gtk4Linux = 'gtk4-linux';
     case Windows = 'windows';
+    case Flutter = 'flutter';
+    case HarmonyOS = 'harmonyos';
     case Web = 'web';
     case Wasm = 'wasm';
 
@@ -27,6 +31,10 @@ enum Target: string
             self::TvOs => 'tvOS',
             self::VisionOs => 'visionOS',
             self::WatchOs => 'watchOS',
+            self::Glance => 'Glance',
+            self::WearTiles => 'Wear Tiles',
+            self::Flutter => 'Flutter',
+            self::HarmonyOS => 'HarmonyOS',
             self::Android => 'Android',
             self::Gtk4Linux => 'GTK4/Linux',
             self::Windows => 'Windows',
@@ -42,7 +50,7 @@ enum Target: string
 
     public function isMobile(): bool
     {
-        return in_array($this, [self::IOS, self::IOSSimulator, self::Android, self::WatchOs], true);
+        return in_array($this, [self::IOS, self::IOSSimulator, self::Glance, self::WearTiles, self::Android, self::WatchOs, self::HarmonyOS], true);
     }
 
     public function staticLibName(): string
@@ -53,6 +61,10 @@ enum Target: string
             self::TvOs => 'libperry_tvos.a',
             self::VisionOs => 'libperry_visionos.a',
             self::WatchOs => 'libperry_watchos.a',
+            self::Glance => 'libperry_glance.a',
+            self::WearTiles => 'libperry_wear_tiles.a',
+            self::Flutter => 'libperry_flutter.a',
+            self::HarmonyOS => 'libperry_harmonyos.a',
             self::Android => 'libperry_android.a',
             self::Gtk4Linux => 'libperry_linux.a',
             self::Windows => 'perry_windows.lib',
@@ -80,7 +92,13 @@ enum Target: string
             'swift' => self::MacOs->value,
             'mac' => self::MacOs->value,
             'ios' => self::IOS->value,
+            'flutter' => self::Flutter->value,
+            'dart' => self::Flutter->value,
+            'harmonyos' => self::HarmonyOS->value,
+            'arkts' => self::HarmonyOS->value,
+            'harmony' => self::HarmonyOS->value,
             'android' => self::Android->value,
+            'compose' => self::Android->value,
             'gtk4' => self::Gtk4Linux->value,
             'gtk' => self::Gtk4Linux->value,
             'linux' => self::Gtk4Linux->value,

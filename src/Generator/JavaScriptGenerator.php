@@ -126,6 +126,10 @@ class JavaScriptGenerator implements IR\Generator
             'count' => "{$args[0]}.length",
             'array' => "[]",
             'array_push' => "{$args[0]}.push({$args[1]})",
+            'json_decode' => "JSON.parse({$args[0]})",
+            'json_encode' => "JSON.stringify({$args[0]})",
+            'is_null' => "{$args[0]} === null",
+            'is_array' => "Array.isArray({$args[0]})",
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

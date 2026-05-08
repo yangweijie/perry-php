@@ -117,6 +117,66 @@ test('DartGenerator generates ternary', function () {
     expect($result)->toBe('cond ? "yes" : "no"');
 });
 
+test('DartGenerator generates ceil', function () {
+    $call = new IR\FunctionCall('ceil', [new IR\Variable('x')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('x.ceil()');
+});
+
+test('DartGenerator generates round', function () {
+    $call = new IR\FunctionCall('round', [new IR\Variable('x')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('x.round()');
+});
+
+test('DartGenerator generates count', function () {
+    $call = new IR\FunctionCall('count', [new IR\Variable('arr')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('arr.length');
+});
+
+test('DartGenerator generates array_push', function () {
+    $call = new IR\FunctionCall('array_push', [new IR\Variable('arr'), new IR\Variable('v')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('arr.add(v)');
+});
+
+test('DartGenerator generates json_decode', function () {
+    $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('jsonDecode(s)');
+});
+
+test('DartGenerator generates json_encode', function () {
+    $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('jsonEncode(v)');
+});
+
+test('DartGenerator generates is_null', function () {
+    $call = new IR\FunctionCall('is_null', [new IR\Variable('x')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('x == null');
+});
+
+test('DartGenerator generates is_array', function () {
+    $call = new IR\FunctionCall('is_array', [new IR\Variable('x')]);
+    $gen = new DartGenerator([]);
+    expect($gen->generate($call))->toBe('x is List');
+});
+
+test('DartGenerator generates array type cast', function () {
+    $cast = new IR\Cast('array', new IR\Variable('x'));
+    $gen = new DartGenerator([]);
+    expect($gen->generate($cast))->toBe('List.from(x)');
+});
+
+test('DartGenerator generates object type cast', function () {
+    $cast = new IR\Cast('object', new IR\Variable('x'));
+    $gen = new DartGenerator([]);
+    expect($gen->generate($cast))->toBe('x as dynamic');
+});
+
 test('DartGenerator generates list literal', function () {
     $arr = new IR\ArrayLiteral([
         new IR\Literal('a'),
