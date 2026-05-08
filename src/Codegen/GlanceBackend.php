@@ -9,6 +9,7 @@ use Perry\UI\Action;
 use Perry\UI\ActionType;
 use Perry\UI\Binding;
 use Perry\UI\Styling\Style;
+use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
@@ -409,5 +410,17 @@ final class GlanceBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::FontSize, StyleProperty::ForegroundColor, StyleProperty::FontWeight,
+            StyleProperty::TextAlignment, StyleProperty::Padding, StyleProperty::PaddingTop,
+            StyleProperty::PaddingBottom, StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing,
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::BackgroundColor, StyleProperty::Opacity, StyleProperty::Margin,
+        ];
     }
 }

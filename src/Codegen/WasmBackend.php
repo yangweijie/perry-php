@@ -600,4 +600,20 @@ final class WasmBackend extends CodegenBackend
     {
         return str_replace(["\\", "'", "\n", "\r"], ["\\\\", "\\'", "\\n", ""], $value);
     }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::BackgroundColor, StyleProperty::ForegroundColor, StyleProperty::FontSize,
+            StyleProperty::Padding, StyleProperty::CornerRadius, StyleProperty::Opacity,
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::MinWidth,
+            StyleProperty::MinHeight, StyleProperty::MaxWidth, StyleProperty::MaxHeight,
+            StyleProperty::Margin, StyleProperty::BorderWidth, StyleProperty::BorderColor,
+            StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
+            StyleProperty::PaddingTrailing, StyleProperty::FontWeight, StyleProperty::TextAlignment,
+            StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::ShadowColor,
+            StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
+        ];
+    }
 }

@@ -467,4 +467,20 @@ final class ArkTsBackend extends CodegenBackend
     {
         return str_repeat('    ', $this->indent);
     }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::FontSize, StyleProperty::ForegroundColor, StyleProperty::Width,
+            StyleProperty::Height, StyleProperty::MinHeight, StyleProperty::BackgroundColor,
+            StyleProperty::CornerRadius, StyleProperty::Padding, StyleProperty::Opacity,
+            StyleProperty::Margin, StyleProperty::BorderWidth, StyleProperty::BorderColor,
+            StyleProperty::ShadowColor, StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX,
+            StyleProperty::ShadowOffsetY, StyleProperty::FontWeight, StyleProperty::FontFamily,
+            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
+            StyleProperty::PaddingTrailing,
+        ];
+    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\Codegen;
 
 use Perry\Build\Target;
+use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 
 abstract class CodegenBackend
@@ -16,6 +17,9 @@ abstract class CodegenBackend
     abstract public function supports(Target $target): bool;
 
     abstract public function generate(Widget $root): string;
+
+    /** @return StyleProperty[] Style properties this backend can emit */
+    abstract public function supportedStyleProperties(): array;
 
     /**
      * Generate a unique ID for widgets.

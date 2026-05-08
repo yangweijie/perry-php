@@ -9,6 +9,7 @@ use Perry\UI\Action;
 use Perry\UI\ActionType;
 use Perry\UI\Binding;
 use Perry\UI\Styling\Style;
+use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
@@ -466,5 +467,21 @@ final class ComposeBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::BackgroundColor, StyleProperty::ForegroundColor, StyleProperty::BorderColor,
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::MaxWidth, StyleProperty::MaxHeight, StyleProperty::BorderWidth,
+            StyleProperty::CornerRadius, StyleProperty::Margin, StyleProperty::Padding,
+            StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
+            StyleProperty::PaddingTrailing, StyleProperty::Opacity, StyleProperty::ShadowRadius,
+            StyleProperty::ShadowColor, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
+            StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::FontFamily,
+            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+        ];
     }
 }

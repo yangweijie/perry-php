@@ -607,6 +607,21 @@ final class AndroidXmlBackend extends CodegenBackend
         return str_repeat('    ', $this->indent);
     }
 
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::CornerRadius,
+            StyleProperty::FontSize, StyleProperty::BackgroundColor, StyleProperty::ForegroundColor,
+            StyleProperty::Padding, StyleProperty::PaddingTop, StyleProperty::PaddingBottom,
+            StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Opacity,
+            StyleProperty::Margin, StyleProperty::BorderWidth, StyleProperty::BorderColor,
+            StyleProperty::ShadowRadius, StyleProperty::FontWeight, StyleProperty::FontFamily,
+            StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::MaxWidth, StyleProperty::MaxHeight,
+        ];
+    }
+
     public function generateMainActivity(string $outputName): string
     {
         $methods = '';

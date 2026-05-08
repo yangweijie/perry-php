@@ -9,6 +9,7 @@ use Perry\UI\Action;
 use Perry\UI\ActionType;
 use Perry\UI\Binding;
 use Perry\UI\Styling\Style;
+use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
@@ -603,5 +604,21 @@ final class SwiftUIBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::ForegroundColor, StyleProperty::BackgroundColor, StyleProperty::FontSize,
+            StyleProperty::FontWeight, StyleProperty::FontFamily, StyleProperty::TextAlignment,
+            StyleProperty::TextDecoration, StyleProperty::Opacity, StyleProperty::CornerRadius,
+            StyleProperty::Padding, StyleProperty::PaddingTop, StyleProperty::PaddingBottom,
+            StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Width,
+            StyleProperty::Height, StyleProperty::MinHeight, StyleProperty::Margin,
+            StyleProperty::BorderWidth, StyleProperty::BorderColor, StyleProperty::ShadowColor,
+            StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
+            StyleProperty::LineSpacing,
+        ];
     }
 }

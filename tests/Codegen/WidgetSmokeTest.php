@@ -185,3 +185,19 @@ test('Html smoke: each widget generates output', function () {
         expect(strlen($out))->toBeGreaterThan(0, "Html $label empty");
     }
 });
+
+test('each backend reports supported style properties', function () {
+    $factory = new CodegenFactory();
+    $names = [
+        'swiftui', 'html', 'android-xml', 'winui', 'gtk4',
+        'compose', 'wasm', 'arkts', 'glance', 'wear-tiles', 'flutter',
+    ];
+    foreach ($names as $name) {
+        $backend = $factory->get($name);
+        $props = $backend->supportedStyleProperties();
+        expect($props)->not->toBeEmpty("$name should support at least one style property");
+        foreach ($props as $prop) {
+            expect($prop)->toBeInstanceOf(Perry\UI\Styling\StyleProperty::class);
+        }
+    }
+});

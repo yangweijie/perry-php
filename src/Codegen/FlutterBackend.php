@@ -575,4 +575,18 @@ final class FlutterBackend extends CodegenBackend
     {
         return str_repeat('  ', $this->indent);
     }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::FontSize, StyleProperty::ForegroundColor, StyleProperty::FontWeight,
+            StyleProperty::FontFamily, StyleProperty::LineSpacing,
+            StyleProperty::TextDecoration, StyleProperty::Width, StyleProperty::Height,
+            StyleProperty::MinHeight, StyleProperty::Padding, StyleProperty::PaddingTop,
+            StyleProperty::PaddingBottom, StyleProperty::BackgroundColor, StyleProperty::Opacity,
+            StyleProperty::CornerRadius, StyleProperty::BorderWidth, StyleProperty::BorderColor,
+            StyleProperty::Margin, StyleProperty::ShadowColor, StyleProperty::ShadowRadius,
+        ];
+    }
 }

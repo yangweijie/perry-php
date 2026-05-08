@@ -847,4 +847,19 @@ XAML);
     {
         return str_repeat('    ', $this->indent);
     }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::BackgroundColor, StyleProperty::ForegroundColor, StyleProperty::BorderColor,
+            StyleProperty::BorderWidth, StyleProperty::CornerRadius, StyleProperty::Width,
+            StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::MaxWidth, StyleProperty::MaxHeight, StyleProperty::FontSize,
+            StyleProperty::FontWeight, StyleProperty::FontFamily, StyleProperty::TextAlignment,
+            StyleProperty::Padding, StyleProperty::PaddingTop, StyleProperty::PaddingBottom,
+            StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Margin,
+            StyleProperty::Opacity, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+        ];
+    }
 }

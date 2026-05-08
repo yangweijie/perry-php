@@ -342,4 +342,14 @@ final class WearTilesBackend extends CodegenBackend
     {
         return str_repeat('    ', $this->indent);
     }
+
+    /** @return StyleProperty[] */
+    public function supportedStyleProperties(): array
+    {
+        return [
+            StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::TextAlignment,
+            StyleProperty::ForegroundColor, StyleProperty::BackgroundColor, StyleProperty::LineSpacing,
+            StyleProperty::Width, StyleProperty::Height, StyleProperty::CornerRadius,
+        ];
+    }
 }
