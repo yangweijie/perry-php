@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Perry\Codegen;
 
 use Perry\Build\Target;
+use Perry\Generator\CGenerator;
+use Perry\UI\Action;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
@@ -24,7 +26,6 @@ use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
-use Perry\UI\Action;
 
 final class Gtk4Backend extends CodegenBackend
 {
@@ -123,9 +124,13 @@ C;
         }
 
         if ($action->type === \Perry\UI\ActionType::Closure) {
-            // TODO: Need a C code generator for Closure actions
-            // For now, generate a simple placeholder
-            return '    // Closure actions not yet fully supported for Gtk4';
+            // Transpile PHP closure to C code using IR + CGenerator
+            $ir = $action->getIr();
+            $cGenerator = new CGenerator();
+            $code = $ir->accept($cGenerator);
+            // Replace closure bindings with actual values
+            $code = $this->replaceClosureBindings($code, $action->closureBindings);
+            return $code;
         }
 
         if ($action->type === \Perry\UI\ActionType::SetValue) {
@@ -611,5 +616,35 @@ XML;
             StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::FontFamily,
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::LetterSpacing,
         ];
+    }
+
+    /**
+     * Replace closure binding placeholders with actual C values.
+     */
+    private function replaceClosureBindings(string $code, array $bindings): string
+    {
+        foreach ($bindings as $name => $value) {
+            if (is_string($value)) {
+                $replacement = '"' . addslashes($value) . '"';
+            } elseif (is_float($value)) {
+                $replacement = (string) $value;
+                if (!str_contains($replacement, '.')) {
+                    $replacement .= '.0';
+                }
+            } elseif (is_int($value)) {
+                $replacement = (string) $value;
+            } elseif (is_bool($value)) {
+                $replacement = $value ? 'TRUE' : 'FALSE';
+            } else {
+                $replacement = (string) $value;
+            }
+            // Use preg_replace_callback to avoid $0 backreference in replacement string
+            $code = preg_replace_callback(
+                '/\b' . preg_quote($name, '/') . '\b/',
+                fn(array $m) => $replacement,
+                $code
+            );
+        }
+        return $code;
     }
 }

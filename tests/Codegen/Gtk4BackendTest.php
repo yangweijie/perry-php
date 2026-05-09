@@ -59,3 +59,32 @@ test('Gtk4 generates all widget types', function () {
         }
     }
 });
+
+test('Gtk4 generates Closure action with C code', function () {
+    $b = (new CodegenFactory())->get('gtk4');
+    $action = Perry\UI\Action::fromClosure(function() {
+        $x = 42;
+        g_print("Hello from closure: %d\n", $x);
+    });
+    $button = new Perry\UI\Widget\Button('Click', $action);
+    $ui = $b->generate($button);
+    // The handler is generated in generateMainActivity
+    $cCode = $b->generateMainActivity('test');
+    expect($cCode)->toContain('g_print')
+        ->and($cCode)->toContain('Hello from closure')
+        ->and($cCode)->toContain('42');
+});
+
+test('Gtk4 Closure action with bindings', function () {
+    $b = (new CodegenFactory())->get('gtk4');
+    $action = Perry\UI\Action::fromClosure(function($count) {
+        g_print("Count: %d\n", $count);
+    }, ['count' => 100]);
+    $button = new Perry\UI\Widget\Button('Click', $action);
+    $ui = $b->generate($button);
+    // The handler is generated in generateMainActivity
+    $cCode = $b->generateMainActivity('test');
+    expect($cCode)->toContain('g_print')
+        ->and($cCode)->toContain('Count:')
+        ->and($cCode)->toContain('100');
+});
