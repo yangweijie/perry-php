@@ -140,28 +140,101 @@ class SwiftGenerator implements IR\Generator
         $args = array_map(fn($arg) => $arg->accept($this), $node->args);
 
         $swiftFunc = match ($node->name) {
+            // String manipulation
             'substr' => $this->generateSubstr($args),
+            'trim' => "{$args[0]}.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)",
+            'ltrim' => "{$args[0]}.trimmingCharacters(in: CharacterSet(charactersIn: \"" . ($args[1] ?? ' ') . "\"))",
+            'rtrim' => "{$args[0]}.trimmingCharacters(in: CharacterSet(charactersIn: \"" . ($args[1] ?? ' ') . "\"))",
+            'strtoupper' => "{$args[0]}.uppercased()",
+            'strtolower' => "{$args[0]}.lowercased()",
+            'ucfirst' => "{$args[0]}.prefix(1).uppercased() + {$args[0]}.dropFirst()",
+            'lcfirst' => "{$args[0]}.prefix(1).lowercased() + {$args[0]}.dropFirst()",
+            'str_replace' => "{$args[0]}.replacingOccurrences(of: {$args[1]}, with: {$args[2]})",
+            'str_repeat' => "String(repeating: {$args[0]}, count: Int({$args[1]}) ?? 0)",
+            'str_pad' => $this->generateStrPad($args),
+            'strip_tags' => "{$args[0]}",
+            'htmlspecialchars' => "{$args[0]}",
+            'md5' => "{$args[0]}.md5()",
+            'sha1' => "{$args[0]}.sha1()",
+
+            // Type conversion
             'floatval', 'doubleval' => "Double({$args[0]}) ?? 0",
             'intval', 'int' => "Int({$args[0]})",
             'strval' => "String({$args[0]})",
+
+            // String operations
             'strlen' => "{$args[0]}.count",
             'strpos' => "{$args[0]}.contains({$args[1]})",
+            'substr_count' => "{$args[0]}.components(separatedBy: {$args[1]}).count - 1",
+
+            // Array operations
             'in_array' => "{$args[1]}.contains({$args[0]})",
             'empty' => "{$args[0]}.isEmpty",
-            'number_format' => "String(format: \"%." . ($args[1] ?? '8') . "f\", {$args[0]})",
-            'preg_split' => $this->generatePregSplit($args),
-            'end' => "{$args[0]}.last!",
+            'count' => "({$args[0]} as! [Any]).count",
+            'array_push' => "{$args[0]}.append({$args[1]})",
+            'array_keys' => "({$args[0]} as! [AnyHashable: Any]).keys.map { String(describing: $0) }",
+            'array_values' => "({$args[0]} as! [Any]).map { $0 }",
+            'array_merge' => "({$args[0]} as! [Any]) + ({$args[1]} as! [Any])",
+            'array_slice' => "Array({$args[0]} as! [Any])[Int({$args[1]}) ?? 0 ..< (Int({$args[1]}) ?? 0 + (Int({$args[2]}) ?? 1))]",
+            'array_reverse' => "({$args[0]} as! [Any]).reversed()",
+            'array_sum' => "({$args[0]} as! [Double]).reduce(0, +)",
+            'array_map' => "({$args[1]} as! [Any]).map { {$args[0]}($0) }",
+            'array_filter' => "({$args[1]} as! [Any]).filter { {$args[0]}($0) }",
+            'array_search' => "({$args[1]} as! [Any]).firstIndex { $0 == {$args[0]} }",
+            'array_column' => "({$args[1]} as! [[String: Any]]).map { $0[{$args[0]}] ?? \"\" }",
+            'array_flip' => "Dictionary({$args[0]} as! [String: Any].enumerated().map { ($1, $0.offset) }, uniquingKeysWith: { $1 })",
+            'array_fill' => "Array(repeating: {$args[1]}, count: Int({$args[0]}) ?? 0)",
+            'array_rand' => "({$args[0]} as! [Any]).randomElement()",
+            'array_shift' => "({$args[0]} as! [Any]).removeFirst()",
+            'array_pop' => "({$args[0]} as! [Any]).removeLast()",
+            'array_unshift' => "({$args[0]} as! [Any]).insert({$args[1]}, at: 0)",
+            'array_key_exists' => "({$args[1]} as! [AnyHashable: Any]).keys.contains({$args[0]})",
+
+            // Math functions
             'floor' => "floor({$args[0]})",
             'ceil' => "ceil({$args[0]})",
             'round' => "round({$args[0]})",
-            'array_push' => "{$args[0]}.append({$args[1]})",
+            'abs' => "abs({$args[0]})",
+            'min' => "min({$args[0]}, {$args[1]})",
+            'max' => "max({$args[0]}, {$args[1]})",
+            'rand' => "Int.random(in: 1...Int({$args[1]}) ?? 100)",
+            'sqrt' => "sqrt({$args[0]})",
+            'log' => "log({$args[0]})",
+            'sin' => "sin({$args[0]})",
+            'cos' => "cos({$args[0]})",
+            'tan' => "tan({$args[0]})",
+
+            // Type checking
+            'is_null' => "{$args[0]} == nil",
+            'is_array' => "{$args[0]} is NSArray",
+            'is_int' => "{$args[0]} is Int",
+            'is_float' => "{$args[0]} is Double",
+            'is_string' => "{$args[0]} is String",
+            'is_bool' => "{$args[0]} is Bool",
+            'is_numeric' => "{$args[0]} is Int || {$args[0]} is Double",
+
+            // Date/Time
+            'time' => "Int(Date().timeIntervalSince1970)",
+            'date' => "Date().formatted()",
+
+            // Encoding
+            'urlencode' => "{$args[0]}.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? \"\"",
+            'urldecode' => "{$args[0]}.removingPercentEncoding ?? {$args[0]}",
+            'base64_encode' => "Data({$args[0]}.utf8).base64EncodedString()",
+            'base64_decode' => "String(data: Data(base64Encoded: {$args[0]}) ?? Data(), encoding: .utf8) ?? \"\"",
+
+            // Formatting
+            'number_format' => "String(format: \"%." . ($args[1] ?? '8') . "f\", {$args[0]})",
+            'sprintf' => $this->generateSprintf($args),
             'json_decode' => $this->generateJsonDecode($args),
             'json_encode' => $this->generateJsonEncode($args),
             'json_last_error' => '0',
             'json_last_error_msg' => '"OK"',
-            'is_null' => "{$args[0]} == nil",
-            'is_array' => "{$args[0]} is NSArray",
-            'count' => "({$args[0]} as! [Any]).count",
+
+            // Array helpers
+            'preg_split' => $this->generatePregSplit($args),
+            'end' => "{$args[0]}.last!",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
@@ -195,6 +268,28 @@ class SwiftGenerator implements IR\Generator
         $chars = $this->extractCharsFromRegex($pattern);
         $escaped = str_replace('"', '\\"', $chars);
         return "{$args[1]}.components(separatedBy: CharacterSet(charactersIn: \"{$escaped}\"))";
+    }
+
+    private function generateStrPad(array $args): string
+    {
+        $length = $args[1] ?? '0';
+        $padStr = $args[2] ?? '" "';
+        $padType = $args[3] ?? 'STR_PAD_RIGHT';
+        if ($padType === 'STR_PAD_LEFT') {
+            return "{$args[0]}.padding(toLength: Int({$length}) ?? 0, withPad: {$padStr}, startingAt: 0)";
+        }
+        if ($padType === 'STR_PAD_BOTH') {
+            return "{$args[0]}.padding(toLength: Int({$length}) ?? 0, withPad: {$padStr}, startingAt: 0)";
+        }
+        return "{$args[0]}.padding(toLength: Int({$length}) ?? 0, withPad: {$padStr}, startingAt: 0)";
+    }
+
+    private function generateSprintf(array $args): string
+    {
+        // Simple sprintf: format string + args
+        $format = $args[0] instanceof IR\Literal ? $args[0]->value : '%@';
+        $swiftFormat = str_replace(['%s', '%d', '%f'], ['%@', '%d', '%.2f'], $format);
+        return "String(format: \"{$swiftFormat}\", " . implode(', ', array_slice($args, 1)) . ")";
     }
 
     private function extractCharsFromRegex(string $pattern): string

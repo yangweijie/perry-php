@@ -14,6 +14,11 @@ final class Program extends Node
     /** @var Node[] */
     public array $statements = [];
 
+    public function __construct(array $statements = [])
+    {
+        $this->statements = $statements;
+    }
+
     public function accept(Generator $generator): string
     {
         return $generator->generateProgram($this);

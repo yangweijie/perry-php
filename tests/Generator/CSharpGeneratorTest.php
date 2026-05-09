@@ -147,13 +147,13 @@ test('CSharpGenerator generates .Add for array_push', function () {
 test('CSharpGenerator generates json_decode', function () {
     $call = new IR\FunctionCall('json_decode', [new IR\Variable('s')]);
     $gen = new CSharpGenerator([]);
-    expect($gen->generate($call))->toBe('JsonSerializer.Deserialize(s)');
+    expect($gen->generate($call))->toBe('System.Text.Json.JsonSerializer.Deserialize(s)');
 });
 
 test('CSharpGenerator generates json_encode', function () {
     $call = new IR\FunctionCall('json_encode', [new IR\Variable('v')]);
     $gen = new CSharpGenerator([]);
-    expect($gen->generate($call))->toBe('JsonSerializer.Serialize(v)');
+    expect($gen->generate($call))->toBe('System.Text.Json.JsonSerializer.Serialize(v)');
 });
 
 test('CSharpGenerator generates is_null', function () {

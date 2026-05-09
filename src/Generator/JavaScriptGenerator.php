@@ -109,27 +109,100 @@ class JavaScriptGenerator implements IR\Generator
         $args = array_map(fn($arg) => $arg->accept($this), $node->args);
 
         $jsFunc = match ($node->name) {
+            // String manipulation
             'substr' => $this->generateSubstr($args),
+            'trim' => "{$args[0]}.trim()",
+            'ltrim' => "{$args[0]}.replace(/^\\\\s+/, '')",
+            'rtrim' => "{$args[0]}.replace(/\\\\s+$/, '')",
+            'strtoupper' => "{$args[0]}.toUpperCase()",
+            'strtolower' => "{$args[0]}.toLowerCase()",
+            'ucfirst' => "{$args[0]}.charAt(0).toUpperCase() + {$args[0]}.slice(1)",
+            'lcfirst' => "{$args[0]}.charAt(0).toLowerCase() + {$args[0]}.slice(1)",
+            'str_replace' => "{$args[0]}.replace(new RegExp({$args[1]}, 'g'), {$args[2]})",
+            'str_repeat' => "{$args[0]}.repeat(parseInt({$args[1]}) || 0)",
+            'str_pad' => $this->generateStrPad($args),
+            'strip_tags' => "{$args[0]}",
+            'htmlspecialchars' => "{$args[0]}",
+            'md5' => "md5({$args[0]})",
+            'sha1' => "sha1({$args[0]})",
+
+            // Type conversion
             'floatval', 'doubleval' => "parseFloat({$args[0]})",
             'intval', 'int' => "parseInt({$args[0]})",
             'strval' => "String({$args[0]})",
+
+            // String operations
             'strlen' => "{$args[0]}.length",
             'strpos' => "(() => { const _i = {$args[0]}.indexOf({$args[1]}); return _i === -1 ? false : _i; })()",
+            'substr_count' => "{$args[0]}.split({$args[1]}).length - 1",
+
+            // Array operations
             'in_array' => "{$args[1]}.includes({$args[0]})",
             'empty' => "!{$args[0]}",
-            'number_format' => "{$args[0]}.toFixed(" . ($args[1] ?? '8') . ')',
-            'preg_split' => $this->generatePregSplit($args),
-            'end' => "{$args[0]}[{$args[0]}.length - 1]",
-            'floor' => "Math.floor({$args[0]})",
-            'ceil' => "Math.ceil({$args[0]})",
-            'round' => "Math.round({$args[0]})",
             'count' => "{$args[0]}.length",
             'array' => "[]",
             'array_push' => "{$args[0]}.push({$args[1]})",
-            'json_decode' => "JSON.parse({$args[0]})",
-            'json_encode' => "JSON.stringify({$args[0]})",
+            'array_keys' => "Object.keys({$args[0]})",
+            'array_values' => "Object.values({$args[0]})",
+            'array_merge' => "[...{$args[0]}, ...{$args[1]}]",
+            'array_slice' => "Array.from({$args[0]}).slice(parseInt({$args[1]}) || 0, parseInt({$args[1]}) || 0 + (parseInt({$args[2]}) || 1))",
+            'array_reverse' => "[...{$args[0]}].reverse()",
+            'array_sum' => "[...{$args[0]}].reduce((a, b) => a + b, 0)",
+            'array_map' => "[...{$args[1]}].map({$args[0]})",
+            'array_filter' => "[...{$args[1]}].filter({$args[0]})",
+            'array_search' => "[...{$args[1]}].indexOf({$args[0]})",
+            'array_column' => "[...{$args[1]}].map(x => x[{$args[0]}] || '')",
+            'array_flip' => "Object.fromEntries([...{$args[0]}].map(([k, v]) => [v, k]))",
+            'array_fill' => "Array(parseInt({$args[0]}) || 0).fill({$args[1]})",
+            'array_rand' => "{$args[0]}[Math.floor(Math.random() * {$args[0]}.length)]",
+            'array_shift' => "[...{$args[0]}].shift()",
+            'array_pop' => "[...{$args[0]}].pop()",
+            'array_unshift' => "[...{$args[0]}].unshift({$args[1]})",
+            'array_key_exists' => "Object.prototype.hasOwnProperty.call({$args[1]}, {$args[0]})",
+
+            // Math functions
+            'floor' => "Math.floor({$args[0]})",
+            'ceil' => "Math.ceil({$args[0]})",
+            'round' => "Math.round({$args[0]})",
+            'abs' => "Math.abs({$args[0]})",
+            'min' => "Math.min({$args[0]}, {$args[1]})",
+            'max' => "Math.max({$args[0]}, {$args[1]})",
+            'rand' => "Math.floor(Math.random() * (parseInt({$args[1]}) || 100))",
+            'sqrt' => "Math.sqrt({$args[0]})",
+            'log' => "Math.log({$args[0]})",
+            'sin' => "Math.sin({$args[0]})",
+            'cos' => "Math.cos({$args[0]})",
+            'tan' => "Math.tan({$args[0]})",
+
+            // Type checking
             'is_null' => "{$args[0]} === null",
             'is_array' => "Array.isArray({$args[0]})",
+            'is_int' => "Number.isInteger({$args[0]})",
+            'is_float' => "typeof {$args[0]} === 'number' && !Number.isInteger({$args[0]})",
+            'is_string' => "typeof {$args[0]} === 'string'",
+            'is_bool' => "typeof {$args[0]} === 'boolean'",
+            'is_numeric' => "typeof {$args[0]} === 'number'",
+
+            // Date/Time
+            'time' => "Math.floor(Date.now() / 1000)",
+            'date' => "new Date().toISOString()",
+
+            // Encoding
+            'urlencode' => "encodeURIComponent({$args[0]})",
+            'urldecode' => "decodeURIComponent({$args[0]})",
+            'base64_encode' => "btoa({$args[0]})",
+            'base64_decode' => "atob({$args[0]})",
+
+            // Formatting
+            'number_format' => "{$args[0]}.toFixed(" . ($args[1] ?? '8') . ')',
+            'sprintf' => $this->generateSprintf($args),
+            'json_decode' => "JSON.parse({$args[0]})",
+            'json_encode' => "JSON.stringify({$args[0]})",
+
+            // Array helpers
+            'preg_split' => $this->generatePregSplit($args),
+            'end' => "{$args[0]}[{$args[0]}.length - 1]",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
@@ -191,6 +264,25 @@ class JavaScriptGenerator implements IR\Generator
         $pattern = trim($pattern, '/');
         $escaped = str_replace('/', '\\/', $pattern);
         return "/{$escaped}/";
+    }
+
+    private function generateStrPad(array $args): string
+    {
+        $length = $args[1] ?? '0';
+        $padStr = $args[2] ?? '" "';
+        $padType = $args[3] ?? 'STR_PAD_RIGHT';
+        if ($padType === 'STR_PAD_LEFT') {
+            return "{$args[0]}.padStart(parseInt({$length}) || 0, {$padStr})";
+        }
+        if ($padType === 'STR_PAD_BOTH') {
+            return "{$args[0]}.padStart(parseInt({$length}) || 0, {$padStr})";
+        }
+        return "{$args[0]}.padEnd(parseInt({$length}) || 0, {$padStr})";
+    }
+
+    private function generateSprintf(array $args): string
+    {
+        return "sprintf({$args[0]}, " . implode(', ', array_slice($args, 1)) . ")";
     }
 
     public function generateReturn(IR\ReturnStatement $node): string

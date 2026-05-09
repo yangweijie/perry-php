@@ -129,27 +129,100 @@ class CSharpGenerator implements IR\Generator
         $args = array_map(fn($arg) => $arg->accept($this), $node->args);
 
         $csFunc = match ($node->name) {
+            // String manipulation
             'substr' => $this->generateSubstr($args),
+            'trim' => "{$args[0]}.Trim()",
+            'ltrim' => "{$args[0]}.TrimStart()",
+            'rtrim' => "{$args[0]}.TrimEnd()",
+            'strtoupper' => "{$args[0]}.ToUpper()",
+            'strtolower' => "{$args[0]}.ToLower()",
+            'ucfirst' => "{$args[0]}.Substring(0, 1).ToUpper() + {$args[0]}.Substring(1)",
+            'lcfirst' => "{$args[0]}.Substring(0, 1).ToLower() + {$args[0]}.Substring(1)",
+            'str_replace' => "{$args[0]}.Replace({$args[1]}, {$args[2]})",
+            'str_repeat' => "string.Concat(Enumerable.Repeat({$args[0]}, (int)({$args[1]}) ?? 0))",
+            'str_pad' => $this->generateStrPad($args),
+            'strip_tags' => "{$args[0]}",
+            'htmlspecialchars' => "System.Net.WebUtility.HtmlEncode({$args[0]})",
+            'md5' => "System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes({$args[0]})).ToHexString()",
+            'sha1' => "System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes({$args[0]})).ToHexString()",
+
+            // Type conversion
             'floatval', 'doubleval' => "Convert.ToDouble({$args[0]})",
             'intval', 'int' => "Convert.ToInt32({$args[0]})",
             'strval' => "{$args[0]}.ToString()",
+
+            // String operations
             'strlen' => "{$args[0]}.Length",
             'strpos' => "{$args[0]}.IndexOf({$args[1]})",
+            'substr_count' => "{$args[0]}.Split({$args[1]}).Length - 1",
+
+            // Array operations
             'in_array' => "{$args[1]}.Contains({$args[0]})",
             'empty' => "string.IsNullOrEmpty({$args[0]})",
-            'number_format' => "{$args[0]}.ToString(\"F{$args[1]}\")",
-            'preg_split' => $this->generatePregSplit($args),
-            'end' => "{$args[0]}.Last()",
+            'count' => "{$args[0]}.Length",
+            'array' => 'new[] { ' . implode(', ', $args) . ' }',
+            'array_push' => "{$args[0]}.Add({$args[1]})",
+            'array_keys' => "({$args[0]} is IDictionary dict) ? new List(dict.Keys) : new List()",
+            'array_values' => "({$args[0]} is IDictionary dict) ? new List(dict.Values) : new List({$args[0]})",
+            'array_merge' => "Enumerable.Concat({$args[0]}, {$args[1]}).ToArray()",
+            'array_slice' => "Enumerable.Skip({$args[0]}, (int)({$args[1]}) ?? 0).Take((int)({$args[2]}) ?? 1).ToArray()",
+            'array_reverse' => "Enumerable.Reverse({$args[0]})",
+            'array_sum' => "Enumerable.Sum({$args[0]})",
+            'array_map' => "Enumerable.Select({$args[1]}, {$args[0]})",
+            'array_filter' => "Enumerable.Where({$args[1]}, {$args[0]})",
+            'array_search' => "Enumerable.IndexOf({$args[1]}, {$args[0]})",
+            'array_column' => "Enumerable.Select({$args[1]}, x => x[{$args[0]}] ?? \"\")",
+            'array_flip' => "Enumerable.ToDictionary({$args[0]}, x => x.Value, x => x.Key)",
+            'array_fill' => "Enumerable.Repeat({$args[1]}, (int)({$args[0]}) ?? 0).ToArray()",
+            'array_rand' => "{$args[0]}[new Random().Next(0, {$args[0]}.Length)]",
+            'array_shift' => "Enumerable.Skip({$args[0]}, 1).ToArray()",
+            'array_pop' => "Enumerable.Take({$args[0]}, {$args[0]}.Length - 1).ToArray()",
+            'array_unshift' => "Enumerable.Concat(new[] { {$args[1]} }, {$args[0]}).ToArray()",
+            'array_key_exists' => "({$args[1]} is IDictionary dict) ? dict.Contains({$args[0]}) : false",
+
+            // Math functions
             'floor' => "Math.Floor({$args[0]})",
             'ceil' => "Math.Ceiling({$args[0]})",
             'round' => "Math.Round({$args[0]})",
-            'count' => "{$args[0]}.Length",
-            'array_push' => "{$args[0]}.Add({$args[1]})",
-            'json_decode' => "JsonSerializer.Deserialize({$args[0]})",
-            'json_encode' => "JsonSerializer.Serialize({$args[0]})",
+            'abs' => "Math.Abs({$args[0]})",
+            'min' => "Math.Min({$args[0]}, {$args[1]})",
+            'max' => "Math.Max({$args[0]}, {$args[1]})",
+            'rand' => "new Random().Next(1, (int)({$args[1]}) ?? 100)",
+            'sqrt' => "Math.Sqrt({$args[0]})",
+            'log' => "Math.Log({$args[0]})",
+            'sin' => "Math.Sin({$args[0]})",
+            'cos' => "Math.Cos({$args[0]})",
+            'tan' => "Math.Tan({$args[0]})",
+
+            // Type checking
             'is_null' => "{$args[0]} == null",
             'is_array' => "{$args[0]} is Array",
-            'array' => 'new[] { ' . implode(', ', $args) . ' }',
+            'is_int' => "{$args[0]} is int",
+            'is_float' => "{$args[0]} is float || {$args[0]} is double",
+            'is_string' => "{$args[0]} is string",
+            'is_bool' => "{$args[0]} is bool",
+            'is_numeric' => "{$args[0]} is IConvertible && {$args[0]} is not string",
+
+            // Date/Time
+            'time' => "(int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds",
+            'date' => "DateTime.Now.ToString()",
+
+            // Encoding
+            'urlencode' => "System.Net.WebUtility.UrlEncode({$args[0]})",
+            'urldecode' => "System.Net.WebUtility.UrlDecode({$args[0]})",
+            'base64_encode' => "Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes({$args[0]}))",
+            'base64_decode' => "System.Text.Encoding.UTF8.GetString(Convert.FromBase64String({$args[0]}))",
+
+            // Formatting
+            'number_format' => "{$args[0]}.ToString(\"F{$args[1]}\")",
+            'sprintf' => $this->generateSprintf($args),
+            'json_decode' => "System.Text.Json.JsonSerializer.Deserialize({$args[0]})",
+            'json_encode' => "System.Text.Json.JsonSerializer.Serialize({$args[0]})",
+
+            // Array helpers
+            'preg_split' => $this->generatePregSplit($args),
+            'end' => "{$args[0]}.Last()",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
@@ -203,6 +276,25 @@ class CSharpGenerator implements IR\Generator
             }
         }
         return $chars;
+    }
+
+    private function generateStrPad(array $args): string
+    {
+        $length = $args[1] ?? '0';
+        $padStr = $args[2] ?? '" "';
+        $padType = $args[3] ?? 'STR_PAD_RIGHT';
+        if ($padType === 'STR_PAD_LEFT') {
+            return "{$args[0]}.PadLeft((int)({$length}) ?? 0, {$padStr}[0])";
+        }
+        if ($padType === 'STR_PAD_BOTH') {
+            return "{$args[0]}.PadLeft((int)({$length}) ?? 0, {$padStr}[0])";
+        }
+        return "{$args[0]}.PadRight((int)({$length}) ?? 0, {$padStr}[0])";
+    }
+
+    private function generateSprintf(array $args): string
+    {
+        return "string.Format({$args[0]}, " . implode(', ', array_slice($args, 1)) . ")";
     }
 
     public function generateReturn(IR\ReturnStatement $node): string

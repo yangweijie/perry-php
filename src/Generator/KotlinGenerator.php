@@ -112,27 +112,100 @@ class KotlinGenerator implements IR\Generator
         $args = array_map(fn($arg) => $arg->accept($this), $node->args);
 
         $kotlinFunc = match ($node->name) {
+            // String manipulation
             'substr' => $this->generateSubstr($args),
+            'trim' => "{$args[0]}.trim()",
+            'ltrim' => "{$args[0]}.trimStart()",
+            'rtrim' => "{$args[0]}.trimEnd()",
+            'strtoupper' => "{$args[0]}.uppercase()",
+            'strtolower' => "{$args[0]}.lowercase()",
+            'ucfirst' => "{$args[0]}.first().uppercase() + {$args[0]}.drop(1)",
+            'lcfirst' => "{$args[0]}.first().lowercase() + {$args[0]}.drop(1)",
+            'str_replace' => "{$args[0]}.replace({$args[1]}, {$args[2]})",
+            'str_repeat' => "{$args[0]}.repeat(($args[1]) ?: 0)",
+            'str_pad' => $this->generateStrPad($args),
+            'strip_tags' => "{$args[0]}",
+            'htmlspecialchars' => "{$args[0]}",
+            'md5' => "{$args[0]}.md5()",
+            'sha1' => "{$args[0]}.sha1()",
+
+            // Type conversion
             'floatval', 'doubleval' => "{$args[0]}.toDoubleOrNull() ?: 0.0",
             'intval', 'int' => "{$args[0]}.toIntOrNull() ?: 0",
             'strval' => "{$args[0]}.toString()",
+
+            // String operations
             'strlen' => "{$args[0]}.length",
             'strpos' => "{$args[0]}.indexOf({$args[1]})",
+            'substr_count' => "{$args[0]}.count { it in {$args[1]} }",
+
+            // Array operations
             'in_array' => "{$args[1]}.contains({$args[0]})",
             'empty' => "{$args[0]}.isEmpty()",
-            'number_format' => "String.format(\"%." . ($args[1] ?? '8') . "f\", {$args[0]})",
-            'preg_split' => $this->generatePregSplit($args),
-            'end' => "{$args[0]}.last()",
+            'count' => "{$args[0]}.size",
+            'array' => 'mutableListOf(' . implode(', ', $args) . ')',
+            'array_push' => "{$args[0]}.add({$args[1]})",
+            'array_keys' => "({$args[0]} as? Map<*, *>)?.keys?.toList() ?: listOf()",
+            'array_values' => "({$args[0]} as? Map<*, *>)?.values?.toList() ?: {$args[0]}",
+            'array_merge' => "({$args[0]} as? List<*>)?.plus({$args[1]} as? List<*>) ?: listOf()",
+            'array_slice' => "({$args[0]} as? List<*>)?.slice(Int({$args[1]}) ?: 0 until (Int({$args[1]}) ?: 0 + (Int({$args[2]}) ?: 1))) ?: listOf()",
+            'array_reverse' => "({$args[0]} as? List<*>)?.reversed() ?: listOf()",
+            'array_sum' => "({$args[0]} as? List<Double>)?.sum() ?: 0.0",
+            'array_map' => "({$args[1]} as? List<*>).map { {$args[0]}(it) }",
+            'array_filter' => "({$args[1]} as? List<*>).filter { {$args[0]}(it) }",
+            'array_search' => "({$args[1]} as? List<*>).indexOf({$args[0]})",
+            'array_column' => "({$args[1]} as? List<Map<String, *>>).map { it[{$args[0]}] ?: \"\" }",
+            'array_flip' => "({$args[0]} as? Map<*, *>)?.associateBy({{ it.key }}, {{ it.value }}) ?: mapOf()",
+            'array_fill' => "List(Int({$args[0]}) ?: 0) { {$args[1]} }",
+            'array_rand' => "({$args[0]} as? List<*>).randomOrNull()",
+            'array_shift' => "({$args[0]} as? MutableList<*>).removeAt(0)",
+            'array_pop' => "({$args[0]} as? MutableList<*>).removeAt({$args[0]}.size - 1)",
+            'array_unshift' => "({$args[0]} as? MutableList<*>).add(0, {$args[1]})",
+            'array_key_exists' => "({$args[1]} as? Map<*, *>)?.containsKey({$args[0]}) ?: false",
+
+            // Math functions
             'floor' => "Math.floor({$args[0]}).toInt()",
             'ceil' => "Math.ceil({$args[0]}).toInt()",
             'round' => "Math.round({$args[0]}).toInt()",
-            'count' => "{$args[0]}.size",
-            'array_push' => "{$args[0]}.add({$args[1]})",
-            'json_decode' => "org.json.JSONObject({$args[0]})",
-            'json_encode' => "{$args[0]}.toString()",
+            'abs' => "kotlin.math.abs({$args[0]})",
+            'min' => "kotlin.math.min({$args[0]}, {$args[1]})",
+            'max' => "kotlin.math.max({$args[0]}, {$args[1]})",
+            'rand' => "Random.nextInt(1, Int({$args[1]}) ?: 100)",
+            'sqrt' => "kotlin.math.sqrt({$args[0]})",
+            'log' => "kotlin.math.log({$args[0]})",
+            'sin' => "kotlin.math.sin({$args[0]})",
+            'cos' => "kotlin.math.cos({$args[0]})",
+            'tan' => "kotlin.math.tan({$args[0]})",
+
+            // Type checking
             'is_null' => "{$args[0]} == null",
             'is_array' => "{$args[0]} is Array<*>",
-            'array' => 'mutableListOf(' . implode(', ', $args) . ')',
+            'is_int' => "{$args[0]} is Int",
+            'is_float' => "{$args[0]} is Float || {$args[0]} is Double",
+            'is_string' => "{$args[0]} is String",
+            'is_bool' => "{$args[0]} is Boolean",
+            'is_numeric' => "{$args[0]} is Number",
+
+            // Date/Time
+            'time' => "System.currentTimeMillis() / 1000",
+            'date' => "java.time.Instant.now().toString()",
+
+            // Encoding
+            'urlencode' => "URLEncoder.encode({$args[0]}, \"UTF-8\")",
+            'urldecode' => "URLDecoder.decode({$args[0]}, \"UTF-8\")",
+            'base64_encode' => "android.util.Base64.encode({$args[0]}.toByteArray(), android.util.Base64.NO_WRAP).decodeToString()",
+            'base64_decode' => "String(android.util.Base64.decode({$args[0]}, android.util.Base64.NO_WRAP))",
+
+            // Formatting
+            'number_format' => "String.format(\"%." . ($args[1] ?? '8') . "f\", {$args[0]})",
+            'sprintf' => $this->generateSprintf($args),
+            'json_decode' => "org.json.JSONObject({$args[0]})",
+            'json_encode' => "{$args[0]}.toString()",
+
+            // Array helpers
+            'preg_split' => $this->generatePregSplit($args),
+            'end' => "{$args[0]}.last()",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
@@ -186,6 +259,25 @@ class KotlinGenerator implements IR\Generator
             }
         }
         return $chars;
+    }
+
+    private function generateStrPad(array $args): string
+    {
+        $length = $args[1] ?? '0';
+        $padStr = $args[2] ?? '" "';
+        $padType = $args[3] ?? 'STR_PAD_RIGHT';
+        if ($padType === 'STR_PAD_LEFT') {
+            return "{$args[0]}.padStart(Int({$length}) ?: 0, {$padStr})";
+        }
+        if ($padType === 'STR_PAD_BOTH') {
+            return "{$args[0]}.padStart(Int({$length}) ?: 0, {$padStr})";
+        }
+        return "{$args[0]}.padEnd(Int({$length}) ?: 0, {$padStr})";
+    }
+
+    private function generateSprintf(array $args): string
+    {
+        return "String.format({$args[0]}, " . implode(', ', array_slice($args, 1)) . ")";
     }
 
     public function generateReturn(IR\ReturnStatement $node): string

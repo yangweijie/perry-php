@@ -320,7 +320,9 @@ class CGenerator implements IR\Generator
 
     public function generateCoalesce(IR\CoalesceOp $node): string
     {
-        return "(($node->left->accept($this)) ? ($node->left->accept($this)) : ($node->right->accept($this)))";
+        $left = $node->left->accept($this);
+        $right = $node->right->accept($this);
+        return "(($left) ? ($left) : ($right))";
     }
 
     public function generateLogicalAnd(IR\LogicalAnd $node): string
