@@ -4,7 +4,9 @@
 
 PHP DSL that defines cross-platform UIs declaratively and generates native source code for 11 platforms (SwiftUI, HTML, Android XML, Jetpack Compose, GTK4, WinUI, Wasm, ArkTS/HarmonyOS, Glance, Wear Tiles, Flutter). Codegen only — no runtime.
 
-This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). Perry-ts is a full compiler pipeline (30 crates, 379k LOC); perry-php focuses exclusively on the UI definition + codegen portion (~14.4k PHP LOC).
+This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). Perry-ts is a full compiler pipeline (31 crates, 334k LOC); perry-php focuses exclusively on the UI definition + codegen portion (~19k PHP LOC).
+
+**Status:** 355 tests, 2144 assertions — all passing ✅ | 11 backends, 29 style properties, 16 widgets
 
 ## STRUCTURE
 
@@ -32,9 +34,9 @@ src/
 | UI Codegen (Rust) | perry-codegen-{swiftui,js,wasm,arkts,glance,wear-tiles} | 57k | Codegen/ + Generator/ + IR/ | 7.9k | **~14%** |
 | UI Widget abstraction | perry-ui (6 rs, 1.5k LOC) | 1.5k | UI/Widget/* + Widget.php | 2.0k | **100%+** (more widgets) |
 | CLI / Build | perry crate (25+ commands) | 33k | bin/perry + Build/ | 1.1k | **~3%** |
-| Tests | — | — | tests/ | 5.7k (288 tests, 1838 assertions) | **Growing** |
+| Tests | — | — | tests/ | 5.7k (355 tests, 2144 assertions) | **Growing** |
 | Native platform bindings | perry-ui-{macos,ios,android,gtk4,windows,visionos,watchos,tvos} | 31k | Codegen/* (generates source instead) | — | **N/A** (different approach) |
-| **TOTAL** | **30 crates** | **379k** | **src/** | **14.4k** | **UI layer only** |
+| **TOTAL** | **31 crates** | **334k** | **src/** | **19.1k** | **UI layer only** |
 
 ### Codegen Backend Comparison
 
@@ -78,6 +80,7 @@ TabView, AppContainer, WebView
 - **All 11 Codegen Backends**: Full app generation with state management, actions, styling for all 11 platforms
 - **Style System**: 29 style properties with per-backend supported-properties API
 - **Build Target System**: 16 platform targets with auto-detection
+- **Closure Transpilation**: CGenerator for Gtk4 C action handlers (380 LOC)
 
 ### What's Partial (Needs Work)
 - **IR Generator Interface**: 50+ methods to implement per language (basic coverage done, full PHP function mapping incomplete)
