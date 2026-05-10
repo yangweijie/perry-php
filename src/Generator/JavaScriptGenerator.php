@@ -208,6 +208,29 @@ class JavaScriptGenerator implements IR\Generator
             'preg_match' => "new RegExp({$args[0]}).test({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}[{$args[0]}.length - 1]",
+
+            // String (extended)
+            'chr' => "String.fromCharCode({$args[0]})",
+            'ord' => "{$args[0]}.charCodeAt(0)",
+            'strrev' => "{$args[0]}.split('').reverse().join('')",
+            'str_shuffle' => "{$args[0]}.split('').sort(() => Math.random() - 0.5).join('')",
+            'str_word_count' => "{$args[0]}.trim().split(/\\s+/).length",
+
+            // Array (extended)
+            'array_chunk' => "Array.from({length: Math.ceil({$args[0]}.length / {$args[1]})}, (_, i) => {$args[0]}.slice(i * {$args[1]}, i * {$args[1]} + {$args[1]}))",
+            'array_splice' => "[...{$args[0]}.slice(0, {$args[1]}), ...{$args[0]}.slice({$args[1]} + ({$args[2]} || 0))]",
+            'array_pad' => "{$args[0]}.length >= {$args[1]} ? {$args[0]} : [...{$args[0]}, ...Array({$args[1]} - {$args[0]}.length).fill({$args[2]})]",
+            'current' => "{$args[0]}[0]",
+            'compact' => "{{$args[0]}: {$args[0]}, {$args[1]}: {$args[1]}}",
+
+            // Array (P5)
+            'array_count_values' => "{$args[0]}.reduce((acc, e) => { acc[e] = (acc[e] || 0) + 1; return acc; }, {})",
+            'array_walk' => "{$args[0]}.forEach({$args[1]})",
+
+            // Misc (P5)
+            'uniqid' => "Date.now().toString(36) + Math.random().toString(36).substring(2)",
+            'nl2br' => "{$args[0]}.replace(/\\n/g, '<br>')",
+
             'array_pop' => "{$args[0]}.pop()",
             'array_unshift' => "{$args[0]}.unshift({$args[1]})",
             'array_key_exists' => "Object.prototype.hasOwnProperty.call({$args[1]}, {$args[0]})",

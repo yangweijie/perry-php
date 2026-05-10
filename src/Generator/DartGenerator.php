@@ -211,6 +211,29 @@ class DartGenerator implements IR\Generator
             'preg_match' => "RegExp({$args[0]}).hasMatch({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last",
+
+            // String (extended)
+            'chr' => "String.fromCharCode({$args[0]})",
+            'ord' => "{$args[0]}.codeUnitAt(0)",
+            'strrev' => "{$args[0]}.split('').reversed.join('')",
+            'str_shuffle' => "({$args[0]}.split('')..shuffle()).join('')",
+            'str_word_count' => "{$args[0]}.split(RegExp('\\\\s+')).where((s) => s.isNotEmpty).length",
+
+            // Array (extended)
+            'array_chunk' => "[for (var i = 0; i < {$args[0]}.length; i += {$args[1]}) {$args[0]}.sublist(i, (i + {$args[1]} > {$args[0]}.length) ? {$args[0]}.length : i + {$args[1]})]",
+            'array_splice' => "[...{$args[0]}.sublist(0, {$args[1]}), ...{$args[0]}.sublist({$args[1]} + ({$args[2]} ?? 0))]",
+            'array_pad' => "{$args[0]}.length >= {$args[1]} ? {$args[0]} : ([...{$args[0]}, ...List.filled({$args[1]} - {$args[0]}.length, {$args[2]})])",
+            'current' => "{$args[0]}.first",
+            'compact' => "{{$args[0]}: {$args[0]}, {$args[1]}: {$args[1]}}",
+
+            // Array (P5)
+            'array_count_values' => "Map.from({$args[0]}.fold(<dynamic, int>{}, (Map<dynamic, int> acc, e) => acc..update(e, (v) => v + 1, ifAbsent: () => 1)))",
+            'array_walk' => "{$args[0]}.forEach((e) => {$args[1]}(e))",
+
+            // Misc (P5)
+            'uniqid' => "DateTime.now().millisecondsSinceEpoch.toString()",
+            'nl2br' => "{$args[0]}.replaceAll('\\n', '<br>')",
+
             'array_pop' => "{$args[0]}.removeLast()",
             'array_unshift' => "{$args[0]}.insert(0, {$args[1]})",
             'array_key_exists' => "({$args[1]} is Map) && ({$args[1]}.containsKey({$args[0]}))",

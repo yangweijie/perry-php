@@ -211,6 +211,29 @@ class KotlinGenerator implements IR\Generator
             'preg_match' => "Regex({$args[0]}).containsMatchIn({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last()",
+
+            // String (extended)
+            'chr' => "({$args[0]}).toChar()",
+            'ord' => "{$args[0]}.first().code",
+            'strrev' => "{$args[0]}.reversed()",
+            'str_shuffle' => "String({$args[0]}.toCharArray().apply { shuffle() })",
+            'str_word_count' => "{$args[0]}.split(Regex(\"\\\\s+\")).size",
+
+            // Array (extended)
+            'array_chunk' => "{$args[0]}.chunked(Int({$args[1]}) ?: 1)",
+            'array_splice' => "{$args[0]}.slice(0 until Int({$args[1]}) ?: 0) + {$args[0]}.drop(Int({$args[1]}) ?: 0 + (Int({$args[2]}) ?: 0))",
+            'array_pad' => "{$args[0]}.padTo(Int({$args[1]}) ?: 0, {$args[2]})",
+            'current' => "{$args[0]}.firstOrNull()",
+            'compact' => "mapOf({$args[0]} to {$args[0]}, {$args[1]} to {$args[1]})",
+
+            // Array (P5)
+            'array_count_values' => "{$args[0]}.groupBy { it }.mapValues { it.value.size }",
+            'array_walk' => "{$args[0]}.forEach { {$args[1]}(it) }",
+
+            // Misc (P5)
+            'uniqid' => "UUID.randomUUID().toString()",
+            'nl2br' => "{$args[0]}.replace(\"\\n\", \"<br>\")",
+
             'array_pop' => "{$args[0]}.removeLast()",
             'array_unshift' => "{$args[0]}.add(0, {$args[1]})",
             'array_key_exists' => "($args[1] is Map) && ($args[1].keys.contains($args[0]))",

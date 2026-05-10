@@ -261,6 +261,15 @@ class SwiftGenerator implements IR\Generator
             'current' => "({$args[0]} as! [Any]).first",
             'compact' => "[{$args[0]}, {$args[1]}]",
 
+            // Array (P5)
+            'array_count_values' => "Dictionary(grouping: {$args[0]} as! [AnyHashable], by: { \$0 }).mapValues { \$0.count }",
+            'array_walk' => "({$args[0]} as! [Any]).forEach { {$args[1]}(\$0) }",
+
+            // Misc (P5)
+            'is_null' => "{$args[0]} == nil",
+            'uniqid' => "UUID().uuidString",
+            'nl2br' => "{$args[0]}.replacingOccurrences(of: \"\\n\", with: \"<br>\")",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

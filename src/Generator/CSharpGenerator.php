@@ -235,6 +235,28 @@ class CSharpGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.Last()",
 
+            // String (extended)
+            'chr' => "((char)(int){$args[0]}).ToString()",
+            'ord' => "(int){$args[0]}[0]",
+            'strrev' => "new string({$args[0]}.Reverse().ToArray())",
+            'str_shuffle' => "new string({$args[0]}.OrderBy(_ => Guid.NewGuid()).ToArray())",
+            'str_word_count' => "{$args[0]}.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length",
+
+            // Array (extended)
+            'array_chunk' => "{$args[0]}.Select((v, i) => new { v, i }).GroupBy(x => x.i / {$args[1]}).Select(g => g.Select(x => x.v).ToList()).ToList()",
+            'array_splice' => "{$args[0]}.Take({$args[1]}).Concat({$args[0]}.Skip({$args[1]} + ({$args[2]} ?? 0))).ToList()",
+            'array_pad' => "{$args[0]}.Concat(Enumerable.Repeat({$args[2]}, Math.Max(0, (int){$args[1]} - {$args[0]}.Count))).ToList()",
+            'current' => "{$args[0]}.FirstOrDefault()",
+            'compact' => "new Dictionary<string, object> { [\"{$args[0]}\"] = {$args[0]}, [\"{$args[1]}\"] = {$args[1]} }",
+
+            // Array (P5)
+            'array_count_values' => "{$args[0]}.GroupBy(e => e).ToDictionary(g => g.Key, g => g.Count())",
+            'array_walk' => "{$args[0]}.ToList().ForEach(e => {$args[1]}(e))",
+
+            // Misc (P5)
+            'uniqid' => "Guid.NewGuid().ToString()",
+            'nl2br' => "{$args[0]}.Replace(\"\\n\", \"<br>\")",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
