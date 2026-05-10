@@ -31,7 +31,7 @@ test('KotlinGenerator generates toDoubleOrNull', function () {
     $gen = new KotlinGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('x.toDoubleOrNull() ?: 0.0');
+    expect($result)->toBe('(x as? Number)?.toDouble() ?: 0.0');
 });
 
 test('KotlinGenerator generates toIntOrNull', function () {
@@ -42,7 +42,7 @@ test('KotlinGenerator generates toIntOrNull', function () {
     $gen = new KotlinGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('x.toIntOrNull() ?: 0');
+    expect($result)->toBe('(x as? Number)?.toInt() ?: 0');
 });
 
 test('KotlinGenerator generates length', function () {

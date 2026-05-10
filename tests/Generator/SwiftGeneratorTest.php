@@ -89,7 +89,7 @@ test('SwiftGenerator generates floatval', function () {
     $gen = new SwiftGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('Double(x) ?? 0');
+    expect($result)->toBe('Double(x) ?? 0.0');
 });
 
 test('SwiftGenerator generates in_array', function () {

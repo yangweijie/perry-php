@@ -31,7 +31,7 @@ test('JavaScriptGenerator generates parseFloat', function () {
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('parseFloat(x)');
+    expect($result)->toBe('parseFloat(x) || 0.0');
 });
 
 test('JavaScriptGenerator generates parseInt', function () {
@@ -42,7 +42,7 @@ test('JavaScriptGenerator generates parseInt', function () {
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('parseInt(x)');
+    expect($result)->toBe('parseInt(x, 10) || 0');
 });
 
 test('JavaScriptGenerator generates length', function () {

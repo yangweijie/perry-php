@@ -158,8 +158,8 @@ class SwiftGenerator implements IR\Generator
             'sha1' => "{$args[0]}.sha1()",
 
             // Type conversion
-            'floatval', 'doubleval' => "Double({$args[0]}) ?? 0",
-            'intval', 'int' => "Int({$args[0]})",
+            'doubleval' => "Double({$args[0]}) ?? 0",
+            'int' => "Int({$args[0]})",
             'strval' => "String({$args[0]})",
 
             // String operations
@@ -269,6 +269,30 @@ class SwiftGenerator implements IR\Generator
             'is_null' => "{$args[0]} == nil",
             'uniqid' => "UUID().uuidString",
             'nl2br' => "{$args[0]}.replacingOccurrences(of: \"\\n\", with: \"<br>\")",
+
+            // String (P6)
+            'addslashes' => "{$args[0]}.replacingOccurrences(of: \"\\\\\", with: \"\\\\\\\\\").replacingOccurrences(of: \"'\", with: \"\\\\'\").replacingOccurrences(of: \"\\\"\", with: \"\\\\\\\"\")",
+            'stripslashes' => "{$args[0]}.replacingOccurrences(of: \"\\\\'\", with: \"'\").replacingOccurrences(of: \"\\\\\\\"\", with: \"\\\"\").replacingOccurrences(of: \"\\\\\\\\\", with: \"\\\\\")",
+            'str_split' => "{$args[0]}.map { String(\$0) }",
+            'str_ireplace' => "{$args[0]}.replacingOccurrences(of: {$args[1]}, with: {$args[2]}, options: .caseInsensitive)",
+            'substr_replace' => "String({$args[0]}.prefix({$args[1]})) + {$args[2]}",
+
+            // Array (P6)
+            'array_change_key_case' => "Dictionary(uniqueKeysWithValues: ({$args[0]} as! [String: Any]).map { (\$0.key.lowercased(), \$0.value) })",
+            'array_replace' => "({$args[0]} as! [String: Any]) + ({$args[1]} as! [String: Any])",
+            'array_intersect_key' => "Dictionary(uniqueKeysWithValues: ({$args[0]} as! [String: Any]).filter { {$args[1]}[\$0.key] != nil })",
+            'array_diff_key' => "Dictionary(uniqueKeysWithValues: ({$args[0]} as! [String: Any]).filter { {$args[1]}[\$0.key] == nil })",
+            'array_udiff' => "({$args[0]} as! [Any]).filter { a in !({$args[1]} as! [Any]).contains { b in {$args[2]}(a, b) == 0 } }",
+
+            // Math (P6)
+            'pow' => "pow({$args[0]}, {$args[1]})",
+            'exp' => "exp({$args[0]})",
+            'pi' => "Double.pi",
+            'microtime' => "Date().timeIntervalSince1970",
+
+            // Type conversion (P6)
+            'intval' => "Int({$args[0]}) ?? 0",
+            'floatval' => "Double({$args[0]}) ?? 0.0",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };

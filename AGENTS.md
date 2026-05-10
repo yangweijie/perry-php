@@ -6,7 +6,7 @@ PHP DSL that defines cross-platform UIs declaratively and generates native sourc
 
 This is the **UI codegen layer** port of perry-ts (Rust TS→native compiler). Perry-ts is a full compiler pipeline (31 crates, 334k LOC); perry-php focuses exclusively on the UI definition + codegen portion (~19k PHP LOC).
 
-**Status:** 674 tests, 2896 assertions — all passing ✅ | 11 backends, 29 style properties, 16 widgets, 65+ PHP function mappings
+**Status:** 834 tests, 3056 assertions — all passing ✅ | 11 backends, 29 style properties, 16 widgets, 81+ PHP function mappings
 
 ## STRUCTURE
 
@@ -34,7 +34,7 @@ src/
 | UI Codegen (Rust) | perry-codegen-{swiftui,js,wasm,arkts,glance,wear-tiles} | 57k | Codegen/ + Generator/ + IR/ | 7.9k | **~14%** |
 | UI Widget abstraction | perry-ui (6 rs, 1.5k LOC) | 1.5k | UI/Widget/* + Widget.php | 2.0k | **100%+** (more widgets) |
 | CLI / Build | perry crate (25+ commands) | 33k | bin/perry + Build/ | 1.1k | **~3%** |
-| Tests | — | — | tests/ | 9.5k (674 tests, 2896 assertions) | **Growing** |
+| Tests | — | — | tests/ | 9.5k (834 tests, 3056 assertions) | **Growing** |
 | Native platform bindings | perry-ui-{macos,ios,android,gtk4,windows,visionos,watchos,tvos} | 31k | Codegen/* (generates source instead) | — | **N/A** (different approach) |
 | **TOTAL** | **31 crates** | **334k** | **src/** | **19.1k** | **UI layer only** |
 
@@ -43,7 +43,7 @@ src/
 | Layer | Scope | Ported | Status |
 |-------|-------|--------|--------|
 | **UI Widget DSL** | 16 widgets, 29 style properties, 11 codegen backends | ✅ 100% | Production-ready |
-| **Closure Transpilation** | PHP closure → AST → IR → 5 target languages | ✅ Core done | 65+ PHP function mappings |
+| **Closure Transpilation** | PHP closure → AST → IR → 5 target languages | ✅ Core done | 81+ PHP function mappings |
 | **IR System** | 54 node types, 90 interface methods | ✅ 100% | All generators implemented |
 | **Build Pipeline** | Compiler, linker, toolchain integration | ⚠️ Stubs | Missing real toolchain |
 | **Compiler** | Parser, type system, HIR, LLVM codegen | ❌ 0% | Out of scope |
@@ -69,11 +69,11 @@ src/
 
 | Language | Lines | IR Methods | PHP Mappings | Tests | Notes |
 |----------|-------|-----------|-------------|-------|-------|
-| Swift | 796 loc | 90/90 (100%) | 65+ | 19 | Full IR, expanded PHP mappings |
-| Kotlin | 807 loc | 90/90 (100%) | 65+ | 22 | Full IR, expanded PHP mappings |
-| Dart | 816 loc | 90/90 (100%) | 65+ | 22 | Full IR, expanded PHP mappings |
-| JavaScript | 813 loc | 90/90 (100%) | 65+ | 43 | Full IR, expanded PHP mappings |
-| C# | 823 loc | 90/90 (100%) | 65+ | 22 | Full IR, expanded PHP mappings |
+| Swift | 796 loc | 90/90 (100%) | 81+ | 19 | Full IR, expanded PHP mappings (P5+P6) |
+| Kotlin | 807 loc | 90/90 (100%) | 81+ | 22 | Full IR, expanded PHP mappings (P5+P6) |
+| Dart | 816 loc | 90/90 (100%) | 81+ | 22 | Full IR, expanded PHP mappings (P5+P6) |
+| JavaScript | 813 loc | 90/90 (100%) | 81+ | 43 | Full IR, expanded PHP mappings (P5+P6) |
+| C# | 823 loc | 90/90 (100%) | 81+ | 22 | Full IR, expanded PHP mappings (P5+P6) |
 | C | 411 loc | 90/90 (100%) | 0 (passthrough) | 46 | Gtk4 Closure → C, full IR |
 
 ### Widget Parity (16 widgets)

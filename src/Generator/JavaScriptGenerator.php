@@ -127,8 +127,8 @@ class JavaScriptGenerator implements IR\Generator
             'sha1' => "sha1({$args[0]})",
 
             // Type conversion
-            'floatval', 'doubleval' => "parseFloat({$args[0]})",
-            'intval', 'int' => "parseInt({$args[0]})",
+            'doubleval' => "parseFloat({$args[0]})",
+            'int' => "parseInt({$args[0]})",
             'strval' => "String({$args[0]})",
 
             // String operations
@@ -240,6 +240,30 @@ class JavaScriptGenerator implements IR\Generator
             'array_combine' => "Object.fromEntries({$args[0]}.map((k, i) => [k, {$args[1]}[i]]))",
             'array_intersect' => "{$args[0]}.filter(it => {$args[1]}.includes(it))",
             'array_product' => "{$args[0]}.reduce((acc, it) => acc * it, 1)",
+
+            // String (P6)
+            'addslashes' => "{$args[0]}.replace(/\\\\/g, \"\\\\\\\\\").replace(/'/g, \"\\\\'\").replace(/\\x22/g, '\\\\\"')",
+            'stripslashes' => "{$args[0]}.replace(/\\\\'/g, \"'\").replace(/\\\\\"/g, '\"').replace(/\\\\\\\\/g, \"\\\\\")",
+            'str_split' => "{$args[0]}.split('')",
+            'str_ireplace' => "{$args[0]}.replace(new RegExp({$args[1]}, 'gi'), {$args[2]})",
+            'substr_replace' => "{$args[0]}.slice(0, {$args[1]}) + {$args[2]}",
+
+            // Array (P6)
+            'array_change_key_case' => "Object.fromEntries(Object.entries({$args[0]}).map(([k, v]) => [k.toLowerCase(), v]))",
+            'array_replace' => "Object.assign({}, {$args[0]}, {$args[1]})",
+            'array_intersect_key' => "Object.fromEntries(Object.entries({$args[0]}).filter(([k]) => k in {$args[1]}))",
+            'array_diff_key' => "Object.fromEntries(Object.entries({$args[0]}).filter(([k]) => !(k in {$args[1]})))",
+            'array_udiff' => "{$args[0]}.filter(a => !{$args[1]}.some(b => {$args[2]}(a, b) === 0))",
+
+            // Math (P6)
+            'pow' => "Math.pow({$args[0]}, {$args[1]})",
+            'exp' => "Math.exp({$args[0]})",
+            'pi' => "Math.PI",
+            'microtime' => "Date.now() / 1000",
+
+            // Type conversion (P6)
+            'intval' => "parseInt({$args[0]}, 10) || 0",
+            'floatval' => "parseFloat({$args[0]}) || 0.0",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };

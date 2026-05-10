@@ -130,8 +130,8 @@ class KotlinGenerator implements IR\Generator
             'sha1' => "{$args[0]}.sha1()",
 
             // Type conversion
-            'floatval', 'doubleval' => "{$args[0]}.toDoubleOrNull() ?: 0.0",
-            'intval', 'int' => "{$args[0]}.toIntOrNull() ?: 0",
+            'doubleval' => "{$args[0]}.toDoubleOrNull() ?: 0.0",
+            'int' => "{$args[0]}.toIntOrNull() ?: 0",
             'strval' => "{$args[0]}.toString()",
 
             // String operations
@@ -243,6 +243,30 @@ class KotlinGenerator implements IR\Generator
             'array_combine' => "{$args[0]}.zip({$args[1]}).toMap()",
             'array_intersect' => "{$args[0]}.filter { it in {$args[1]} }",
             'array_product' => "{$args[0]}.fold(1) { acc, it -> acc * it }",
+
+            // String (P6)
+            'addslashes' => "{$args[0]}.replace(\"\\\\\", \"\\\\\\\\\").replace(\"'\", \"\\\\'\").replace(\"\\\"\", \"\\\\\\\"\")",
+            'stripslashes' => "{$args[0]}.replace(\"\\\\'\", \"'\").replace(\"\\\\\\\"\", \"\\\"\").replace(\"\\\\\\\\\", \"\\\\\")",
+            'str_split' => "{$args[0]}.map { it.toString() }",
+            'str_ireplace' => "{$args[0]}.replace(Regex({$args[1]}, RegexOption.IGNORE_CASE), {$args[2]})",
+            'substr_replace' => "{$args[0]}.take({$args[1]}) + {$args[2]}",
+
+            // Array (P6)
+            'array_change_key_case' => "{$args[0]}.entries.associate { it.key.lowercase() to it.value }",
+            'array_replace' => "{$args[0]} + {$args[1]}",
+            'array_intersect_key' => "{$args[0]}.filterKeys { it in {$args[1]}.keys }",
+            'array_diff_key' => "{$args[0]}.filterKeys { it !in {$args[1]}.keys }",
+            'array_udiff' => "{$args[0]}.filter { a -> !{$args[1]}.any { b -> {$args[2]}(a, b) == 0 } }",
+
+            // Math (P6)
+            'pow' => "Math.pow({$args[0]}, {$args[1]})",
+            'exp' => "Math.exp({$args[0]})",
+            'pi' => "Math.PI",
+            'microtime' => "System.currentTimeMillis() / 1000.0",
+
+            // Type conversion (P6)
+            'intval' => "({$args[0]} as? Number)?.toInt() ?: 0",
+            'floatval' => "({$args[0]} as? Number)?.toDouble() ?: 0.0",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };

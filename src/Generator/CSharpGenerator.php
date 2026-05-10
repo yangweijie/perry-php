@@ -147,8 +147,8 @@ class CSharpGenerator implements IR\Generator
             'sha1' => "System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes({$args[0]})).ToHexString()",
 
             // Type conversion
-            'floatval', 'doubleval' => "Convert.ToDouble({$args[0]})",
-            'intval', 'int' => "Convert.ToInt32({$args[0]})",
+            'doubleval' => "Convert.ToDouble({$args[0]})",
+            'int' => "Convert.ToInt32({$args[0]})",
             'strval' => "{$args[0]}.ToString()",
 
             // String operations
@@ -256,6 +256,30 @@ class CSharpGenerator implements IR\Generator
             // Misc (P5)
             'uniqid' => "Guid.NewGuid().ToString()",
             'nl2br' => "{$args[0]}.Replace(\"\\n\", \"<br>\")",
+
+            // String (P6)
+            'addslashes' => "{$args[0]}.Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"'\", \"\\\\'\").Replace(\"\\\"\", \"\\\\\\\"\")",
+            'stripslashes' => "{$args[0]}.Replace(\"\\\\'\", \"'\").Replace(\"\\\\\\\"\", \"\\\"\").Replace(\"\\\\\\\\\", \"\\\\\")",
+            'str_split' => "{$args[0]}.Select(c => c.ToString()).ToArray()",
+            'str_ireplace' => "Regex.Replace({$args[0]}, {$args[1]}, {$args[2]}, RegexOptions.IgnoreCase)",
+            'substr_replace' => "{$args[0]}.Substring(0, {$args[1]}) + {$args[2]}",
+
+            // Array (P6)
+            'array_change_key_case' => "{$args[0]}.ToDictionary(kvp => kvp.Key.ToString().ToLower(), kvp => kvp.Value)",
+            'array_replace' => "{$args[0]}.Concat({$args[1]}).GroupBy(kvp => kvp.Key).ToDictionary(g => g.Key, g => g.Last().Value)",
+            'array_intersect_key' => "{$args[0]}.Where(kvp => {$args[1]}.ContainsKey(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)",
+            'array_diff_key' => "{$args[0]}.Where(kvp => !{$args[1]}.ContainsKey(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value)",
+            'array_udiff' => "{$args[0]}.Where(a => !{$args[1]}.Any(b => {$args[2]}(a, b) == 0)).ToArray()",
+
+            // Math (P6)
+            'pow' => "Math.Pow({$args[0]}, {$args[1]})",
+            'exp' => "Math.Exp({$args[0]})",
+            'pi' => "Math.PI",
+            'microtime' => "(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds",
+
+            // Type conversion (P6)
+            'intval' => "Convert.ToInt32({$args[0]})",
+            'floatval' => "Convert.ToDouble({$args[0]})",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };

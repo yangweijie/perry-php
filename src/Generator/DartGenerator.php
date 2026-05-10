@@ -130,8 +130,8 @@ class DartGenerator implements IR\Generator
             'sha1' => "sha1({$args[0]})",
 
             // Type conversion
-            'floatval', 'doubleval' => "double.parse({$args[0]}.toString())",
-            'intval', 'int' => "int.parse({$args[0]}.toString())",
+            'doubleval' => "double.parse({$args[0]}.toString())",
+            'int' => "int.parse({$args[0]}.toString())",
             'strval' => "{$args[0]}.toString()",
 
             // String operations
@@ -243,6 +243,30 @@ class DartGenerator implements IR\Generator
             'array_combine' => "Map.fromIterables({$args[0]}, {$args[1]})",
             'array_intersect' => "{$args[0]}.where((it) => {$args[1]}.contains(it)).toList()",
             'array_product' => "{$args[0]}.fold(1, (acc, it) => acc * it)",
+
+            // String (P6)
+            'addslashes' => "{$args[0]}.replaceAll(\"\\\\\", \"\\\\\\\\\").replaceAll(\"'\", \"\\\\'\").replaceAll(\"\\\"\", \"\\\\\\\"\")",
+            'stripslashes' => "{$args[0]}.replaceAll(\"\\\\'\", \"'\").replaceAll(\"\\\\\\\"\", \"\\\"\").replaceAll(\"\\\\\\\\\", \"\\\\\")",
+            'str_split' => "{$args[0]}.split('')",
+            'str_ireplace' => "{$args[0]}.replaceAll(RegExp({$args[1]}, caseSensitive: false), {$args[2]})",
+            'substr_replace' => "{$args[0]}.substring(0, {$args[1]}) + {$args[2]}",
+
+            // Array (P6)
+            'array_change_key_case' => "Map.fromIterable({$args[0]}.entries, key: (e) => e.key.toString().toLowerCase(), value: (e) => e.value)",
+            'array_replace' => "{...{$args[0]}, ...{$args[1]}}",
+            'array_intersect_key' => "Map.fromIterable({$args[0]}.entries.where((e) => {$args[1]}.containsKey(e.key)), key: (e) => e.key, value: (e) => e.value)",
+            'array_diff_key' => "Map.fromIterable({$args[0]}.entries.where((e) => !{$args[1]}.containsKey(e.key)), key: (e) => e.key, value: (e) => e.value)",
+            'array_udiff' => "{$args[0]}.where((a) => !{$args[1]}.any((b) => {$args[2]}(a, b) == 0)).toList()",
+
+            // Math (P6)
+            'pow' => "Math.pow({$args[0]}, {$args[1]})",
+            'exp' => "Math.exp({$args[0]})",
+            'pi' => "pi",
+            'microtime' => "DateTime.now().millisecondsSinceEpoch / 1000.0",
+
+            // Type conversion (P6)
+            'intval' => "int.tryParse({$args[0]}.toString()) ?? 0",
+            'floatval' => "double.tryParse({$args[0]}.toString()) ?? 0.0",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
