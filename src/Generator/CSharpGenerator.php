@@ -381,7 +381,7 @@ class CSharpGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return "return {$node->value->accept($this)}";
+        return $node->value ? "return {$node->value->accept($this)}" : 'return';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

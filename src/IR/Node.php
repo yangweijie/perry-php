@@ -120,7 +120,7 @@ final class FunctionCall extends Node
 final class ReturnStatement extends Node
 {
     public function __construct(
-        public readonly Node $value,
+        public readonly ?Node $value = null,
     ) {}
 
     public function accept(Generator $generator): string

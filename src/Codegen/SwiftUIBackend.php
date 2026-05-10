@@ -318,7 +318,8 @@ final class SwiftUIBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
         $spacing = $this->getSpacing($widget->getStyle());
-        return "VStack(spacing: {$spacing}) {\n{$children}\n{$this->indentStr()}}";
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "VStack(spacing: {$spacing}) {\n{$children}\n{$this->indentStr()}}{$modifiers}";
     }
 
     private function generateHStack(HStack $widget): string
@@ -327,7 +328,8 @@ final class SwiftUIBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
         $spacing = $this->getSpacing($widget->getStyle());
-        return "HStack(spacing: {$spacing}) {\n{$children}\n{$this->indentStr()}}";
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "HStack(spacing: {$spacing}) {\n{$children}\n{$this->indentStr()}}{$modifiers}";
     }
 
     private function generateImage(Image $widget): string

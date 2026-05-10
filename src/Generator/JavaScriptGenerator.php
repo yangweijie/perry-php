@@ -262,16 +262,16 @@ class JavaScriptGenerator implements IR\Generator
             'microtime' => "Date.now() / 1000",
 
             // Type conversion (P6)
-            'intval' => "parseInt({$args[0]}, 10) || 0",
-            'floatval' => "parseFloat({$args[0]}) || 0.0",
+            'intval' => "(parseInt({$args[0]}, 10) || 0)",
+            'floatval' => "(parseFloat({$args[0]}) || 0.0)",
 
             // Number system (P7)
             'decbin' => "({$args[0]} >>> 0).toString(2)",
             'dechex' => "({$args[0]} >>> 0).toString(16)",
             'decoct' => "({$args[0]} >>> 0).toString(8)",
-            'bindec' => "parseInt({$args[0]}, 2) || 0",
-            'hexdec' => "parseInt({$args[0]}, 16) || 0",
-            'octdec' => "parseInt({$args[0]}, 8) || 0",
+            'bindec' => "(parseInt({$args[0]}, 2) || 0)",
+            'hexdec' => "(parseInt({$args[0]}, 16) || 0)",
+            'octdec' => "(parseInt({$args[0]}, 8) || 0)",
 
             // Math (P7)
             'intdiv' => "Math.floor({$args[0]} / {$args[1]})",
@@ -373,7 +373,7 @@ class JavaScriptGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return "return {$node->value->accept($this)}";
+        return $node->value ? "return {$node->value->accept($this)}" : 'return';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

@@ -265,16 +265,16 @@ class DartGenerator implements IR\Generator
             'microtime' => "DateTime.now().millisecondsSinceEpoch / 1000.0",
 
             // Type conversion (P6)
-            'intval' => "int.tryParse({$args[0]}.toString()) ?? 0",
-            'floatval' => "double.tryParse({$args[0]}.toString()) ?? 0.0",
+            'intval' => "(int.tryParse({$args[0]}.toString()) ?? 0)",
+            'floatval' => "(double.tryParse({$args[0]}.toString()) ?? 0.0)",
 
             // Number system (P7)
-            'decbin' => "{$args[0]}.toRadixString(2)",
-            'dechex' => "{$args[0]}.toRadixString(16)",
-            'decoct' => "{$args[0]}.toRadixString(8)",
-            'bindec' => "int.tryParse({$args[0]}.toString(), radix: 2) ?? 0",
-            'hexdec' => "int.tryParse({$args[0]}.toString(), radix: 16) ?? 0",
-            'octdec' => "int.tryParse({$args[0]}.toString(), radix: 8) ?? 0",
+            'decbin' => "({$args[0]} as int).toRadixString(2)",
+            'dechex' => "({$args[0]} as int).toRadixString(16)",
+            'decoct' => "({$args[0]} as int).toRadixString(8)",
+            'bindec' => "(int.tryParse({$args[0]}.toString(), radix: 2) ?? 0)",
+            'hexdec' => "(int.tryParse({$args[0]}.toString(), radix: 16) ?? 0)",
+            'octdec' => "(int.tryParse({$args[0]}.toString(), radix: 8) ?? 0)",
 
             // Math (P7)
             'intdiv' => "{$args[0]} ~/ {$args[1]}",
@@ -374,7 +374,7 @@ class DartGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return "return {$node->value->accept($this)}";
+        return $node->value ? "return {$node->value->accept($this)}" : 'return';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

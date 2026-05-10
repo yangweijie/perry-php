@@ -291,16 +291,16 @@ class SwiftGenerator implements IR\Generator
             'microtime' => "Date().timeIntervalSince1970",
 
             // Type conversion (P6)
-            'intval' => "Int({$args[0]}) ?? 0",
-            'floatval' => "Double({$args[0]}) ?? 0.0",
+            'intval' => "(Int({$args[0]}) ?? 0)",
+            'floatval' => "(Double({$args[0]}) ?? 0.0)",
 
             // Number system (P7)
             'decbin' => "String({$args[0]}, radix: 2)",
             'dechex' => "String({$args[0]}, radix: 16)",
             'decoct' => "String({$args[0]}, radix: 8)",
-            'bindec' => "Int({$args[0]}, radix: 2) ?? 0",
-            'hexdec' => "Int({$args[0]}, radix: 16) ?? 0",
-            'octdec' => "Int({$args[0]}, radix: 8) ?? 0",
+            'bindec' => "(Int({$args[0]}, radix: 2) ?? 0)",
+            'hexdec' => "(Int({$args[0]}, radix: 16) ?? 0)",
+            'octdec' => "(Int({$args[0]}, radix: 8) ?? 0)",
 
             // Math (P7)
             'intdiv' => "Int({$args[0]}) / Int({$args[1]})",
@@ -411,7 +411,7 @@ class SwiftGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return "return {$node->value->accept($this)}";
+        return $node->value ? "return {$node->value->accept($this)}" : 'return';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

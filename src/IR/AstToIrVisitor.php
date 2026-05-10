@@ -60,6 +60,8 @@ class AstToIrVisitor extends NodeVisitorAbstract
                 if ($expr) {
                     $this->program->statements[] = new ReturnStatement($expr);
                 }
+            } elseif (!$this->isInsideIf()) {
+                $this->program->statements[] = new ReturnStatement();
             }
         } elseif ($node instanceof PhpNode\Stmt\While_) {
             if (!$this->isInsideIf()) {
@@ -291,6 +293,8 @@ class AstToIrVisitor extends NodeVisitorAbstract
                     if ($expr) {
                         $program->statements[] = new ReturnStatement($expr);
                     }
+                } else {
+                    $program->statements[] = new ReturnStatement();
                 }
             } elseif ($stmt instanceof PhpNode\Stmt\While_) {
                 $while = $this->transformWhile($stmt);

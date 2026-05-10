@@ -32,7 +32,7 @@ test('KotlinGenerator generates decbin', function () {
 test('DartGenerator generates decbin', function () {
     $call = new IR\FunctionCall('decbin', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('x.toRadixString(2)');
+    expect($gen->generate($call))->toBe('(x as int).toRadixString(2)');
 });
 
 test('JavaScriptGenerator generates decbin', function () {
@@ -64,7 +64,7 @@ test('KotlinGenerator generates dechex', function () {
 test('DartGenerator generates dechex', function () {
     $call = new IR\FunctionCall('dechex', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('x.toRadixString(16)');
+    expect($gen->generate($call))->toBe('(x as int).toRadixString(16)');
 });
 
 test('JavaScriptGenerator generates dechex', function () {
@@ -96,7 +96,7 @@ test('KotlinGenerator generates decoct', function () {
 test('DartGenerator generates decoct', function () {
     $call = new IR\FunctionCall('decoct', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('x.toRadixString(8)');
+    expect($gen->generate($call))->toBe('(x as int).toRadixString(8)');
 });
 
 test('JavaScriptGenerator generates decoct', function () {
@@ -116,25 +116,25 @@ test('CSharpGenerator generates decoct', function () {
 test('SwiftGenerator generates bindec', function () {
     $call = new IR\FunctionCall('bindec', [new IR\Variable('x')]);
     $gen = new SwiftGenerator([]);
-    expect($gen->generate($call))->toBe('Int(x, radix: 2) ?? 0');
+    expect($gen->generate($call))->toBe('(Int(x, radix: 2) ?? 0)');
 });
 
 test('KotlinGenerator generates bindec', function () {
     $call = new IR\FunctionCall('bindec', [new IR\Variable('x')]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('(x as String).toIntOrNull(2) ?: 0');
+    expect($gen->generate($call))->toBe('((x as String).toIntOrNull(2) ?: 0)');
 });
 
 test('DartGenerator generates bindec', function () {
     $call = new IR\FunctionCall('bindec', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('int.tryParse(x.toString(), radix: 2) ?? 0');
+    expect($gen->generate($call))->toBe('(int.tryParse(x.toString(), radix: 2) ?? 0)');
 });
 
 test('JavaScriptGenerator generates bindec', function () {
     $call = new IR\FunctionCall('bindec', [new IR\Variable('x')]);
     $gen = new JavaScriptGenerator();
-    expect($gen->generate($call))->toBe('parseInt(x, 2) || 0');
+    expect($gen->generate($call))->toBe('(parseInt(x, 2) || 0)');
 });
 
 test('CSharpGenerator generates bindec', function () {
@@ -148,25 +148,25 @@ test('CSharpGenerator generates bindec', function () {
 test('SwiftGenerator generates hexdec', function () {
     $call = new IR\FunctionCall('hexdec', [new IR\Variable('x')]);
     $gen = new SwiftGenerator([]);
-    expect($gen->generate($call))->toBe('Int(x, radix: 16) ?? 0');
+    expect($gen->generate($call))->toBe('(Int(x, radix: 16) ?? 0)');
 });
 
 test('KotlinGenerator generates hexdec', function () {
     $call = new IR\FunctionCall('hexdec', [new IR\Variable('x')]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('(x as String).toIntOrNull(16) ?: 0');
+    expect($gen->generate($call))->toBe('((x as String).toIntOrNull(16) ?: 0)');
 });
 
 test('DartGenerator generates hexdec', function () {
     $call = new IR\FunctionCall('hexdec', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('int.tryParse(x.toString(), radix: 16) ?? 0');
+    expect($gen->generate($call))->toBe('(int.tryParse(x.toString(), radix: 16) ?? 0)');
 });
 
 test('JavaScriptGenerator generates hexdec', function () {
     $call = new IR\FunctionCall('hexdec', [new IR\Variable('x')]);
     $gen = new JavaScriptGenerator();
-    expect($gen->generate($call))->toBe('parseInt(x, 16) || 0');
+    expect($gen->generate($call))->toBe('(parseInt(x, 16) || 0)');
 });
 
 test('CSharpGenerator generates hexdec', function () {
@@ -180,25 +180,25 @@ test('CSharpGenerator generates hexdec', function () {
 test('SwiftGenerator generates octdec', function () {
     $call = new IR\FunctionCall('octdec', [new IR\Variable('x')]);
     $gen = new SwiftGenerator([]);
-    expect($gen->generate($call))->toBe('Int(x, radix: 8) ?? 0');
+    expect($gen->generate($call))->toBe('(Int(x, radix: 8) ?? 0)');
 });
 
 test('KotlinGenerator generates octdec', function () {
     $call = new IR\FunctionCall('octdec', [new IR\Variable('x')]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('(x as String).toIntOrNull(8) ?: 0');
+    expect($gen->generate($call))->toBe('((x as String).toIntOrNull(8) ?: 0)');
 });
 
 test('DartGenerator generates octdec', function () {
     $call = new IR\FunctionCall('octdec', [new IR\Variable('x')]);
     $gen = new DartGenerator();
-    expect($gen->generate($call))->toBe('int.tryParse(x.toString(), radix: 8) ?? 0');
+    expect($gen->generate($call))->toBe('(int.tryParse(x.toString(), radix: 8) ?? 0)');
 });
 
 test('JavaScriptGenerator generates octdec', function () {
     $call = new IR\FunctionCall('octdec', [new IR\Variable('x')]);
     $gen = new JavaScriptGenerator();
-    expect($gen->generate($call))->toBe('parseInt(x, 8) || 0');
+    expect($gen->generate($call))->toBe('(parseInt(x, 8) || 0)');
 });
 
 test('CSharpGenerator generates octdec', function () {

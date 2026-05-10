@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perry App</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; }
+        .vstack { display: flex; flex-direction: column; }
+        .hstack { display: flex; flex-direction: row; }
+        .spacer { flex: 1; }
+        button { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: #333; color: #fff; }
+        button:hover { background: #555; }
+        input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #222; color: #fff; }
+        .toggle { display: flex; align-items: center; gap: 8px; }
+        .toggle input { width: 40px; height: 20px; }
+        .display { font-size: 24px; text-align: right; padding: 16px; background: #111; color: #fff; word-break: break-all; }
+        .calc-btn { padding: 16px; font-size: 18px; border: 1px solid #444; background: #222; color: #fff; cursor: pointer; }
+        .calc-btn:hover { background: #444; }
+        .calc-btn.op { background: #f59e0b; color: #000; }
+        .calc-btn.op:hover { background: #d97706; }
+        .calc-btn.eq { background: #10b981; color: #fff; }
+        .calc-btn.eq:hover { background: #059669; }
+    </style>
+    
+    
+</head>
+<body>
+    <div class="vstack" style="background-color: #000000; border-radius: 20px"><div class="vstack" style="height: 80px"><span id="result" style="color: #888888; font-size: 18px; padding: 4px"></span>
+<span id="display" style="color: #ffffff; font-size: 36px; padding: 4px"></span></div>
+<div class="hstack" style="padding: 4px"><button onclick="action_0()" style="background-color: #505050; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">⌫</button>
+<button onclick="action_1()" style="background-color: #505050; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">C</button>
+<button onclick="action_2()" style="background-color: #505050; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">%</button>
+<button onclick="action_3()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">÷</button></div>
+<div class="hstack" style="padding: 4px"><button onclick="action_4()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">7</button>
+<button onclick="action_5()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">8</button>
+<button onclick="action_6()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">9</button>
+<button onclick="action_7()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">x</button></div>
+<div class="hstack" style="padding: 4px"><button onclick="action_8()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">4</button>
+<button onclick="action_9()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">5</button>
+<button onclick="action_10()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">6</button>
+<button onclick="action_11()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">-</button></div>
+<div class="hstack" style="padding: 4px"><button onclick="action_12()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">1</button>
+<button onclick="action_13()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">2</button>
+<button onclick="action_14()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">3</button>
+<button onclick="action_15()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">+</button></div>
+<div class="hstack" style="padding: 4px"><button onclick="action_16()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">+/-</button>
+<button onclick="action_17()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">0</button>
+<button onclick="action_18()" style="background-color: #333333; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">.</button>
+<button onclick="action_19()" style="background-color: #CC7700; color: #ffffff; font-size: 18px; border-radius: 20px; width: 40px; height: 40px">=</button></div></div>
+    
+<script>
+const state = {
+    result: '',
+    display: '0',
+    operand1: 0,
+    operand2: 0,
+    operation: '',
+    isTyping: false,
+    typed: ''
+};
+
+function render() {
+    const el_result = document.getElementById('result');
+    if (el_result) {
+        if (el_result.tagName === 'TEXTAREA') { el_result.value = state.result; }
+        else { el_result.textContent = state.result; }
+    }
+    const el_display = document.getElementById('display');
+    if (el_display) {
+        if (el_display.tagName === 'TEXTAREA') { el_display.value = state.display; }
+        else { el_display.textContent = state.display; }
+    }
+    const el_operand1 = document.getElementById('operand1');
+    if (el_operand1) {
+        if (el_operand1.tagName === 'TEXTAREA') { el_operand1.value = state.operand1; }
+        else { el_operand1.textContent = state.operand1; }
+    }
+    const el_operand2 = document.getElementById('operand2');
+    if (el_operand2) {
+        if (el_operand2.tagName === 'TEXTAREA') { el_operand2.value = state.operand2; }
+        else { el_operand2.textContent = state.operand2; }
+    }
+    const el_operation = document.getElementById('operation');
+    if (el_operation) {
+        if (el_operation.tagName === 'TEXTAREA') { el_operation.value = state.operation; }
+        else { el_operation.textContent = state.operation; }
+    }
+    const el_isTyping = document.getElementById('isTyping');
+    if (el_isTyping) {
+        if (el_isTyping.tagName === 'TEXTAREA') { el_isTyping.value = state.isTyping; }
+        else { el_isTyping.textContent = state.isTyping; }
+    }
+    const el_typed = document.getElementById('typed');
+    if (el_typed) {
+        if (el_typed.tagName === 'TEXTAREA') { el_typed.value = state.typed; }
+        else { el_typed.textContent = state.typed; }
+    }
+}
+
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'result' && e.target.tagName === 'TEXTAREA') {
+        state.result = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'display' && e.target.tagName === 'TEXTAREA') {
+        state.display = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'operand1' && e.target.tagName === 'TEXTAREA') {
+        state.operand1 = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'operand2' && e.target.tagName === 'TEXTAREA') {
+        state.operand2 = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'operation' && e.target.tagName === 'TEXTAREA') {
+        state.operation = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'isTyping' && e.target.tagName === 'TEXTAREA') {
+        state.isTyping = e.target.value;
+    }
+});
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'typed' && e.target.tagName === 'TEXTAREA') {
+        state.typed = e.target.value;
+    }
+});
+
+
+
+function action_0() {
+    state.result = "";
+    if (state.display.length > 1) {
+            state.display = state.display.slice(0, -1);
+        if (state.typed.length > 1) {
+                    state.typed = state.typed.slice(0, -1);
+        } else {
+                    state.typed = "";
+        }
+    } else {
+            state.display = "0";
+        state.isTyping = false;
+        state.typed = "";
+    }
+    render();
+}
+    function action_1() {
+    state.display = "0";
+    state.result = "";
+    state.operand1 = 0;
+    state.operand2 = 0;
+    state.operation = "";
+    state.isTyping = false;
+    state.typed = "";
+    render();
+}
+    function action_2() {
+    state.result = "";
+    let operators = ["+", "-", "x", "÷", "%"];
+    let lastChar = state.display.slice(-1);
+    if (operators.includes(lastChar)) {
+            state.display = state.display.slice(0, -1);
+    } else {
+            state.operand1 = !!state.typed ? parseFloat(state.typed) || 0.0 : parseFloat(state.display) || 0.0;
+        state.operand2 = 0;
+    }
+    state.operation = "%";
+    state.isTyping = false;
+    state.typed = "";
+    state.display = state.display + "%";
+    render();
+}
+    function action_3() {
+    state.result = "";
+    let operators = ["+", "-", "x", "÷", "%"];
+    let lastChar = state.display.slice(-1);
+    if (operators.includes(lastChar)) {
+            state.display = state.display.slice(0, -1);
+    } else {
+            state.operand1 = !!state.typed ? parseFloat(state.typed) || 0.0 : parseFloat(state.display) || 0.0;
+        state.operand2 = 0;
+    }
+    state.operation = "÷";
+    state.isTyping = false;
+    state.typed = "";
+    state.display = state.display + "÷";
+    render();
+}
+    function action_4() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "7";
+        state.typed = state.typed + "7";
+    } else {
+            if (!state.operation) {
+                    state.display = "7";
+        } else {
+                    state.display = state.display + "7";
+        }
+        state.typed = "7";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_5() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "8";
+        state.typed = state.typed + "8";
+    } else {
+            if (!state.operation) {
+                    state.display = "8";
+        } else {
+                    state.display = state.display + "8";
+        }
+        state.typed = "8";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_6() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "9";
+        state.typed = state.typed + "9";
+    } else {
+            if (!state.operation) {
+                    state.display = "9";
+        } else {
+                    state.display = state.display + "9";
+        }
+        state.typed = "9";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_7() {
+    state.result = "";
+    let operators = ["+", "-", "x", "÷", "%"];
+    let lastChar = state.display.slice(-1);
+    if (operators.includes(lastChar)) {
+            state.display = state.display.slice(0, -1);
+    } else {
+            state.operand1 = !!state.typed ? parseFloat(state.typed) || 0.0 : parseFloat(state.display) || 0.0;
+        state.operand2 = 0;
+    }
+    state.operation = "x";
+    state.isTyping = false;
+    state.typed = "";
+    state.display = state.display + "x";
+    render();
+}
+    function action_8() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "4";
+        state.typed = state.typed + "4";
+    } else {
+            if (!state.operation) {
+                    state.display = "4";
+        } else {
+                    state.display = state.display + "4";
+        }
+        state.typed = "4";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_9() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "5";
+        state.typed = state.typed + "5";
+    } else {
+            if (!state.operation) {
+                    state.display = "5";
+        } else {
+                    state.display = state.display + "5";
+        }
+        state.typed = "5";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_10() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "6";
+        state.typed = state.typed + "6";
+    } else {
+            if (!state.operation) {
+                    state.display = "6";
+        } else {
+                    state.display = state.display + "6";
+        }
+        state.typed = "6";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_11() {
+    state.result = "";
+    let operators = ["+", "-", "x", "÷", "%"];
+    let lastChar = state.display.slice(-1);
+    if (operators.includes(lastChar)) {
+            state.display = state.display.slice(0, -1);
+    } else {
+            state.operand1 = !!state.typed ? parseFloat(state.typed) || 0.0 : parseFloat(state.display) || 0.0;
+        state.operand2 = 0;
+    }
+    state.operation = "-";
+    state.isTyping = false;
+    state.typed = "";
+    state.display = state.display + "-";
+    render();
+}
+    function action_12() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "1";
+        state.typed = state.typed + "1";
+    } else {
+            if (!state.operation) {
+                    state.display = "1";
+        } else {
+                    state.display = state.display + "1";
+        }
+        state.typed = "1";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_13() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "2";
+        state.typed = state.typed + "2";
+    } else {
+            if (!state.operation) {
+                    state.display = "2";
+        } else {
+                    state.display = state.display + "2";
+        }
+        state.typed = "2";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_14() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "3";
+        state.typed = state.typed + "3";
+    } else {
+            if (!state.operation) {
+                    state.display = "3";
+        } else {
+                    state.display = state.display + "3";
+        }
+        state.typed = "3";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_15() {
+    state.result = "";
+    let operators = ["+", "-", "x", "÷", "%"];
+    let lastChar = state.display.slice(-1);
+    if (operators.includes(lastChar)) {
+            state.display = state.display.slice(0, -1);
+    } else {
+            state.operand1 = !!state.typed ? parseFloat(state.typed) || 0.0 : parseFloat(state.display) || 0.0;
+        state.operand2 = 0;
+    }
+    state.operation = "+";
+    state.isTyping = false;
+    state.typed = "";
+    state.display = state.display + "+";
+    render();
+}
+    function action_16() {
+    state.result = "";
+    let val = parseFloat(state.typed) || 0.0;
+    if (val != 0) {
+            let negVal = -val;
+        let negStr = val == Math.floor(val) ? String(parseInt(negVal, 10) || 0) : String(negVal);
+        state.typed = negStr;
+        state.display = negStr;
+    }
+    render();
+}
+    function action_17() {
+    state.result = "";
+    if (state.isTyping) {
+            state.display = state.display + "0";
+        state.typed = state.typed + "0";
+    } else {
+            if (!state.operation) {
+                    state.display = "0";
+        } else {
+                    state.display = state.display + "0";
+        }
+        state.typed = "0";
+        state.isTyping = true;
+    }
+    state.operand2 = parseFloat(state.typed) || 0.0;
+    render();
+}
+    function action_18() {
+    state.result = "";
+    if (state.isTyping) {
+            if (!(() => { const _i = state.typed.indexOf("."); return _i === -1 ? false : _i; })()) {
+                    state.display = state.display + ".";
+            state.typed = state.typed + ".";
+        }
+    } else {
+            let operators = ["+", "-", "x", "÷", "%"];
+        let lastChar = state.display.slice(-1);
+        if (operators.includes(lastChar)) {
+                    state.display = state.display + "0.";
+            state.typed = "0.";
+        } else {
+                    state.display = state.display + ".";
+            state.typed = state.typed + ".";
+        }
+        state.isTyping = true;
+    }
+    render();
+}
+    function action_19() {
+    if (!state.operation) {
+            return;
+    }
+    let current = state.operand2;
+    let calcResult = state.operand1;
+    let isAdd = state.operation == "+";
+    let isSub = state.operation == "-";
+    let isMul = state.operation == "x";
+    let isDiv = state.operation == "÷";
+    let isMod = state.operation == "%";
+    if (isAdd) {
+            calcResult = state.operand1 + current;
+    }
+    if (isSub) {
+            calcResult = state.operand1 - current;
+    }
+    if (isMul) {
+            calcResult = state.operand1 * current;
+    }
+    if (isDiv && current != 0) {
+            calcResult = state.operand1 / current;
+    }
+    if (isMod && current != 0) {
+            calcResult = parseFloat(parseInt(state.operand1, 10) || 0 % parseInt(current, 10) || 0) || 0.0;
+    }
+    let isWhole = calcResult == Math.floor(calcResult);
+    let resultStr = isWhole ? String(parseInt(calcResult, 10) || 0) : String(calcResult);
+    state.result = state.display + "=";
+    state.display = resultStr;
+    state.operand1 = calcResult;
+    state.operation = "";
+    state.isTyping = false;
+    state.typed = "";
+    render();
+}
+
+        render();
+</script>
+</body>
+</html>

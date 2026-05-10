@@ -265,6 +265,7 @@ final class HtmlBackend extends CodegenBackend
         $textareaSync = $this->generateTextareaSync();
         $customScript = self::$customScript ?? '';
         $actions = implode("\n    ", $this->actionFunctions);
+        $initialRender = !empty($this->stateVars) ? "\n\n        render();" : '';
 
         return <<<HTML
 
@@ -277,7 +278,7 @@ final class HtmlBackend extends CodegenBackend
 
         {$customScript}
 
-        {$actions}
+        {$actions}{$initialRender}
         </script>
         HTML;
     }

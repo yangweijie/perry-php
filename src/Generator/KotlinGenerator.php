@@ -265,16 +265,16 @@ class KotlinGenerator implements IR\Generator
             'microtime' => "System.currentTimeMillis() / 1000.0",
 
             // Type conversion (P6)
-            'intval' => "({$args[0]} as? Number)?.toInt() ?: 0",
-            'floatval' => "({$args[0]} as? Number)?.toDouble() ?: 0.0",
+            'intval' => "(({$args[0]} as? Number)?.toInt() ?: 0)",
+            'floatval' => "(({$args[0]} as? Number)?.toDouble() ?: 0.0)",
 
             // Number system (P7)
             'decbin' => "({$args[0]} as Int).toString(2)",
             'dechex' => "({$args[0]} as Int).toString(16)",
             'decoct' => "({$args[0]} as Int).toString(8)",
-            'bindec' => "({$args[0]} as String).toIntOrNull(2) ?: 0",
-            'hexdec' => "({$args[0]} as String).toIntOrNull(16) ?: 0",
-            'octdec' => "({$args[0]} as String).toIntOrNull(8) ?: 0",
+            'bindec' => "(({$args[0]} as String).toIntOrNull(2) ?: 0)",
+            'hexdec' => "(({$args[0]} as String).toIntOrNull(16) ?: 0)",
+            'octdec' => "(({$args[0]} as String).toIntOrNull(8) ?: 0)",
 
             // Math (P7)
             'intdiv' => "({$args[0]} as Int) / ({$args[1]} as Int)",
@@ -368,7 +368,7 @@ class KotlinGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return "return {$node->value->accept($this)}";
+        return $node->value ? "return {$node->value->accept($this)}" : 'return';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

@@ -29,7 +29,7 @@ test('DartGenerator generates double.parse', function () {
     $gen = new DartGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('double.tryParse(x.toString()) ?? 0.0');
+    expect($result)->toBe('(double.tryParse(x.toString()) ?? 0.0)');
 });
 
 test('DartGenerator generates int.parse', function () {
@@ -38,7 +38,7 @@ test('DartGenerator generates int.parse', function () {
     $gen = new DartGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('int.tryParse(x.toString()) ?? 0');
+    expect($result)->toBe('(int.tryParse(x.toString()) ?? 0)');
 });
 
 test('DartGenerator generates .length', function () {

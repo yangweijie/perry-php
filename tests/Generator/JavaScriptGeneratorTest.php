@@ -31,18 +31,17 @@ test('JavaScriptGenerator generates parseFloat', function () {
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('parseFloat(x) || 0.0');
+    expect($result)->toBe('(parseFloat(x) || 0.0)');
 });
 
 test('JavaScriptGenerator generates parseInt', function () {
     $call = new IR\FunctionCall('intval', [
-        new IR\Variable('x')
+        new IR\Variable('x'),
     ]);
-    
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('parseInt(x, 10) || 0');
+    expect($result)->toBe('(parseInt(x, 10) || 0)');
 });
 
 test('JavaScriptGenerator generates length', function () {
