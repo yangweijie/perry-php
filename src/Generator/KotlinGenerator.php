@@ -138,6 +138,11 @@ class KotlinGenerator implements IR\Generator
             'strlen' => "{$args[0]}.length",
             'strpos' => "{$args[0]}.indexOf({$args[1]})",
             'substr_count' => "{$args[0]}.count { it in {$args[1]} }",
+            'explode' => "{$args[1]}.split({$args[0]})",
+            'implode', 'join' => "{$args[1]}.joinToString(separator: {$args[0]})",
+            'str_contains' => "{$args[0]}.contains({$args[1]})",
+            'str_starts_with' => "{$args[0]}.startsWith({$args[1]})",
+            'str_ends_with' => "{$args[0]}.endsWith({$args[1]})",
 
             // Array operations
             'in_array' => "{$args[1]}.contains({$args[0]})",
@@ -203,8 +208,18 @@ class KotlinGenerator implements IR\Generator
             'json_encode' => "{$args[0]}.toString()",
 
             // Array helpers
+            'preg_match' => "Regex({$args[0]}).containsMatchIn({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last()",
+            'array_pop' => "{$args[0]}.removeLast()",
+            'array_unshift' => "{$args[0]}.add(0, {$args[1]})",
+            'array_key_exists' => "($args[1] is Map) && ($args[1].keys.contains($args[0]))",
+            'array_reduce' => "{$args[0]}.reduce({$args[1]}) { acc, it -> acc + it }",
+            'array_unique' => "{$args[0]}.distinct()",
+            'array_diff' => "{$args[0]}.filter { it !in {$args[1]} }",
+            'array_combine' => "{$args[0]}.zip({$args[1]}).toMap()",
+            'array_intersect' => "{$args[0]}.filter { it in {$args[1]} }",
+            'array_product' => "{$args[0]}.fold(1) { acc, it -> acc * it }",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -590,6 +605,94 @@ class KotlinGenerator implements IR\Generator
     }
 
     // ============================================================
+    // Class / Object Support
+    // ============================================================
+
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => '',
+        };
+        $type = $node->type !== null ? ": {$node->type}" : '';
+        $default = $node->default !== null ? " = {$node->default->accept($this)}" : '';
+        return "{$visibility}var {$node->name}{$type}{$default}";
+    }
+
+    public function generateMethodParameter(IR\MethodParameter $node): string
+    {
+        $type = $node->type !== null ? ": {$node->type}" : '';
+        $default = $node->default !== null ? " = {$node->default->accept($this)}" : '';
+        return "{$node->name}{$type}{$default}";
+    }
+
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => '',
+        };
+        $static = $node->isStatic ? 'companion object {' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $returnType = $node->returnType !== null ? ": {$node->returnType}" : '';
+        
+        if ($node->body === null) {
+            return "{$visibility}fun {$node->name}({$params}){$returnType}";
+        }
+        
+        $body = $node->body->accept($this);
+        return "{$visibility}fun {$node->name}({$params}){$returnType} {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+    }
+
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        $extends = $node->extends !== null ? " : {$node->extends}" : '';
+        $implements = !empty($node->implements) ? " : " . implode(', ', $node->implements) : '';
+        $inheritance = $extends . $implements;
+        
+        $lines = ["class {$node->name}{$inheritance} {"];
+        $this->indent++;
+        
+        foreach ($node->properties as $prop) {
+            $lines[] = $this->indent() . $prop->accept($this);
+        }
+        
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "}";
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "{$node->className}({$args})";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        $paramStr = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $params = $paramStr !== '' ? "($paramStr)" : '';
+        
+        if ($node->isArrow && $node->body !== null) {
+            // Kotlin lambda: { (params) -> body }
+            $body = $node->body->accept($this);
+            return "{ {$params} -> {$body} }";
+        }
+        
+        // Function literal
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "{ {$params} ->\n{$indent}    {$body}\n{$indent}}}";
+    }
+
+    // ============================================================
     // Exceptions
     // ============================================================
 
@@ -605,13 +708,11 @@ class KotlinGenerator implements IR\Generator
         $result .= $this->indent() . $node->try->accept($this) . "\n";
         $this->indent--;
         $result .= $this->indent() . "}";
-
-        if (!empty($node->catches)) {
-            foreach ($node->catches as $catch) {
-                $result .= ' ' . $catch->accept($this);
-            }
+        
+        foreach ($node->catches as $catch) {
+            $result .= " " . $catch->accept($this);
         }
-
+        
         if ($node->finally) {
             $result .= " finally {\n";
             $this->indent++;
@@ -619,19 +720,17 @@ class KotlinGenerator implements IR\Generator
             $this->indent--;
             $result .= $this->indent() . "}";
         }
-
+        
         return $result;
     }
 
     public function generateCatchClause(IR\CatchClause $node): string
     {
         $body = $node->body->accept($this);
-        return "catch (e: {$node->type}) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+        $indent = $this->indent();
+        $type = $node->type !== null ? ": {$node->type}" : '';
+        return " catch ({$node->variable}{$type}) {\n{$indent}    {$body}\n{$indent}}}";
     }
-
-    // ============================================================
-    // Static Operations
-    // ============================================================
 
     public function generateStaticCall(IR\StaticCall $node): string
     {
@@ -649,17 +748,43 @@ class KotlinGenerator implements IR\Generator
         return "{$node->class}.{$node->constant}";
     }
 
-    // ============================================================
-    // Include
-    // ============================================================
-
     public function generateInclude(IR\IncludeStatement $node): string
     {
-        return "// include \"{$node->path}\"";
+        return "// include '{$node->path}'";
     }
 
     private function indent(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "{$node->array->accept($this)}.removeLast()";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "{$node->array->accept($this)}.add(0, {$node->value->accept($this)})";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "({$node->array->accept($this)} is Map) && ({$node->array->accept($this)}.keys.contains({$node->key->accept($this)}))";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        return "{$node->array->accept($this)}.reduce({$node->initial->accept($this)}) { acc, it -> acc + it }";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        return "{$node->array->accept($this)}.distinct()";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        return "{$node->array->accept($this)}.filter { it !in {$node->diff->accept($this)} }";
     }
 }

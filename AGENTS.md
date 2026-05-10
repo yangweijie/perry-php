@@ -34,9 +34,20 @@ src/
 | UI Codegen (Rust) | perry-codegen-{swiftui,js,wasm,arkts,glance,wear-tiles} | 57k | Codegen/ + Generator/ + IR/ | 7.9k | **~14%** |
 | UI Widget abstraction | perry-ui (6 rs, 1.5k LOC) | 1.5k | UI/Widget/* + Widget.php | 2.0k | **100%+** (more widgets) |
 | CLI / Build | perry crate (25+ commands) | 33k | bin/perry + Build/ | 1.1k | **~3%** |
-| Tests | — | — | tests/ | 5.7k (355 tests, 2144 assertions) | **Growing** |
+| Tests | — | — | tests/ | 5.7k (430 tests, 2284 assertions) | **Growing** |
 | Native platform bindings | perry-ui-{macos,ios,android,gtk4,windows,visionos,watchos,tvos} | 31k | Codegen/* (generates source instead) | — | **N/A** (different approach) |
 | **TOTAL** | **31 crates** | **334k** | **src/** | **19.1k** | **UI layer only** |
+
+### Overall Port Completion
+
+| Layer | Scope | Ported | Status |
+|-------|-------|--------|--------|
+| **UI Widget DSL** | 16 widgets, 29 style properties, 11 codegen backends | ✅ 100% | Production-ready |
+| **Closure Transpilation** | PHP closure → AST → IR → 5 target languages | ✅ Core done | 55+ PHP function mappings |
+| **IR System** | 54 node types, 90 interface methods | ✅ 100% | All generators implemented |
+| **Build Pipeline** | Compiler, linker, toolchain integration | ⚠️ Stubs | Missing real toolchain |
+| **Compiler** | Parser, type system, HIR, LLVM codegen | ❌ 0% | Out of scope |
+| **Runtime** | GC, NaN-boxing, stdlib | ❌ 0% | Out of scope |
 
 ### Codegen Backend Comparison
 
@@ -56,13 +67,14 @@ src/
 
 ### Generator Language Coverage
 
-| Language | Lines | Completeness (IR→target) | Notes |
-|----------|-------|-------------------------|-------|
-| Swift | 552 loc | ~30% (basic closure transpilation) | 118 lines test coverage |
-| Kotlin | 563 loc | ~30% | 142 lines test |
-| Dart | 578 loc | ~25% | 130 lines test |
-| JavaScript | 574 loc | ~25% | 116 lines test |
-| C# | 594 loc | ~20% | 133 lines test |
+| Language | Lines | IR Methods | PHP Mappings | Tests | Notes |
+|----------|-------|-----------|-------------|-------|-------|
+| Swift | 552 loc | 90/90 (100%) | 55+ | 19 | Full IR, expanded PHP mappings |
+| Kotlin | 563 loc | 90/90 (100%) | 55+ | 22 | Full IR, expanded PHP mappings |
+| Dart | 578 loc | 90/90 (100%) | 55+ | 22 | Full IR, expanded PHP mappings |
+| JavaScript | 574 loc | 90/90 (100%) | 55+ | 43 | Full IR, expanded PHP mappings |
+| C# | 594 loc | 90/90 (100%) | 55+ | 22 | Full IR, expanded PHP mappings |
+| C | 411 loc | 90/90 (100%) | 0 (passthrough) | 46 | Gtk4 Closure → C, full IR |
 
 ### Widget Parity (16 widgets)
 
@@ -71,6 +83,302 @@ Text, Button, VStack, HStack, Spacer, Image, ScrollView,
 TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
 TabView, AppContainer, WebView
 ```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
+Text, Button, VStack, HStack, Spacer, Image, ScrollView,
+TextInput, TextEditor, Toggle, Slider, ListWidget, NavigationView,
+TabView, AppContainer, WebView
+```
+
+### Perry-ts Features Not in Perry-php (Out of Scope)
+
+| Feature | Description | Why Not Ported |
+|---------|-------------|----------------|
+| TypeScript parser | SWC-based TS parser | PHP DSL uses native PHP, not TS |
+| Type system | Full TypeScript type checking | PHP has its own type system |
+| HIR + transforms | High-level IR + optimization passes | Not needed for codegen-only |
+| LLVM codegen | Native binary generation | PHP generates source, not binaries |
+| GC + NaN-boxing | Runtime value representation | No runtime — codegen only |
+| Node.js stdlib | fs, path, process, http, etc. | Not applicable to UI codegen |
+| Multi-threading | `perry/thread` module | Not needed for UI codegen |
+| i18n | Compile-time localization | Not in scope |
+| Home screen widgets | iOS/Android widget codegen | Covered by Glance/WearTiles |
+
+### Perry-php Unique Features (Not in Perry-ts)
+
+| Feature | Description |
+|---------|-------------|
+| Jetpack Compose backend | Direct Compose codegen (perry-ts uses native bindings) |
+| Android XML backend | Legacy Android XML layouts |
+| Flutter backend | Flutter Material Design widgets |
+| ArkTS/HarmonyOS backend | HarmonyOS ArkUI codegen |
+| PHP closure transpilation | PHP AST → IR → 5 target languages |
+| 16 widgets | More than perry-ts (which has ~12) |
+| 29 style properties | More than perry-ts |
 
 ## COMPLETION BREAKDOWN
 

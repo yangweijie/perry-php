@@ -404,6 +404,118 @@ class CGenerator implements IR\Generator
         return "{$prefix} \"{$node->path}\"";
     }
 
+    // ============================================================
+    // Class / Object Support (Passthrough for C)
+    // ============================================================
+
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
+    {
+        $type = $node->type ?? 'void';
+        return "{$type} {$node->name}";
+    }
+
+    public function generateMethodParameter(IR\MethodParameter $node): string
+    {
+        $type = $node->type ?? 'void';
+        return "{$type} {$node->name}";
+    }
+
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
+    {
+        $static = $node->isStatic ? 'static ' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $returnType = $node->returnType ?? 'void';
+        
+        if ($node->body === null) {
+            return "{$static}{$returnType} {$node->name}({$params});";
+        }
+        
+        $body = $node->body->accept($this);
+        return "{$static}{$returnType} {$node->name}({$params}) {\n{$this->indent()}    {$body}\n{$this->indent()}}}";
+    }
+
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        // C uses struct for classes
+        $lines = ["typedef struct {$node->name} {"];
+        $this->indent++;
+        
+        foreach ($node->properties as $prop) {
+            $lines[] = $this->indent() . $prop->accept($this) . ';';
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "} {$node->name};";
+        
+        // Methods are separate functions
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        // C uses malloc for object creation
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "calloc(1, sizeof(struct {$node->className}))";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        // C doesn't have closures; use function pointer or forward declaration
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        
+        if ($node->isArrow && $node->body !== null) {
+            // Inline expression - just return the body
+            return $node->body->accept($this);
+        }
+        
+        // For block closures, C uses a named function
+        // This is a placeholder - in real usage, the function would be declared separately
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "// closure: function pointer needed\n{$indent}void _closure_func($params) {\n{$indent}    {$body}\n{$indent}}}";
+    }
+
+    // ============================================================
+    // Array Operations (Passthrough for C)
+    // ============================================================
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "{$node->array}->data[{$node->array}->len - 1]";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "g_array_prepend({$node->array}, {$node->value})";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "g_hash_table_contains({$node->array}, {$node->key})";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        // C doesn't have reduce; use loop
+        return "{$node->array}->data[0]";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        // C doesn't have unique; use g_hash_table
+        return "{$node->array}";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        // C doesn't have diff; use loop
+        return "{$node->array}";
+    }
+
     private function indent(): string
     {
         return str_repeat('    ', $this->indent);

@@ -155,6 +155,11 @@ class CSharpGenerator implements IR\Generator
             'strlen' => "{$args[0]}.Length",
             'strpos' => "{$args[0]}.IndexOf({$args[1]})",
             'substr_count' => "{$args[0]}.Split({$args[1]}).Length - 1",
+            'explode' => "{$args[1]}.Split({$args[0]})",
+            'implode', 'join' => "string.Join({$args[0]}, {$args[1]})",
+            'str_contains' => "{$args[0]}.Contains({$args[1]})",
+            'str_starts_with' => "{$args[0]}.StartsWith({$args[1]})",
+            'str_ends_with' => "{$args[0]}.EndsWith({$args[1]})",
 
             // Array operations
             'in_array' => "{$args[1]}.Contains({$args[0]})",
@@ -176,9 +181,15 @@ class CSharpGenerator implements IR\Generator
             'array_fill' => "Enumerable.Repeat({$args[1]}, (int)({$args[0]}) ?? 0).ToArray()",
             'array_rand' => "{$args[0]}[new Random().Next(0, {$args[0]}.Length)]",
             'array_shift' => "Enumerable.Skip({$args[0]}, 1).ToArray()",
-            'array_pop' => "Enumerable.Take({$args[0]}, {$args[0]}.Length - 1).ToArray()",
             'array_unshift' => "Enumerable.Concat(new[] { {$args[1]} }, {$args[0]}).ToArray()",
             'array_key_exists' => "({$args[1]} is IDictionary dict) ? dict.Contains({$args[0]}) : false",
+            'array_pop' => "{$args[0]}[^1]",
+            'array_reduce' => "{$args[0]}.Aggregate({$args[1]}, (acc, it) => acc + it)",
+            'array_unique' => "{$args[0]}.Distinct().ToArray()",
+            'array_diff' => "{$args[0]}.Except({$args[1]}).ToArray()",
+            'array_combine' => "{$args[0]}.Zip({$args[1]}, (k, v) => new { k, v }).ToDictionary(x => x.k, x => x.v)",
+            'array_intersect' => "{$args[0]}.Intersect({$args[1]}).ToArray()",
+            'array_product' => "{$args[0]}.Aggregate(1, (acc, it) => acc * it)",
 
             // Math functions
             'floor' => "Math.Floor({$args[0]})",
@@ -220,6 +231,7 @@ class CSharpGenerator implements IR\Generator
             'json_encode' => "System.Text.Json.JsonSerializer.Serialize({$args[0]})",
 
             // Array helpers
+            'preg_match' => "Regex.IsMatch({$args[1]}, {$args[0]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.Last()",
 
@@ -619,6 +631,77 @@ class CSharpGenerator implements IR\Generator
     }
 
     // ============================================================
+    // Class / Object Support
+    // ============================================================
+
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => 'public ',
+        };
+        $type = $node->type ?? 'var';
+        $default = $node->default !== null ? ` = {$node->default->accept($this)}` : '';
+        return "{$visibility}{$type} {$node->name}{$default}";
+    }
+
+    public function generateMethodParameter(IR\MethodParameter $node): string
+    {
+        $type = $node->type ?? 'var';
+        $default = $node->default !== null ? ' = ' . $node->default->accept($this) : '';
+        return "{$type} {$node->name}{$default}";
+    }
+
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => 'public ',
+        };
+        $static = $node->isStatic ? 'static ' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $returnType = $node->returnType ?? 'void';
+        
+        if ($node->body === null) {
+            return "{$visibility}{$static}{$returnType} {$node->name}({$params});";
+        }
+        
+        $body = $node->body->accept($this);
+        return "{$visibility}{$static}{$returnType} {$node->name}({$params}) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+    }
+
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        $extends = $node->extends !== null ? " : {$node->extends}" : '';
+        $implements = !empty($node->implements) ? " : " . implode(', ', $node->implements) : '';
+        $inheritance = $extends . $implements;
+        
+        $lines = ["public class {$node->name}{$inheritance} {"];
+        $this->indent++;
+        
+        foreach ($node->properties as $prop) {
+            $lines[] = $this->indent() . $prop->accept($this) . ';';
+        }
+        
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "}";
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "new {$node->className}({$args})";
+    }
+
+    // ============================================================
     // Exceptions
     // ============================================================
 
@@ -629,40 +712,33 @@ class CSharpGenerator implements IR\Generator
 
     public function generateTryCatch(IR\TryCatchStatement $node): string
     {
-        $result = "try\n";
-        $result .= $this->indent() . "{\n";
+        $result = "try {\n";
         $this->indent++;
         $result .= $this->indent() . $node->try->accept($this) . "\n";
         $this->indent--;
         $result .= $this->indent() . "}";
-
-        if (!empty($node->catches)) {
-            foreach ($node->catches as $catch) {
-                $result .= "\n" . $catch->accept($this);
-            }
+        
+        foreach ($node->catches as $catch) {
+            $result .= " " . $catch->accept($this);
         }
-
+        
         if ($node->finally) {
-            $result .= "\nfinally\n";
-            $result .= $this->indent() . "{\n";
+            $result .= " finally {\n";
             $this->indent++;
             $result .= $this->indent() . $node->finally->accept($this) . "\n";
             $this->indent--;
             $result .= $this->indent() . "}";
         }
-
+        
         return $result;
     }
 
     public function generateCatchClause(IR\CatchClause $node): string
     {
         $body = $node->body->accept($this);
-        return "catch ({$node->type} {$node->variable})\n{$this->indent()}}{\n{$this->indent()}    {$body}\n{$this->indent()}}";
+        $indent = $this->indent();
+        return " catch ({$node->type} {$node->variable}) {\n{$indent}    {$body}\n{$indent}}}";
     }
-
-    // ============================================================
-    // Static Operations
-    // ============================================================
 
     public function generateStaticCall(IR\StaticCall $node): string
     {
@@ -680,17 +756,59 @@ class CSharpGenerator implements IR\Generator
         return "{$node->class}.{$node->constant}";
     }
 
-    // ============================================================
-    // Include
-    // ============================================================
-
     public function generateInclude(IR\IncludeStatement $node): string
     {
-        return "// include \"{$node->path}\"";
+        return "// include '{$node->path}'";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        $params = implode(', ', array_map(fn($p) => $p->name, $node->params));
+        
+        if ($node->isArrow && $node->body !== null) {
+            // C# lambda: (params) => body
+            $body = $node->body->accept($this);
+            return "($params) => {$body}";
+        }
+        
+        // Anonymous method
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "delegate($params) {\n{$indent}    {$body}\n{$indent}}}";
     }
 
     private function indent(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "{$node->array->accept($this)}[^1]";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "{$node->array->accept($this)}.Insert(0, {$node->value->accept($this)})";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "({$node->array->accept($this)} is IDictionary dict) ? dict.Contains({$node->key->accept($this)}) : false";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        return "{$node->array->accept($this)}.Aggregate({$node->initial->accept($this)}, (acc, it) => acc + it)";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        return "{$node->array->accept($this)}.Distinct().ToArray()";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        return "{$node->array->accept($this)}.Except({$node->diff->accept($this)}).ToArray()";
     }
 }

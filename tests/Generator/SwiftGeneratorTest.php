@@ -172,3 +172,134 @@ test('SwiftGenerator generates preg_split', function () {
     expect($result)->toContain('components(separatedBy:')
         ->and($result)->toContain('CharacterSet(charactersIn:');
 });
+
+test('SwiftGenerator generates explode', function () {
+    $call = new IR\FunctionCall('explode', [
+        new IR\Literal(','),
+        new IR\Variable('s')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.components(separatedBy: ",")');
+});
+
+test('SwiftGenerator generates implode', function () {
+    $call = new IR\FunctionCall('implode', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.joined(separator: ", ")');
+});
+
+test('SwiftGenerator generates join', function () {
+    $call = new IR\FunctionCall('join', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.joined(separator: ", ")');
+});
+
+test('SwiftGenerator generates str_contains', function () {
+    $call = new IR\FunctionCall('str_contains', [
+        new IR\Variable('s'),
+        new IR\Literal('needle')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.contains("needle")');
+});
+
+test('SwiftGenerator generates str_starts_with', function () {
+    $call = new IR\FunctionCall('str_starts_with', [
+        new IR\Variable('s'),
+        new IR\Literal('prefix')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.hasPrefix("prefix")');
+});
+
+test('SwiftGenerator generates str_ends_with', function () {
+    $call = new IR\FunctionCall('str_ends_with', [
+        new IR\Variable('s'),
+        new IR\Literal('suffix')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.hasSuffix("suffix")');
+});
+
+test('SwiftGenerator generates preg_match', function () {
+    $call = new IR\FunctionCall('preg_match', [
+        new IR\Literal('/^Hello/'),
+        new IR\Variable('s')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('s.range(of: "/^Hello/", options: .regularExpression) != nil');
+});
+
+test('SwiftGenerator generates array_reduce', function () {
+    $call = new IR\FunctionCall('array_reduce', [
+        new IR\Variable('arr'),
+        new IR\Variable('initial')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.reduce(initial)');
+});
+
+test('SwiftGenerator generates array_unique', function () {
+    $call = new IR\FunctionCall('array_unique', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('Array(Set(');
+});
+
+test('SwiftGenerator generates array_diff', function () {
+    $call = new IR\FunctionCall('array_diff', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.filter')
+        ->and($result)->toContain('arr2 as! [Any]');
+});
+
+test('SwiftGenerator generates array_combine', function () {
+    $call = new IR\FunctionCall('array_combine', [
+        new IR\Variable('keys'),
+        new IR\Variable('vals')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('Dictionary(uniqueKeysWithValues:')
+        ->and($result)->toContain('zip(keys');
+});
+
+test('SwiftGenerator generates array_intersect', function () {
+    $call = new IR\FunctionCall('array_intersect', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.filter')
+        ->and($result)->toContain('arr2 as! [Any]');
+});
+
+test('SwiftGenerator generates array_product', function () {
+    $call = new IR\FunctionCall('array_product', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new SwiftGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.reduce(1.0, *)');
+});

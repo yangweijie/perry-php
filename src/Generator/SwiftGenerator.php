@@ -166,6 +166,11 @@ class SwiftGenerator implements IR\Generator
             'strlen' => "{$args[0]}.count",
             'strpos' => "{$args[0]}.contains({$args[1]})",
             'substr_count' => "{$args[0]}.components(separatedBy: {$args[1]}).count - 1",
+            'explode' => "{$args[1]}.components(separatedBy: {$args[0]})",
+            'implode', 'join' => "{$args[1]}.joined(separator: {$args[0]})",
+            'str_contains' => "{$args[0]}.contains({$args[1]})",
+            'str_starts_with' => "{$args[0]}.hasPrefix({$args[1]})",
+            'str_ends_with' => "{$args[0]}.hasSuffix({$args[1]})",
 
             // Array operations
             'in_array' => "{$args[1]}.contains({$args[0]})",
@@ -189,6 +194,12 @@ class SwiftGenerator implements IR\Generator
             'array_pop' => "({$args[0]} as! [Any]).removeLast()",
             'array_unshift' => "({$args[0]} as! [Any]).insert({$args[1]}, at: 0)",
             'array_key_exists' => "({$args[1]} as! [AnyHashable: Any]).keys.contains({$args[0]})",
+            'array_reduce' => "({$args[0]} as! [Any]).reduce({$args[1]}) { \($0) + \($1) }",
+            'array_unique' => "Array(Set({$args[0]} as! [Any]))",
+            'array_diff' => "({$args[0]} as! [Any]).filter { !({$args[1]} as! [Any]).contains($0) }",
+            'array_combine' => "Dictionary(uniqueKeysWithValues: zip({$args[0]} as! [Any], {$args[1]} as! [Any]))",
+            'array_intersect' => "({$args[0]} as! [Any]).filter { ({$args[1]} as! [Any]).contains($0) }",
+            'array_product' => "({$args[0]} as! [Double]).reduce(1.0, *)",
 
             // Math functions
             'floor' => "floor({$args[0]})",
@@ -232,6 +243,7 @@ class SwiftGenerator implements IR\Generator
             'json_last_error_msg' => '"OK"',
 
             // Array helpers
+            'preg_match' => "{$args[1]}.range(of: {$args[0]}, options: .regularExpression) != nil",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last!",
 
@@ -643,6 +655,124 @@ class SwiftGenerator implements IR\Generator
     public function generateInclude(IR\IncludeStatement $node): string
     {
         return "// include '{$node->path}'";
+    }
+
+    // ============================================================
+    // Class / Object Support
+    // ============================================================
+
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => '',
+        };
+        $type = $node->type !== null ? ": {$node->type}" : '';
+        $default = $node->default !== null ? " = {$node->default->accept($this)}" : '';
+        return "{$visibility}var {$node->name}{$type}{$default}";
+    }
+
+    public function generateMethodParameter(IR\MethodParameter $node): string
+    {
+        $type = $node->type !== null ? ": {$node->type}" : '';
+        $default = $node->default !== null ? " = {$node->default->accept($this)}" : '';
+        return "{$node->name}{$type}{$default}";
+    }
+
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
+    {
+        $visibility = match ($node->visibility) {
+            'private' => 'private ',
+            'protected' => 'protected ',
+            default => '',
+        };
+        $static = $node->isStatic ? 'static ' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $returnType = $node->returnType !== null ? " -> {$node->returnType}" : '';
+        
+        if ($node->body === null) {
+            return "{$visibility}{$static}func {$node->name}({$params}){$returnType}";
+        }
+        
+        $body = $node->body->accept($this);
+        return "{$visibility}{$static}func {$node->name}({$params}){$returnType} {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+    }
+
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        $extends = $node->extends !== null ? " : {$node->extends}" : '';
+        $implements = !empty($node->implements) ? " : " . implode(', ', $node->implements) : '';
+        $inheritance = $extends . $implements;
+        
+        $lines = ["class {$node->name}{$inheritance} {"];
+        $this->indent++;
+        
+        foreach ($node->properties as $prop) {
+            $lines[] = $this->indent() . $prop->accept($this);
+        }
+        
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "}";
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "{$node->className}({$args})";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        $paramStr = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $params = $paramStr !== '' ? "($paramStr)" : '';
+        
+        if ($node->isArrow && $node->body !== null) {
+            // Swift arrow function: { (params) in body }
+            $body = $node->body->accept($this);
+            return "{ {$params} in {$body} }";
+        }
+        
+        // Block closure
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "{ {$params} in\n{$indent}    {$body}\n{$indent}}}";
+    }
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "({$node->array->accept($this)} as! [Any]).removeLast()";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "({$node->array->accept($this)} as! [Any]).insert({$node->value->accept($this)}, at: 0)";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "({$node->array->accept($this)} as! [AnyHashable: Any]).keys.contains({$node->key->accept($this)})";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        return "({$node->array->accept($this)} as! [Any]).reduce({$node->initial->accept($this)}) { $0 + $1 }";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        return "Array(Set({$node->array->accept($this)} as! [Any]))";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        return "({$node->array->accept($this)} as! [Any]).filter { !$0.isContainedIn({$node->diff->accept($this)} as! [Any]) }";
     }
 
     private function indent(): string

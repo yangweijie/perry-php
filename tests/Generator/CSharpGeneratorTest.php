@@ -191,3 +191,131 @@ test('CSharpGenerator generates array literal', function () {
     
     expect($result)->toBe('new[] { "a", "b" }');
 });
+
+test('CSharpGenerator generates explode', function () {
+    $call = new IR\FunctionCall('explode', [
+        new IR\Literal(','),
+        new IR\Variable('s')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.Split(",")');
+});
+
+test('CSharpGenerator generates implode', function () {
+    $call = new IR\FunctionCall('implode', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('string.Join(", ", arr)');
+});
+
+test('CSharpGenerator generates join', function () {
+    $call = new IR\FunctionCall('join', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('string.Join(", ", arr)');
+});
+
+test('CSharpGenerator generates str_contains', function () {
+    $call = new IR\FunctionCall('str_contains', [
+        new IR\Variable('s'),
+        new IR\Literal('needle')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.Contains("needle")');
+});
+
+test('CSharpGenerator generates str_starts_with', function () {
+    $call = new IR\FunctionCall('str_starts_with', [
+        new IR\Variable('s'),
+        new IR\Literal('prefix')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.StartsWith("prefix")');
+});
+
+test('CSharpGenerator generates str_ends_with', function () {
+    $call = new IR\FunctionCall('str_ends_with', [
+        new IR\Variable('s'),
+        new IR\Literal('suffix')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.EndsWith("suffix")');
+});
+
+test('CSharpGenerator generates preg_match', function () {
+    $call = new IR\FunctionCall('preg_match', [
+        new IR\Literal('/^Hello/'),
+        new IR\Variable('s')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('Regex.IsMatch(s, "/^Hello/")');
+});
+
+test('CSharpGenerator generates array_reduce', function () {
+    $call = new IR\FunctionCall('array_reduce', [
+        new IR\Variable('arr'),
+        new IR\Variable('initial')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.Aggregate(initial, (acc, it) => acc + it)');
+});
+
+test('CSharpGenerator generates array_unique', function () {
+    $call = new IR\FunctionCall('array_unique', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.Distinct().ToArray()');
+});
+
+test('CSharpGenerator generates array_diff', function () {
+    $call = new IR\FunctionCall('array_diff', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.Except(arr2).ToArray()');
+});
+
+test('CSharpGenerator generates array_combine', function () {
+    $call = new IR\FunctionCall('array_combine', [
+        new IR\Variable('keys'),
+        new IR\Variable('vals')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('keys.Zip(vals, (k, v) => new { k, v }).ToDictionary(x => x.k, x => x.v)');
+});
+
+test('CSharpGenerator generates array_intersect', function () {
+    $call = new IR\FunctionCall('array_intersect', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.Intersect(arr2).ToArray()');
+});
+
+test('CSharpGenerator generates array_product', function () {
+    $call = new IR\FunctionCall('array_product', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new CSharpGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.Aggregate(1, (acc, it) => acc * it)');
+});

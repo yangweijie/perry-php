@@ -188,3 +188,131 @@ test('DartGenerator generates list literal', function () {
     
     expect($result)->toBe('["a", "b"]');
 });
+
+test('DartGenerator generates explode', function () {
+    $call = new IR\FunctionCall('explode', [
+        new IR\Literal(','),
+        new IR\Variable('s')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.split(",")');
+});
+
+test('DartGenerator generates implode', function () {
+    $call = new IR\FunctionCall('implode', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.join(", ")');
+});
+
+test('DartGenerator generates join', function () {
+    $call = new IR\FunctionCall('join', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.join(", ")');
+});
+
+test('DartGenerator generates str_contains', function () {
+    $call = new IR\FunctionCall('str_contains', [
+        new IR\Variable('s'),
+        new IR\Literal('needle')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.contains("needle")');
+});
+
+test('DartGenerator generates str_starts_with', function () {
+    $call = new IR\FunctionCall('str_starts_with', [
+        new IR\Variable('s'),
+        new IR\Literal('prefix')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.startsWith("prefix")');
+});
+
+test('DartGenerator generates str_ends_with', function () {
+    $call = new IR\FunctionCall('str_ends_with', [
+        new IR\Variable('s'),
+        new IR\Literal('suffix')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.endsWith("suffix")');
+});
+
+test('DartGenerator generates preg_match', function () {
+    $call = new IR\FunctionCall('preg_match', [
+        new IR\Literal('/^Hello/'),
+        new IR\Variable('s')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('RegExp("/^Hello/").hasMatch(s)');
+});
+
+test('DartGenerator generates array_reduce', function () {
+    $call = new IR\FunctionCall('array_reduce', [
+        new IR\Variable('arr'),
+        new IR\Variable('initial')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.reduce((acc, it) => acc + it)');
+});
+
+test('DartGenerator generates array_unique', function () {
+    $call = new IR\FunctionCall('array_unique', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.toSet().toList()');
+});
+
+test('DartGenerator generates array_diff', function () {
+    $call = new IR\FunctionCall('array_diff', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr1.where((it) => !arr2.contains(it)).toList()');
+});
+
+test('DartGenerator generates array_combine', function () {
+    $call = new IR\FunctionCall('array_combine', [
+        new IR\Variable('keys'),
+        new IR\Variable('vals')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('Map.fromIterables(keys, vals)');
+});
+
+test('DartGenerator generates array_intersect', function () {
+    $call = new IR\FunctionCall('array_intersect', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr1.where((it) => arr2.contains(it)).toList()');
+});
+
+test('DartGenerator generates array_product', function () {
+    $call = new IR\FunctionCall('array_product', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new DartGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.fold(1, (acc, it) => acc * it)');
+});

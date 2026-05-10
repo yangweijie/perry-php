@@ -138,6 +138,11 @@ class DartGenerator implements IR\Generator
             'strlen' => "{$args[0]}.length",
             'strpos' => "{$args[0]}.indexOf({$args[1]})",
             'substr_count' => "{$args[0]}.split({$args[1]}).length - 1",
+            'explode' => "{$args[1]}.split({$args[0]})",
+            'implode', 'join' => "{$args[1]}.join({$args[0]})",
+            'str_contains' => "{$args[0]}.contains({$args[1]})",
+            'str_starts_with' => "{$args[0]}.startsWith({$args[1]})",
+            'str_ends_with' => "{$args[0]}.endsWith({$args[1]})",
 
             // Array operations
             'in_array' => "{$args[1]}.contains({$args[0]})",
@@ -203,8 +208,18 @@ class DartGenerator implements IR\Generator
             'json_encode' => "jsonEncode({$args[0]})",
 
             // Array helpers
+            'preg_match' => "RegExp({$args[0]}).hasMatch({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last",
+            'array_pop' => "{$args[0]}.removeLast()",
+            'array_unshift' => "{$args[0]}.insert(0, {$args[1]})",
+            'array_key_exists' => "({$args[1]} is Map) && ({$args[1]}.containsKey({$args[0]}))",
+            'array_reduce' => "{$args[0]}.reduce((acc, it) => acc + it)",
+            'array_unique' => "{$args[0]}.toSet().toList()",
+            'array_diff' => "{$args[0]}.where((it) => !{$args[1]}.contains(it)).toList()",
+            'array_combine' => "Map.fromIterables({$args[0]}, {$args[1]})",
+            'array_intersect' => "{$args[0]}.where((it) => {$args[1]}.contains(it)).toList()",
+            'array_product' => "{$args[0]}.fold(1, (acc, it) => acc * it)",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -605,48 +620,86 @@ class DartGenerator implements IR\Generator
     }
 
     // ============================================================
-    // Exceptions
+    // Class / Object Support
     // ============================================================
 
-    public function generateThrow(IR\ThrowStatement $node): string
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
     {
-        return "throw {$node->expr->accept($this)}";
+        $visibility = match ($node->visibility) {
+            'private' => '_ ',
+            'protected' => '',
+            default => '',
+        };
+        $type = $node->type !== null ? "{$node->type} " : '';
+        $default = $node->default !== null ? " = {$node->default->accept($this)}" : '';
+        return "{$visibility}{$node->name}{$default}";
     }
 
-    public function generateTryCatch(IR\TryCatchStatement $node): string
+    public function generateMethodParameter(IR\MethodParameter $node): string
     {
-        $result = "try {\n";
-        $this->indent++;
-        $result .= $this->indent() . $node->try->accept($this) . "\n";
-        $this->indent--;
-        $result .= $this->indent() . "}";
-
-        if (!empty($node->catches)) {
-            foreach ($node->catches as $catch) {
-                $result .= ' ' . $catch->accept($this);
-            }
-        }
-
-        if ($node->finally) {
-            $result .= " finally {\n";
-            $this->indent++;
-            $result .= $this->indent() . $node->finally->accept($this) . "\n";
-            $this->indent--;
-            $result .= $this->indent() . "}";
-        }
-
-        return $result;
+        $type = $node->type !== null ? "{$node->type} " : '';
+        $default = $node->default !== null ? "= {$node->default->accept($this)}" : '';
+        return "{$type}{$node->name}{$default}";
     }
 
-    public function generateCatchClause(IR\CatchClause $node): string
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
     {
+        $static = $node->isStatic ? 'static ' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        $returnType = $node->returnType !== null ? "{$node->returnType} " : '';
+        
+        if ($node->body === null) {
+            return "{$static}{$returnType}{$node->name}({$params});";
+        }
+        
         $body = $node->body->accept($this);
-        return "catch (e) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+        return "{$static}{$returnType}{$node->name}({$params}) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
     }
 
-    // ============================================================
-    // Static Operations
-    // ============================================================
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        $extends = $node->extends !== null ? " extends {$node->extends}" : '';
+        $implements = !empty($node->implements) ? " implements " . implode(', ', $node->implements) : '';
+        $inheritance = $extends . $implements;
+        
+        $lines = ["class {$node->name}{$inheritance} {"];
+        $this->indent++;
+        
+        foreach ($node->properties as $prop) {
+            $lines[] = $this->indent() . $prop->accept($this) . ';';
+        }
+        
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "}";
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "{$node->className}({$args})";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        $params = implode(', ', array_map(fn($p) => $p->name, $node->params));
+        
+        if ($node->isArrow && $node->body !== null) {
+            // Dart arrow function: (params) => body
+            $body = $node->body->accept($this);
+            return "($params) => {$body}";
+        }
+        
+        // Function literal
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "($params) {\n{$indent}    {$body}\n{$indent}}}";
+    }
 
     public function generateStaticCall(IR\StaticCall $node): string
     {
@@ -664,17 +717,82 @@ class DartGenerator implements IR\Generator
         return "{$node->class}.{$node->constant}";
     }
 
-    // ============================================================
-    // Include
-    // ============================================================
-
     public function generateInclude(IR\IncludeStatement $node): string
     {
         return "// include '{$node->path}'";
     }
 
+    // ============================================================
+    // Exceptions
+    // ============================================================
+
+    public function generateThrow(IR\ThrowStatement $node): string
+    {
+        return "throw {$node->expr->accept($this)}";
+    }
+
+    public function generateTryCatch(IR\TryCatchStatement $node): string
+    {
+        $result = "try {\n";
+        $this->indent++;
+        $result .= $this->indent() . $node->try->accept($this) . "\n";
+        $this->indent--;
+        $result .= $this->indent() . "}";
+        
+        foreach ($node->catches as $catch) {
+            $result .= " " . $catch->accept($this);
+        }
+        
+        if ($node->finally) {
+            $result .= " finally {\n";
+            $this->indent++;
+            $result .= $this->indent() . $node->finally->accept($this) . "\n";
+            $this->indent--;
+            $result .= $this->indent() . "}";
+        }
+        
+        return $result;
+    }
+
+    public function generateCatchClause(IR\CatchClause $node): string
+    {
+        $body = $node->body->accept($this);
+        $indent = $this->indent();
+        return " catch ({$node->variable}) {\n{$indent}    {$body}\n{$indent}}}";
+    }
+
     private function indent(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "{$node->array->accept($this)}.removeLast()";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "{$node->array->accept($this)}.insert(0, {$node->value->accept($this)})";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "({$node->array->accept($this)} is Map) && ({$node->array->accept($this)}.containsKey({$node->key->accept($this)}))";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        return "{$node->array->accept($this)}.reduce((acc, it) => acc + it)";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        return "{$node->array->accept($this)}.toSet().toList()";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        return "{$node->array->accept($this)}.where((it) => !{$node->diff->accept($this)}.contains(it)).toList()";
     }
 }

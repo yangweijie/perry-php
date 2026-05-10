@@ -135,6 +135,11 @@ class JavaScriptGenerator implements IR\Generator
             'strlen' => "{$args[0]}.length",
             'strpos' => "(() => { const _i = {$args[0]}.indexOf({$args[1]}); return _i === -1 ? false : _i; })()",
             'substr_count' => "{$args[0]}.split({$args[1]}).length - 1",
+            'explode' => "{$args[1]}.split({$args[0]})",
+            'implode', 'join' => "{$args[1]}.join({$args[0]})",
+            'str_contains' => "{$args[0]}.includes({$args[1]})",
+            'str_starts_with' => "{$args[0]}.startsWith({$args[1]})",
+            'str_ends_with' => "{$args[0]}.endsWith({$args[1]})",
 
             // Array operations
             'in_array' => "{$args[1]}.includes({$args[0]})",
@@ -200,8 +205,18 @@ class JavaScriptGenerator implements IR\Generator
             'json_encode' => "JSON.stringify({$args[0]})",
 
             // Array helpers
+            'preg_match' => "new RegExp({$args[0]}).test({$args[1]})",
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}[{$args[0]}.length - 1]",
+            'array_pop' => "{$args[0]}.pop()",
+            'array_unshift' => "{$args[0]}.unshift({$args[1]})",
+            'array_key_exists' => "Object.prototype.hasOwnProperty.call({$args[1]}, {$args[0]})",
+            'array_reduce' => "{$args[0]}.reduce((acc, it) => acc + it, {$args[1]})",
+            'array_unique' => "[...new Set({$args[0]})]",
+            'array_diff' => "{$args[0]}.filter(it => !{$args[1]}.includes(it))",
+            'array_combine' => "Object.fromEntries({$args[0]}.map((k, i) => [k, {$args[1]}[i]]))",
+            'array_intersect' => "{$args[0]}.filter(it => {$args[1]}.includes(it))",
+            'array_product' => "{$args[0]}.reduce((acc, it) => acc * it, 1)",
 
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
@@ -610,13 +625,15 @@ class JavaScriptGenerator implements IR\Generator
         $result .= $this->indent() . $node->try->accept($this) . "\n";
         $this->indent--;
         $result .= $this->indent() . "}";
-
-        if (!empty($node->catches)) {
-            foreach ($node->catches as $catch) {
-                $result .= ' ' . $catch->accept($this);
-            }
+        
+        foreach ($node->catches as $catch) {
+            $result .= " catch (" . $catch->variable . ") {\n";
+            $this->indent++;
+            $result .= $this->indent() . $catch->body->accept($this) . "\n";
+            $this->indent--;
+            $result .= $this->indent() . "}";
         }
-
+        
         if ($node->finally) {
             $result .= " finally {\n";
             $this->indent++;
@@ -624,7 +641,7 @@ class JavaScriptGenerator implements IR\Generator
             $this->indent--;
             $result .= $this->indent() . "}";
         }
-
+        
         return $result;
     }
 
@@ -633,10 +650,6 @@ class JavaScriptGenerator implements IR\Generator
         $body = $node->body->accept($this);
         return "catch ({$node->variable}) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
     }
-
-    // ============================================================
-    // Static Operations
-    // ============================================================
 
     public function generateStaticCall(IR\StaticCall $node): string
     {
@@ -654,17 +667,134 @@ class JavaScriptGenerator implements IR\Generator
         return "{$node->class}.{$node->constant}";
     }
 
-    // ============================================================
-    // Include
-    // ============================================================
-
     public function generateInclude(IR\IncludeStatement $node): string
     {
         return "// include '{$node->path}'";
     }
 
+    // ============================================================
+    // Class / Object Support
+    // ============================================================
+
+    public function generatePropertyDeclaration(IR\PropertyDeclaration $node): string
+    {
+        // JavaScript doesn't have explicit property declarations in classes
+        // Properties are defined in the constructor
+        return ''; // Skip in class body
+    }
+
+    public function generateMethodParameter(IR\MethodParameter $node): string
+    {
+        $default = $node->default !== null ? ' = ' . $node->default->accept($this) : '';
+        return "{$node->name}{$default}";
+    }
+
+    public function generateMethodDeclaration(IR\MethodDeclaration $node): string
+    {
+        $static = $node->isStatic ? 'static ' : '';
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        
+        if ($node->body === null) {
+            return "{$static}{$node->name}({$params})";
+        }
+        
+        $body = $node->body->accept($this);
+        return "{$static}{$node->name}({$params}) {\n{$this->indent()}    {$body}\n{$this->indent()}}";
+    }
+
+    public function generateClassDeclaration(IR\ClassDeclaration $node): string
+    {
+        $extends = $node->extends !== null ? " extends {$node->extends}" : '';
+        
+        $lines = ["class {$node->name}{$extends} {"];
+        $this->indent++;
+        
+        // Properties are initialized in constructor
+        $constructorParams = [];
+        $constructorBody = [];
+        
+        foreach ($node->properties as $prop) {
+            $paramType = $prop->type !== null ? ": {$prop->type}" : '';
+            $paramDefault = $prop->default !== null ? ' = ' . $prop->default->accept($this) : '';
+            $paramName = $prop->name;
+            $constructorParams[] = "{$paramName}{$paramType}{$paramDefault}";
+            $constructorBody[] = "this.{$paramName} = {$paramName};";
+        }
+        
+        if (!empty($constructorParams)) {
+            $lines[] = $this->indent() . "constructor(" . implode(', ', $constructorParams) . ") {\n";
+            $this->indent++;
+            foreach ($constructorBody as $stmt) {
+                $lines[] = $this->indent() . $stmt;
+            }
+            $this->indent--;
+            $lines[] = $this->indent() . "}";
+        }
+        
+        foreach ($node->methods as $method) {
+            $lines[] = $this->indent() . $method->accept($this);
+        }
+        
+        $this->indent--;
+        $lines[] = $this->indent() . "}";
+        
+        return implode("\n", $lines);
+    }
+
+    public function generateNewExpr(IR\NewExpr $node): string
+    {
+        $args = implode(', ', array_map(fn($arg) => $arg->accept($this), $node->args));
+        return "new {$node->className}({$args})";
+    }
+
+    public function generateFunctionLiteral(IR\FunctionLiteral $node): string
+    {
+        $params = implode(', ', array_map(fn($p) => $p->accept($this), $node->params));
+        
+        if ($node->isArrow && $node->body !== null) {
+            // JS arrow function: (params) => body
+            $body = $node->body->accept($this);
+            return "($params) => {$body}";
+        }
+        
+        // Function expression
+        $body = $node->body !== null ? $node->body->accept($this) : '';
+        $indent = $this->indent();
+        return "function($params) {\n{$indent}    {$body}\n{$indent}}}";
+    }
+
     private function indent(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    public function generateArrayPop(IR\ArrayPop $node): string
+    {
+        return "{$node->array->accept($this)}.pop()";
+    }
+
+    public function generateArrayUnshift(IR\ArrayUnshift $node): string
+    {
+        return "{$node->array->accept($this)}.unshift({$node->value->accept($this)})";
+    }
+
+    public function generateArrayKeyExists(IR\ArrayKeyExists $node): string
+    {
+        return "Object.prototype.hasOwnProperty.call({$node->array->accept($this)}, {$node->key->accept($this)})";
+    }
+
+    public function generateArrayReduce(IR\ArrayReduce $node): string
+    {
+        return "{$node->array->accept($this)}.reduce((acc, it) => acc + it, {$node->initial->accept($this)})";
+    }
+
+    public function generateArrayUnique(IR\ArrayUnique $node): string
+    {
+        return "[...new Set({$node->array->accept($this)})]";
+    }
+
+    public function generateArrayDiff(IR\ArrayDiff $node): string
+    {
+        return "{$node->array->accept($this)}.filter(it => !{$node->diff->accept($this)}.includes(it))";
     }
 }

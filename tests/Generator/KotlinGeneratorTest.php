@@ -200,3 +200,131 @@ test('KotlinGenerator generates filter for preg_split', function () {
         ->and($result)->toContain('.toRegex()')
         ->and($result)->toContain('.filter { it.isNotEmpty() }');
 });
+
+test('KotlinGenerator generates explode', function () {
+    $call = new IR\FunctionCall('explode', [
+        new IR\Literal(','),
+        new IR\Variable('s')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.split(",")');
+});
+
+test('KotlinGenerator generates implode', function () {
+    $call = new IR\FunctionCall('implode', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.joinToString(separator: ", ")');
+});
+
+test('KotlinGenerator generates join', function () {
+    $call = new IR\FunctionCall('join', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.joinToString(separator: ", ")');
+});
+
+test('KotlinGenerator generates str_contains', function () {
+    $call = new IR\FunctionCall('str_contains', [
+        new IR\Variable('s'),
+        new IR\Literal('needle')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.contains("needle")');
+});
+
+test('KotlinGenerator generates str_starts_with', function () {
+    $call = new IR\FunctionCall('str_starts_with', [
+        new IR\Variable('s'),
+        new IR\Literal('prefix')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.startsWith("prefix")');
+});
+
+test('KotlinGenerator generates str_ends_with', function () {
+    $call = new IR\FunctionCall('str_ends_with', [
+        new IR\Variable('s'),
+        new IR\Literal('suffix')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.endsWith("suffix")');
+});
+
+test('KotlinGenerator generates preg_match', function () {
+    $call = new IR\FunctionCall('preg_match', [
+        new IR\Literal('/^Hello/'),
+        new IR\Variable('s')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('Regex("/^Hello/").containsMatchIn(s)');
+});
+
+test('KotlinGenerator generates array_reduce', function () {
+    $call = new IR\FunctionCall('array_reduce', [
+        new IR\Variable('arr'),
+        new IR\Variable('initial')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('arr.reduce(initial)');
+});
+
+test('KotlinGenerator generates array_unique', function () {
+    $call = new IR\FunctionCall('array_unique', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.distinct()');
+});
+
+test('KotlinGenerator generates array_diff', function () {
+    $call = new IR\FunctionCall('array_diff', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.filter { it !in arr2 }');
+});
+
+test('KotlinGenerator generates array_combine', function () {
+    $call = new IR\FunctionCall('array_combine', [
+        new IR\Variable('keys'),
+        new IR\Variable('vals')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('keys.zip(vals).toMap()');
+});
+
+test('KotlinGenerator generates array_intersect', function () {
+    $call = new IR\FunctionCall('array_intersect', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.filter { it in arr2 }');
+});
+
+test('KotlinGenerator generates array_product', function () {
+    $call = new IR\FunctionCall('array_product', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new KotlinGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('.fold(1)');
+});

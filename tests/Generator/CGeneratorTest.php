@@ -422,3 +422,82 @@ test('CGenerator generates program', function () {
     expect($result)->toContain('int x = 10')
         ->and($result)->toContain('g_print("%s\\n", x)');
 });
+
+// ============================================================
+// Class / Object Support Tests
+// ============================================================
+
+test('CGenerator generates property declaration', function () {
+    $prop = new IR\PropertyDeclaration('name', 'char*', null, 'private');
+    $gen = new CGenerator();
+    expect($gen->generate($prop))->toBe('char* name');
+});
+
+test('CGenerator generates property declaration with default', function () {
+    $prop = new IR\PropertyDeclaration('count', 'int', new IR\Literal(0), 'public');
+    $gen = new CGenerator();
+    expect($gen->generate($prop))->toBe('int count');
+});
+
+test('CGenerator generates method parameter', function () {
+    $param = new IR\MethodParameter('x', 'int', null);
+    $gen = new CGenerator();
+    expect($gen->generate($param))->toBe('int x');
+});
+
+test('CGenerator generates method declaration (no body)', function () {
+    $param = new IR\MethodParameter('x', 'int', null);
+    $method = new IR\MethodDeclaration('add', [$param], null, 'int', 'public', false);
+    $gen = new CGenerator();
+    expect($gen->generate($method))->toBe('int add(int x);');
+});
+
+test('CGenerator generates method declaration (with body)', function () {
+    $param = new IR\MethodParameter('x', 'int', null);
+    $body = new IR\ReturnStatement(new IR\Variable('x'));
+    $method = new IR\MethodDeclaration('getValue', [$param], $body, 'int', 'public', false);
+    $gen = new CGenerator();
+    $result = $gen->generate($method);
+    expect($result)->toContain('int getValue(int x) {')
+        ->and($result)->toContain('return x')
+        ->and($result)->toContain('}');
+});
+
+test('CGenerator generates static method declaration', function () {
+    $method = new IR\MethodDeclaration('helper', [], null, 'void', 'public', true);
+    $gen = new CGenerator();
+    expect($gen->generate($method))->toBe('static void helper();');
+});
+
+test('CGenerator generates class declaration', function () {
+    $prop = new IR\PropertyDeclaration('x', 'int', null, 'public');
+    $param = new IR\MethodParameter('val', 'int', null);
+    $body = new IR\Assignment('x', new IR\Variable('val'));
+    $method = new IR\MethodDeclaration('setX', [$param], $body, 'void', 'public', false);
+    $class = new IR\ClassDeclaration('Point', [$prop], [$method], null, []);
+    $gen = new CGenerator();
+    $result = $gen->generate($class);
+    
+    expect($result)->toContain('typedef struct Point {')
+        ->and($result)->toContain('int x;')
+        ->and($result)->toContain('} Point;')
+        ->and($result)->toContain('void setX(int val)');
+});
+
+test('CGenerator generates new expression', function () {
+    $new = new IR\NewExpr('Point', []);
+    $gen = new CGenerator();
+    expect($gen->generate($new))->toBe('calloc(1, sizeof(struct Point))');
+});
+
+test('CGenerator generates class with inheritance', function () {
+    $prop = new IR\PropertyDeclaration('x', 'int', null, 'public');
+    $class = new IR\ClassDeclaration('Circle', [$prop], [], 'Shape', []);
+    $gen = new CGenerator();
+    $result = $gen->generate($class);
+    
+    // C doesn't support inheritance directly; struct is standalone
+    expect($result)->toContain('typedef struct Circle {')
+        ->and($result)->toContain('int x;')
+        ->and($result)->toContain('} Circle;');
+});

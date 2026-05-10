@@ -809,3 +809,196 @@ final class PrintStatement extends Node
         return $generator->generatePrint($this);
     }
 }
+
+// ============================================================
+// Class / Object Support
+// ============================================================
+
+final class PropertyDeclaration extends Node
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly ?string $type = null,
+        public readonly ?Node $default = null,
+        public readonly string $visibility = 'public', // public, private, protected
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generatePropertyDeclaration($this);
+    }
+}
+
+final class MethodParameter extends Node
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly ?string $type = null,
+        public readonly ?Node $default = null,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateMethodParameter($this);
+    }
+}
+
+final class MethodDeclaration extends Node
+{
+    public function __construct(
+        public readonly string $name,
+        /** @var MethodParameter[] */
+        public readonly array $params = [],
+        public readonly ?Node $body = null,
+        public readonly ?string $returnType = null,
+        public readonly string $visibility = 'public',
+        public readonly bool $isStatic = false,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateMethodDeclaration($this);
+    }
+}
+
+final class ClassDeclaration extends Node
+{
+    public function __construct(
+        public readonly string $name,
+        /** @var PropertyDeclaration[] */
+        public readonly array $properties = [],
+        /** @var MethodDeclaration[] */
+        public readonly array $methods = [],
+        public readonly ?string $extends = null,
+        /** @var string[] */
+        public readonly array $implements = [],
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateClassDeclaration($this);
+    }
+}
+
+final class NewExpr extends Node
+{
+    public function __construct(
+        public readonly string $className,
+        /** @var Node[] */
+        public readonly array $args = [],
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateNewExpr($this);
+    }
+}
+
+/**
+ * Anonymous function / closure expression.
+ * Used for PHP closure transpilation to target languages.
+ */
+final class FunctionLiteral extends Node
+{
+    /** @var MethodParameter[] */
+    public readonly array $params;
+    /** @var Node[] */
+    public readonly array $captures;
+    public readonly bool $isArrow;  // true for arrow functions (fn() => expr), false for closures (function() { ... })
+
+    public function __construct(
+        array $params = [],
+        public readonly ?Node $body = null,
+        array $captures = [],
+        bool $isArrow = true,
+    ) {
+        $this->params = $params;
+        $this->captures = $captures;
+        $this->isArrow = $isArrow;
+    }
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateFunctionLiteral($this);
+    }
+}
+
+// ============================================================
+// Array Operations
+// ============================================================
+
+final class ArrayPop extends Node
+{
+    public function __construct(
+        public readonly Node $array,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayPop($this);
+    }
+}
+
+final class ArrayUnshift extends Node
+{
+    public function __construct(
+        public readonly Node $array,
+        public readonly Node $value,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayUnshift($this);
+    }
+}
+
+final class ArrayKeyExists extends Node
+{
+    public function __construct(
+        public readonly Node $key,
+        public readonly Node $array,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayKeyExists($this);
+    }
+}
+
+final class ArrayReduce extends Node
+{
+    public function __construct(
+        public readonly Node $array,
+        public readonly Node $initial,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayReduce($this);
+    }
+}
+
+final class ArrayUnique extends Node
+{
+    public function __construct(
+        public readonly Node $array,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayUnique($this);
+    }
+}
+
+final class ArrayDiff extends Node
+{
+    public function __construct(
+        public readonly Node $array,
+        public readonly Node $diff,
+    ) {}
+
+    public function accept(Generator $generator): string
+    {
+        return $generator->generateArrayDiff($this);
+    }
+}

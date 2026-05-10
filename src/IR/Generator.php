@@ -87,4 +87,22 @@ interface Generator
 
     // Include
     public function generateInclude(IncludeStatement $node): string;
+
+    // Class / Object
+    public function generatePropertyDeclaration(PropertyDeclaration $node): string;
+    public function generateMethodParameter(MethodParameter $node): string;
+    public function generateMethodDeclaration(MethodDeclaration $node): string;
+    public function generateClassDeclaration(ClassDeclaration $node): string;
+    public function generateNewExpr(NewExpr $node): string;
+
+    // Anonymous functions / closures
+    public function generateFunctionLiteral(FunctionLiteral $node): string;
+
+    // Array operations
+    public function generateArrayPop(ArrayPop $node): string;
+    public function generateArrayUnshift(ArrayUnshift $node): string;
+    public function generateArrayKeyExists(ArrayKeyExists $node): string;
+    public function generateArrayReduce(ArrayReduce $node): string;
+    public function generateArrayUnique(ArrayUnique $node): string;
+    public function generateArrayDiff(ArrayDiff $node): string;
 }

@@ -372,3 +372,131 @@ test('JavaScriptGenerator generates include', function () {
     // JavaScriptGenerator comments out include statements
     expect($gen->generate($include))->toBe('// include \'module.js\'');
 });
+
+test('JavaScriptGenerator generates explode', function () {
+    $call = new IR\FunctionCall('explode', [
+        new IR\Literal(','),
+        new IR\Variable('s')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.split(",")');
+});
+
+test('JavaScriptGenerator generates implode', function () {
+    $call = new IR\FunctionCall('implode', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.join(", ")');
+});
+
+test('JavaScriptGenerator generates join', function () {
+    $call = new IR\FunctionCall('join', [
+        new IR\Literal(', '),
+        new IR\Variable('arr')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.join(", ")');
+});
+
+test('JavaScriptGenerator generates str_contains', function () {
+    $call = new IR\FunctionCall('str_contains', [
+        new IR\Variable('s'),
+        new IR\Literal('needle')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.includes("needle")');
+});
+
+test('JavaScriptGenerator generates str_starts_with', function () {
+    $call = new IR\FunctionCall('str_starts_with', [
+        new IR\Variable('s'),
+        new IR\Literal('prefix')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.startsWith("prefix")');
+});
+
+test('JavaScriptGenerator generates str_ends_with', function () {
+    $call = new IR\FunctionCall('str_ends_with', [
+        new IR\Variable('s'),
+        new IR\Literal('suffix')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('s.endsWith("suffix")');
+});
+
+test('JavaScriptGenerator generates preg_match', function () {
+    $call = new IR\FunctionCall('preg_match', [
+        new IR\Literal('/^Hello/'),
+        new IR\Variable('s')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('new RegExp("/^Hello/").test(s)');
+});
+
+test('JavaScriptGenerator generates array_reduce', function () {
+    $call = new IR\FunctionCall('array_reduce', [
+        new IR\Variable('arr'),
+        new IR\Variable('initial')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.reduce((acc, it) => acc + it, initial)');
+});
+
+test('JavaScriptGenerator generates array_unique', function () {
+    $call = new IR\FunctionCall('array_unique', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('[...new Set(arr)]');
+});
+
+test('JavaScriptGenerator generates array_diff', function () {
+    $call = new IR\FunctionCall('array_diff', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.filter(it => !arr2.includes(it))');
+});
+
+test('JavaScriptGenerator generates array_combine', function () {
+    $call = new IR\FunctionCall('array_combine', [
+        new IR\Variable('keys'),
+        new IR\Variable('vals')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toContain('Object.fromEntries(keys.map((k, i) => [k, vals[i]]))');
+});
+
+test('JavaScriptGenerator generates array_intersect', function () {
+    $call = new IR\FunctionCall('array_intersect', [
+        new IR\Variable('arr1'),
+        new IR\Variable('arr2')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr1.filter(it => arr2.includes(it))');
+});
+
+test('JavaScriptGenerator generates array_product', function () {
+    $call = new IR\FunctionCall('array_product', [
+        new IR\Variable('arr')
+    ]);
+    $gen = new JavaScriptGenerator([]);
+    $result = $gen->generate($call);
+    expect($result)->toBe('arr.reduce((acc, it) => acc * it, 1)');
+});
