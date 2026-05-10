@@ -35,6 +35,7 @@ final class HtmlBackend extends CodegenBackend
     private array $stateVars = [];
     private array $actionFunctions = [];
     private int $actionCounter = 0;
+    private array $generatedNamedActions = [];
     private int $responsiveCounter = 0;
     private array $responsiveStyles = [];
     private ?Theme $theme = null;
@@ -74,6 +75,7 @@ final class HtmlBackend extends CodegenBackend
         $this->indent = 0;
         $this->actionFunctions = [];
         $this->actionCounter = 0;
+        $this->generatedNamedActions = [];
         $this->responsiveCounter = 0;
         $this->responsiveStyles = [];
 
@@ -174,16 +176,24 @@ final class HtmlBackend extends CodegenBackend
             return "<button{$style}>{$label}</button>";
         }
 
-        $funcName = $this->generateActionFunction($action);
+        $funcName = $this->generateActionFunction($action, $widget->getActionName());
         $onclick = " onclick=\"{$funcName}()\"";
         $style = $this->generateStyle($widget->getStyle());
         return "<button{$onclick}{$style}>{$label}</button>";
     }
 
-    private function generateActionFunction(Action $action): string
+    private function generateActionFunction(Action $action, ?string $actionName = null): string
     {
-        $funcName = "action_{$this->actionCounter}";
-        $this->actionCounter++;
+        if ($actionName !== null) {
+            if (isset($this->generatedNamedActions[$actionName])) {
+                return $actionName;
+            }
+            $this->generatedNamedActions[$actionName] = true;
+            $funcName = $actionName;
+        } else {
+            $funcName = "action_{$this->actionCounter}";
+            $this->actionCounter++;
+        }
 
         if ($action->type === ActionType::Closure) {
             $generator = new \Perry\Generator\JavaScriptGenerator($this->stateVars);
@@ -401,7 +411,7 @@ final class HtmlBackend extends CodegenBackend
         $oninput = '';
         $action = $widget->getOnChange();
         if ($action !== null) {
-            $funcName = $this->generateActionFunction($action);
+            $funcName = $this->generateActionFunction($action, $widget->getActionName());
             $oninput = " oninput=\"{$funcName}()\"";
         }
 
@@ -419,7 +429,7 @@ final class HtmlBackend extends CodegenBackend
         $oninput = '';
         $action = $widget->getOnChange();
         if ($action !== null) {
-            $funcName = $this->generateActionFunction($action);
+            $funcName = $this->generateActionFunction($action, $widget->getActionName());
             $oninput = " oninput=\"{$funcName}()\"";
         }
 
@@ -434,7 +444,7 @@ final class HtmlBackend extends CodegenBackend
         $onclick = '';
         $action = $widget->getOnToggle();
         if ($action !== null) {
-            $funcName = $this->generateActionFunction($action);
+            $funcName = $this->generateActionFunction($action, $widget->getActionName());
             $onclick = " onclick=\"{$funcName}()\"";
         }
 

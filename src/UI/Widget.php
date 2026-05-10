@@ -12,6 +12,7 @@ abstract class Widget
     protected ?Style $style = null;
     /** @var Widget[] */
     protected array $children = [];
+    protected ?string $actionName = null;
 
     public function __construct()
     {
@@ -29,6 +30,22 @@ abstract class Widget
     {
         $this->style = $style;
         return $this;
+    }
+
+    /**
+     * Set an optional action name for named-action dispatch.
+     * When set, backends can generate named function references
+     * (e.g., onclick="onClear()") instead of inlining closure code.
+     */
+    public function actionName(string $name): static
+    {
+        $this->actionName = $name;
+        return $this;
+    }
+
+    public function getActionName(): ?string
+    {
+        return $this->actionName;
     }
 
     public function setStyle(?Style $style): void
