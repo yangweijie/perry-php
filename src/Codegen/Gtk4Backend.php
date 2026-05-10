@@ -497,8 +497,65 @@ C;
             $cssProps[] = "letter-spacing: {$style->get(StyleProperty::LetterSpacing)}px";
         }
 
-        // Generate CSS style tag if any CSS properties
-        $css = '';
+        // Flex layout (CSS properties)
+        if ($style->has(StyleProperty::FlexDirection)) {
+            $cssProps[] = "flex-direction: {$style->get(StyleProperty::FlexDirection)}";
+        }
+        if ($style->has(StyleProperty::JustifyContent)) {
+            $cssProps[] = "justify-content: {$style->get(StyleProperty::JustifyContent)}";
+        }
+        if ($style->has(StyleProperty::AlignItems)) {
+            $cssProps[] = "align-items: {$style->get(StyleProperty::AlignItems)}";
+        }
+        if ($style->has(StyleProperty::FlexWrap)) {
+            $cssProps[] = "flex-wrap: {$style->get(StyleProperty::FlexWrap)}";
+        }
+        if ($style->has(StyleProperty::Gap)) {
+            $cssProps[] = "gap: {$style->get(StyleProperty::Gap)}px";
+        }
+        if ($style->has(StyleProperty::FlexGrow)) {
+            $cssProps[] = "flex-grow: {$style->get(StyleProperty::FlexGrow)}";
+        }
+        if ($style->has(StyleProperty::FlexShrink)) {
+            $cssProps[] = "flex-shrink: {$style->get(StyleProperty::FlexShrink)}";
+        }
+
+        // Transform (CSS)
+        $transforms = [];
+        if ($style->has(StyleProperty::Rotate)) {
+            $transforms[] = "rotate({$style->get(StyleProperty::Rotate)}deg)";
+        }
+        if ($style->has(StyleProperty::Scale)) {
+            $transforms[] = "scale({$style->get(StyleProperty::Scale)})";
+        }
+        if ($style->has(StyleProperty::TranslateX) || $style->has(StyleProperty::TranslateY)) {
+            $tx = $style->has(StyleProperty::TranslateX) ? $style->get(StyleProperty::TranslateX) . 'px' : '0';
+            $ty = $style->has(StyleProperty::TranslateY) ? $style->get(StyleProperty::TranslateY) . 'px' : '0';
+            $transforms[] = "translate({$tx}, {$ty})";
+        }
+        if (!empty($transforms)) {
+            $cssProps[] = 'transform: ' . implode(' ', $transforms);
+        }
+
+        // Animation (CSS)
+        if ($style->has(StyleProperty::AnimationDuration)) {
+            $cssProps[] = "animation-duration: {$style->get(StyleProperty::AnimationDuration)}ms";
+        }
+        if ($style->has(StyleProperty::AnimationDelay)) {
+            $cssProps[] = "animation-delay: {$style->get(StyleProperty::AnimationDelay)}ms";
+        }
+        if ($style->has(StyleProperty::AnimationEasing)) {
+            $easing = $style->get(StyleProperty::AnimationEasing);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $cssProps[] = "animation-timing-function: {$cssEasing}";
+        }
+
         if (!empty($cssProps)) {
             $css = "{$this->indentStr()}    <style>css=\"" . implode('; ', $cssProps) . "\"</style>";
         }
@@ -615,6 +672,11 @@ XML;
             StyleProperty::ShadowColor, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
             StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::FontFamily,
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::LetterSpacing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
         ];
     }
 

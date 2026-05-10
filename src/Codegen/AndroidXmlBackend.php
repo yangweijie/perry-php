@@ -525,6 +525,35 @@ final class AndroidXmlBackend extends CodegenBackend
             $attrs[] = "{$this->indentStr()}    android:letterSpacing=\"{$v}\"";
         }
 
+        // Flex layout
+        if ($style->has(StyleProperty::FlexGrow)) {
+            $v = (int)$style->get(StyleProperty::FlexGrow);
+            $attrs[] = "{$this->indentStr()}    android:layout_weight=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::Gap)) {
+            $v = (int)$style->get(StyleProperty::Gap);
+            $attrs[] = "{$this->indentStr()}    android:spacing=\"{$v}dp\"";
+        }
+
+        // Transform
+        if ($style->has(StyleProperty::Rotate)) {
+            $v = $style->get(StyleProperty::Rotate);
+            $attrs[] = "{$this->indentStr()}    android:rotation=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::Scale)) {
+            $v = $style->get(StyleProperty::Scale);
+            $attrs[] = "{$this->indentStr()}    android:scaleX=\"{$v}\"";
+            $attrs[] = "{$this->indentStr()}    android:scaleY=\"{$v}\"";
+        }
+        if ($style->has(StyleProperty::TranslateX)) {
+            $v = (int)$style->get(StyleProperty::TranslateX);
+            $attrs[] = "{$this->indentStr()}    android:translationX=\"{$v}dp\"";
+        }
+        if ($style->has(StyleProperty::TranslateY)) {
+            $v = (int)$style->get(StyleProperty::TranslateY);
+            $attrs[] = "{$this->indentStr()}    android:translationY=\"{$v}dp\"";
+        }
+
         // Max dimensions
         if ($style->has(StyleProperty::MaxWidth)) {
             $v = (int)$style->get(StyleProperty::MaxWidth);
@@ -635,6 +664,10 @@ final class AndroidXmlBackend extends CodegenBackend
             StyleProperty::MaxWidth, StyleProperty::MaxHeight,
             StyleProperty::MinWidth, StyleProperty::MinHeight,
             StyleProperty::LetterSpacing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
         ];
     }
 

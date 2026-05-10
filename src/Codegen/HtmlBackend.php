@@ -26,6 +26,8 @@ use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Binding;
 use Perry\UI\WidgetKind;
+use Perry\UI\Styling\Theme;
+use Perry\UI\Styling\StyleCache;
 
 final class HtmlBackend extends CodegenBackend
 {
@@ -33,6 +35,27 @@ final class HtmlBackend extends CodegenBackend
     private array $stateVars = [];
     private array $actionFunctions = [];
     private int $actionCounter = 0;
+    private int $responsiveCounter = 0;
+    private array $responsiveStyles = [];
+    private ?Theme $theme = null;
+    private ?StyleCache $styleCache = null;
+
+    public function setTheme(?Theme $theme): self
+    {
+        $this->theme = $theme;
+        return $this;
+    }
+
+    public function getTheme(): ?Theme
+    {
+        return $this->theme;
+    }
+
+    public function setCache(?StyleCache $cache): self
+    {
+        $this->styleCache = $cache;
+        return $this;
+    }
     public static ?string $customScript = null;
     public static array $innerHTMLVars = [];
 
@@ -51,6 +74,8 @@ final class HtmlBackend extends CodegenBackend
         $this->indent = 0;
         $this->actionFunctions = [];
         $this->actionCounter = 0;
+        $this->responsiveCounter = 0;
+        $this->responsiveStyles = [];
 
         $body = '';
         $title = 'Perry App';
@@ -63,6 +88,8 @@ final class HtmlBackend extends CodegenBackend
         }
 
         $script = $this->generateScript();
+        $responsiveCSS = $this->emitResponsiveStyles();
+        $themeCSS = $this->theme !== null ? Theme::toCssCustomProperties() : '';
 
         return <<<HTML
         <!DOCTYPE html>
@@ -90,6 +117,8 @@ final class HtmlBackend extends CodegenBackend
                 .calc-btn.eq { background: #10b981; color: #fff; }
                 .calc-btn.eq:hover { background: #059669; }
             </style>
+            {$responsiveCSS}
+            {$themeCSS}
         </head>
         <body>
             {$body}
@@ -449,6 +478,44 @@ final class HtmlBackend extends CodegenBackend
         if ($style === null) {
             return '';
         }
+        $css = $this->styleToCssArray($style);
+        if (empty($css)) {
+            return '';
+        }
+        $result = ' style="' . implode('; ', $css) . '"';
+
+        // Collect responsive CSS for later emission
+        $variants = $style->allVariants();
+        if (!empty($variants)) {
+            $id = $this->responsiveCounter++;
+            $result .= ' data-r="' . $id . '"';
+            foreach ($variants as $bp => $variantStyle) {
+                $breakpoint = \Perry\UI\Styling\Breakpoint::from($bp);
+                $mediaQuery = $breakpoint->toCssMediaQuery();
+                $cssProps = $this->styleToCssArray($variantStyle);
+                if (!empty($cssProps)) {
+                    $props = implode(' !important; ', $cssProps) . ' !important';
+                    $this->responsiveStyles[] = "@media ({$mediaQuery}) {\n  [data-r=\"{$id}\"] { " . $props . " }\n}";
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function styleToCssArray(?\Perry\UI\Styling\Style $style): array
+    {
+        if ($style === null) {
+            return [];
+        }
+
+        if ($this->styleCache !== null) {
+            $key = StyleCache::keyForCss($style);
+            $cached = $this->styleCache->get($key);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
 
         $css = [];
 
@@ -528,6 +595,65 @@ final class HtmlBackend extends CodegenBackend
             $css[] = "line-height: {$style->get(StyleProperty::LineSpacing)}px";
         }
 
+        // Flex layout
+        if ($style->has(StyleProperty::FlexDirection)) {
+            $css[] = "flex-direction: {$style->get(StyleProperty::FlexDirection)}";
+        }
+        if ($style->has(StyleProperty::JustifyContent)) {
+            $css[] = "justify-content: {$style->get(StyleProperty::JustifyContent)}";
+        }
+        if ($style->has(StyleProperty::AlignItems)) {
+            $css[] = "align-items: {$style->get(StyleProperty::AlignItems)}";
+        }
+        if ($style->has(StyleProperty::FlexWrap)) {
+            $css[] = "flex-wrap: {$style->get(StyleProperty::FlexWrap)}";
+        }
+        if ($style->has(StyleProperty::Gap)) {
+            $css[] = "gap: {$style->get(StyleProperty::Gap)}px";
+        }
+        if ($style->has(StyleProperty::FlexGrow)) {
+            $css[] = "flex-grow: {$style->get(StyleProperty::FlexGrow)}";
+        }
+        if ($style->has(StyleProperty::FlexShrink)) {
+            $css[] = "flex-shrink: {$style->get(StyleProperty::FlexShrink)}";
+        }
+
+        // Transform
+        $transforms = [];
+        if ($style->has(StyleProperty::Rotate)) {
+            $transforms[] = "rotate({$style->get(StyleProperty::Rotate)}deg)";
+        }
+        if ($style->has(StyleProperty::Scale)) {
+            $transforms[] = "scale({$style->get(StyleProperty::Scale)})";
+        }
+        if ($style->has(StyleProperty::TranslateX) || $style->has(StyleProperty::TranslateY)) {
+            $tx = $style->has(StyleProperty::TranslateX) ? $style->get(StyleProperty::TranslateX) . 'px' : '0';
+            $ty = $style->has(StyleProperty::TranslateY) ? $style->get(StyleProperty::TranslateY) . 'px' : '0';
+            $transforms[] = "translate({$tx}, {$ty})";
+        }
+        if (!empty($transforms)) {
+            $css[] = 'transform: ' . implode(' ', $transforms);
+        }
+
+        // Animation
+        if ($style->has(StyleProperty::AnimationDuration)) {
+            $css[] = "animation-duration: {$style->get(StyleProperty::AnimationDuration)}ms";
+        }
+        if ($style->has(StyleProperty::AnimationDelay)) {
+            $css[] = "animation-delay: {$style->get(StyleProperty::AnimationDelay)}ms";
+        }
+        if ($style->has(StyleProperty::AnimationEasing)) {
+            $easing = $style->get(StyleProperty::AnimationEasing);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $css[] = "animation-timing-function: {$cssEasing}";
+        }
+
         // Box-shadow: combine ShadowOffsetX, ShadowOffsetY, ShadowRadius, ShadowColor
         $shadowX = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
         $shadowY = $style->has(StyleProperty::ShadowOffsetY) ? $style->get(StyleProperty::ShadowOffsetY) : 0;
@@ -538,12 +664,19 @@ final class HtmlBackend extends CodegenBackend
             $css[] = "box-shadow: {$shadowX}px {$shadowY}px {$shadowBlur}px {$shadowColor}";
         }
 
-        if (empty($css)) {
-            return '';
+        if ($this->styleCache !== null) {
+            $this->styleCache->set(StyleCache::keyForCss($style), $css);
         }
 
-        $styleStr = implode('; ', $css);
-        return " style=\"{$styleStr}\"";
+        return $css;
+    }
+
+    private function emitResponsiveStyles(): string
+    {
+        if (empty($this->responsiveStyles)) {
+            return '';
+        }
+        return '<style>' . "\n" . implode("\n", $this->responsiveStyles) . "\n" . '</style>';
     }
 
     private function mapFontWeight($weight): string
@@ -599,6 +732,11 @@ final class HtmlBackend extends CodegenBackend
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
             StyleProperty::ShadowColor, StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX,
             StyleProperty::ShadowOffsetY,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
         ];
     }
 }

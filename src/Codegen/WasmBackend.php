@@ -470,6 +470,59 @@ final class WasmBackend extends CodegenBackend
             $this->addLine("perry_ui_setStyle(w{$handle}, 'letter-spacing', '{$style->get(StyleProperty::LetterSpacing)}px');");
         }
 
+        // Flex layout
+        if ($style->has(StyleProperty::FlexDirection)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'flex-direction', '{$style->get(StyleProperty::FlexDirection)}');");
+        }
+        if ($style->has(StyleProperty::JustifyContent)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'justify-content', '{$style->get(StyleProperty::JustifyContent)}');");
+        }
+        if ($style->has(StyleProperty::AlignItems)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'align-items', '{$style->get(StyleProperty::AlignItems)}');");
+        }
+        if ($style->has(StyleProperty::FlexWrap)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'flex-wrap', '{$style->get(StyleProperty::FlexWrap)}');");
+        }
+        if ($style->has(StyleProperty::Gap)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'gap', '{$style->get(StyleProperty::Gap)}px');");
+        }
+        if ($style->has(StyleProperty::FlexGrow)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'flex-grow', '{$style->get(StyleProperty::FlexGrow)}');");
+        }
+        if ($style->has(StyleProperty::FlexShrink)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'flex-shrink', '{$style->get(StyleProperty::FlexShrink)}');");
+        }
+
+        // Transform
+        if ($style->has(StyleProperty::Rotate)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transform', 'rotate({$style->get(StyleProperty::Rotate)}deg)');");
+        }
+        if ($style->has(StyleProperty::Scale)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transform', 'scale({$style->get(StyleProperty::Scale)})');");
+        }
+        if ($style->has(StyleProperty::TranslateX) || $style->has(StyleProperty::TranslateY)) {
+            $tx = $style->has(StyleProperty::TranslateX) ? $style->get(StyleProperty::TranslateX) . 'px' : '0';
+            $ty = $style->has(StyleProperty::TranslateY) ? $style->get(StyleProperty::TranslateY) . 'px' : '0';
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transform', 'translate({$tx}, {$ty})');");
+        }
+        if ($style->has(StyleProperty::AnimationDuration)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-duration', '{$style->get(StyleProperty::AnimationDuration)}ms');");
+        }
+        if ($style->has(StyleProperty::AnimationDelay)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-delay', '{$style->get(StyleProperty::AnimationDelay)}ms');");
+        }
+        if ($style->has(StyleProperty::AnimationEasing)) {
+            $easing = $style->get(StyleProperty::AnimationEasing);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-timing-function', '{$cssEasing}');");
+        }
+
         // Shadow
         $sx = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
         $sy = $style->has(StyleProperty::ShadowOffsetY) ? $style->get(StyleProperty::ShadowOffsetY) : 0;
@@ -617,6 +670,11 @@ final class WasmBackend extends CodegenBackend
             StyleProperty::PaddingTrailing, StyleProperty::FontWeight, StyleProperty::TextAlignment,
             StyleProperty::TextDecoration, StyleProperty::LineSpacing, StyleProperty::LetterSpacing, StyleProperty::ShadowColor,
             StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
         ];
     }
 }

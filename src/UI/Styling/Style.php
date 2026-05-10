@@ -9,6 +9,9 @@ final class Style
     /** @var array<string, mixed> */
     private array $properties = [];
 
+    /** @var array<string, Style> */
+    private array $responsiveVariants = [];
+
     public function set(StyleProperty $property, mixed $value): static
     {
         $this->properties[$property->value] = $value;
@@ -41,6 +44,34 @@ final class Style
     public static function make(): self
     {
         return new self();
+    }
+
+    // --- Responsive Variants (S1) ---
+
+    public function forBreakpoint(Breakpoint $breakpoint, self $variant): static
+    {
+        $this->responsiveVariants[$breakpoint->value] = $variant;
+        return $this;
+    }
+
+    public function resolveVariant(?Breakpoint $breakpoint): ?self
+    {
+        if ($breakpoint === null) {
+            return null;
+        }
+        return $this->responsiveVariants[$breakpoint->value] ?? null;
+    }
+
+    /** @return array<string, Style> */
+    public function allVariants(): array
+    {
+        return $this->responsiveVariants;
+    }
+
+    /** @return array<string, mixed> */
+    public function allProperties(): array
+    {
+        return $this->properties;
     }
 
     public function backgroundColor(string $color): static
@@ -116,5 +147,81 @@ final class Style
     public function textAlignment(string $alignment): static
     {
         return $this->set(StyleProperty::TextAlignment, $alignment);
+    }
+
+    // --- S0a: Flex Layout ---
+
+    public function flexDirection(string $direction): static
+    {
+        return $this->set(StyleProperty::FlexDirection, $direction);
+    }
+
+    public function justifyContent(string $justify): static
+    {
+        return $this->set(StyleProperty::JustifyContent, $justify);
+    }
+
+    public function alignItems(string $align): static
+    {
+        return $this->set(StyleProperty::AlignItems, $align);
+    }
+
+    public function flexWrap(string $wrap): static
+    {
+        return $this->set(StyleProperty::FlexWrap, $wrap);
+    }
+
+    public function gap(float $gap): static
+    {
+        return $this->set(StyleProperty::Gap, $gap);
+    }
+
+    public function flexGrow(float $grow): static
+    {
+        return $this->set(StyleProperty::FlexGrow, $grow);
+    }
+
+    public function flexShrink(float $shrink): static
+    {
+        return $this->set(StyleProperty::FlexShrink, $shrink);
+    }
+
+    // --- Transform helpers ---
+
+    public function rotate(float $degrees): static
+    {
+        return $this->set(StyleProperty::Rotate, $degrees);
+    }
+
+    public function scale(float $scale): static
+    {
+        return $this->set(StyleProperty::Scale, $scale);
+    }
+
+    public function translateX(float $x): static
+    {
+        return $this->set(StyleProperty::TranslateX, $x);
+    }
+
+    public function translateY(float $y): static
+    {
+        return $this->set(StyleProperty::TranslateY, $y);
+    }
+
+    // --- Animation helpers ---
+
+    public function animationDuration(int $ms): static
+    {
+        return $this->set(StyleProperty::AnimationDuration, $ms);
+    }
+
+    public function animationDelay(int $ms): static
+    {
+        return $this->set(StyleProperty::AnimationDelay, $ms);
+    }
+
+    public function animationEasing(string $easing): static
+    {
+        return $this->set(StyleProperty::AnimationEasing, $easing);
     }
 }

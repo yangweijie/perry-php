@@ -247,6 +247,20 @@ class SwiftGenerator implements IR\Generator
             'preg_split' => $this->generatePregSplit($args),
             'end' => "{$args[0]}.last!",
 
+            // String (extended)
+            'chr' => "String(UnicodeScalar(Int({$args[0]}) ?? 0)!)",
+            'ord' => "Int({$args[0]}.unicodeScalars.first?.value ?? 0)",
+            'strrev' => "String({$args[0]}.reversed())",
+            'str_shuffle' => "String({$args[0]}.shuffled())",
+            'str_word_count' => "{$args[0]}.components(separatedBy: CharacterSet.whitespacesAndNewlines).filter { !\$0.isEmpty }.count",
+
+            // Array (extended)
+            'array_chunk' => "stride(from: 0, to: ({$args[0]} as! [Any]).count, by: Int({$args[1]}) ?? 1).map { Array(({$args[0]} as! [Any])[\$0..<min(\$0 + (Int({$args[1]}) ?? 1), ({$args[0]} as! [Any]).count)]) }",
+            'array_splice' => "Array(({$args[0]} as! [Any])[..<Int({$args[1]}) ?? 0] + ({$args[0]} as! [Any])[Int({$args[1]}) ?? 0 + (Int({$args[2]}) ?? 0)...])",
+            'array_pad' => "({$args[0]} as! [Any]).padding(toLength: Int({$args[1]}) ?? 0, with: {$args[2]})",
+            'current' => "({$args[0]} as! [Any]).first",
+            'compact' => "[{$args[0]}, {$args[1]}]",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

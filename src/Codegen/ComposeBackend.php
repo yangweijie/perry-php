@@ -381,6 +381,40 @@ final class ComposeBackend extends CodegenBackend
             $mods[] = ".clip(RoundedCornerShape({$style->get($props::CornerRadius)}.dp))";
         }
 
+        // Flex layout
+        if ($style->has($props::FlexGrow)) {
+            $mods[] = ".weight({$style->get($props::FlexGrow)}f)";
+        }
+        if ($style->has($props::JustifyContent)) {
+            $v = $style->get($props::JustifyContent);
+            $map = ['flex-start' => 'Start', 'center' => 'CenterHorizontally', 'flex-end' => 'End'];
+            $mods[] = ".align({$map[$v]}.alignmentLine)";
+        }
+        if ($style->has($props::AlignItems)) {
+            $v = $style->get($props::AlignItems);
+            $map = ['flex-start' => 'Top', 'center' => 'CenterVertically', 'flex-end' => 'Bottom'];
+            $mods[] = ".align({$map[$v]}.alignmentLine)";
+        }
+
+        // Transform
+        if ($style->has($props::Rotate)) {
+            $mods[] = ".rotate({$style->get($props::Rotate)}f)";
+        }
+        if ($style->has($props::Scale)) {
+            $v = $style->get($props::Scale);
+            $mods[] = ".graphicsLayer(scaleX: {$v}f, scaleY: {$v}f)";
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $mods[] = ".offset(x: {$tx}.dp, y: {$ty}.dp)";
+        }
+
+        // Animation
+        if ($style->has($props::AnimationDuration)) {
+            $mods[] = ".animateContentSize()";
+        }
+
         // Margin (Compose uses padding with offset, or just padding on outer container)
         if ($style->has($props::Margin)) {
             $v = $style->get($props::Margin);
@@ -485,6 +519,11 @@ final class ComposeBackend extends CodegenBackend
             StyleProperty::ShadowColor, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
             StyleProperty::FontSize, StyleProperty::FontWeight, StyleProperty::FontFamily,
             StyleProperty::TextAlignment, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            StyleProperty::AnimationDuration,
         ];
     }
 }

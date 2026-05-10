@@ -773,6 +773,24 @@ test('each property produces non-empty output across all backends', function () 
         StyleProperty::ShadowRadius => 4,
         StyleProperty::ShadowOffsetX => 2,
         StyleProperty::ShadowOffsetY => 2,
+
+        // Flex layout
+        StyleProperty::FlexDirection => 'row',
+        StyleProperty::JustifyContent => 'center',
+        StyleProperty::AlignItems => 'center',
+        StyleProperty::FlexWrap => 'wrap',
+        StyleProperty::Gap => 8,
+        StyleProperty::FlexGrow => 1,
+        StyleProperty::FlexShrink => 0,
+
+        // Transform & Animation
+        StyleProperty::Rotate => 45,
+        StyleProperty::Scale => 1.5,
+        StyleProperty::TranslateX => 10,
+        StyleProperty::TranslateY => 20,
+        StyleProperty::AnimationDuration => 300,
+        StyleProperty::AnimationDelay => 100,
+        StyleProperty::AnimationEasing => 'ease-in-out',
     };
     foreach ($factory->available() as $name) {
         $backend = $factory->get($name);
@@ -959,4 +977,204 @@ test('WearTiles button Opacity is emitted', function () {
     $style = (new Style())->set(StyleProperty::Opacity, 75);
     $out = backendGet('wear-tiles')->generate((new Perry\UI\Widget\Button('Press', null))->style($style));
     expect($out)->toContain('.setOpacity(75)');
+});
+
+// ---------------------------------------------------------------------------
+// Flex layout property tests
+// ---------------------------------------------------------------------------
+
+test('Html flex layout emits CSS flexbox properties', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FlexDirection, 'row')
+        ->set(StyleProperty::JustifyContent, 'center')
+        ->set(StyleProperty::AlignItems, 'center')
+        ->set(StyleProperty::FlexWrap, 'wrap')
+        ->set(StyleProperty::Gap, 12);
+    $out = backendGet('html')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('flex-direction: row');
+    expect($out)->toContain('justify-content: center');
+    expect($out)->toContain('align-items: center');
+    expect($out)->toContain('flex-wrap: wrap');
+    expect($out)->toContain('gap: 12px');
+});
+
+test('Html flex grow/shrink on Text', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FlexGrow, 1)
+        ->set(StyleProperty::FlexShrink, 0);
+    $out = backendGet('html')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('flex-grow: 1');
+    expect($out)->toContain('flex-shrink: 0');
+});
+
+test('Gtk4 flex layout emits CSS flexbox properties', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FlexDirection, 'column')
+        ->set(StyleProperty::JustifyContent, 'space-between')
+        ->set(StyleProperty::AlignItems, 'start')
+        ->set(StyleProperty::Gap, 8);
+    $out = backendGet('gtk4')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('flex-direction: column');
+    expect($out)->toContain('justify-content: space-between');
+    expect($out)->toContain('align-items: start');
+    expect($out)->toContain('gap: 8px');
+});
+
+test('Wasm flex layout emits perry_ui_setStyle calls', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FlexDirection, 'row')
+        ->set(StyleProperty::JustifyContent, 'center')
+        ->set(StyleProperty::AlignItems, 'center')
+        ->set(StyleProperty::FlexWrap, 'wrap')
+        ->set(StyleProperty::Gap, 8)
+        ->set(StyleProperty::FlexGrow, 1)
+        ->set(StyleProperty::FlexShrink, 0);
+    $out = backendGet('wasm')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain("perry_ui_setStyle");
+    expect($out)->toContain("'flex-direction'");
+    expect($out)->toContain("'justify-content'");
+    expect($out)->toContain("'align-items'");
+    expect($out)->toContain("'flex-wrap'");
+    expect($out)->toContain("'gap'");
+    expect($out)->toContain("'flex-grow'");
+    expect($out)->toContain("'flex-shrink'");
+});
+
+test('SwiftUI flexGrow/justifyContent/alignItems emits frame modifiers', function () {
+    $style = (new Style())
+        ->set(StyleProperty::FlexGrow, 1)
+        ->set(StyleProperty::JustifyContent, 'center')
+        ->set(StyleProperty::AlignItems, 'center');
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('.frame(maxWidth: .infinity');
+    expect($out)->toContain('alignment: .center');
+});
+
+test('Compose flexGrow emits weight modifier', function () {
+    $style = (new Style())->set(StyleProperty::FlexGrow, 1);
+    $out = backendGet('compose')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('.weight(1f)');
+});
+
+test('ArkTs flexGrow emits layoutWeight', function () {
+    $style = (new Style())->set(StyleProperty::FlexGrow, 1);
+    $out = backendGet('arkts')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('.layoutWeight(1)');
+});
+
+test('AndroidXml flexGrow emits android:layout_weight', function () {
+    $style = (new Style())->set(StyleProperty::FlexGrow, 2);
+    $out = backendGet('android-xml')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('android:layout_weight="2"');
+});
+
+test('WinUI flexGrow emits HorizontalAlignment', function () {
+    $style = (new Style())->set(StyleProperty::FlexGrow, 1);
+    $out = backendGet('winui')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('HorizontalAlignment="Stretch"');
+});
+
+test('Flutter flexGrow emits Expanded wrapper', function () {
+    $style = (new Style())->set(StyleProperty::FlexGrow, 1);
+    $out = backendGet('flutter')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('Expanded(');
+    expect($out)->toContain('flex: 1');
+});
+
+test('Flutter flexShrink emits Flexible wrapper', function () {
+    $style = (new Style())->set(StyleProperty::FlexShrink, 0);
+    $out = backendGet('flutter')->generate((new Perry\UI\Widget\Text('Flex'))->style($style));
+    expect($out)->toContain('Flexible(');
+    expect($out)->toContain('FlexFit.loose');
+});
+
+// ---------------------------------------------------------------------------
+// Transform property tests
+// ---------------------------------------------------------------------------
+
+test('Html transform emits CSS transform properties', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 45)
+        ->set(StyleProperty::Scale, 1.5)
+        ->set(StyleProperty::TranslateX, 10)
+        ->set(StyleProperty::TranslateY, 20);
+    $out = backendGet('html')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('rotate(45deg)');
+    expect($out)->toContain('scale(1.5)');
+    expect($out)->toContain('translate(10px, 20px)');
+});
+
+test('Html animation emits CSS animation properties', function () {
+    $style = (new Style())
+        ->set(StyleProperty::AnimationDuration, 300)
+        ->set(StyleProperty::AnimationDelay, 100)
+        ->set(StyleProperty::AnimationEasing, 'ease-in-out');
+    $out = backendGet('html')->generate((new Perry\UI\Widget\Text('Anim'))->style($style));
+    expect($out)->toContain('animation-duration: 300ms');
+    expect($out)->toContain('animation-delay: 100ms');
+    expect($out)->toContain('animation-timing-function: ease-in-out');
+});
+
+test('SwiftUI transform emits rotation/scale/offset', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 90)
+        ->set(StyleProperty::Scale, 2.0)
+        ->set(StyleProperty::TranslateX, 15)
+        ->set(StyleProperty::TranslateY, 25);
+    $out = backendGet('swiftui')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('.rotationEffect(.degrees(90))');
+    expect($out)->toContain('.scaleEffect(2)');
+    expect($out)->toContain('.offset(x: 15, y: 25)');
+});
+
+test('Compose transform emits rotate/graphicsLayer/offset', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 45)
+        ->set(StyleProperty::Scale, 1.5)
+        ->set(StyleProperty::TranslateX, 10)
+        ->set(StyleProperty::TranslateY, 20);
+    $out = backendGet('compose')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('.rotate(45f)');
+    expect($out)->toContain('scaleX: 1.5f, scaleY: 1.5f');
+    expect($out)->toContain('.offset(x: 10.dp, y: 20.dp)');
+});
+
+test('ArkTs transform emits rotate/scale/offset', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 90)
+        ->set(StyleProperty::Scale, 2.0)
+        ->set(StyleProperty::TranslateX, 5)
+        ->set(StyleProperty::TranslateY, 10);
+    $out = backendGet('arkts')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('.rotate({ angle: 90 })');
+    expect($out)->toContain('.scale({ x: 2, y: 2 })');
+    expect($out)->toContain('.offset({ x: 5, y: 10 })');
+});
+
+test('AndroidXml transform emits rotation/scaleX/translationX', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 45)
+        ->set(StyleProperty::Scale, 1.5)
+        ->set(StyleProperty::TranslateX, 10)
+        ->set(StyleProperty::TranslateY, 20);
+    $out = backendGet('android-xml')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('android:rotation="45"');
+    expect($out)->toContain('android:scaleX="1.5"');
+    expect($out)->toContain('android:scaleY="1.5"');
+    expect($out)->toContain('android:translationX="10dp"');
+    expect($out)->toContain('android:translationY="20dp"');
+});
+
+test('Flutter transform emits Transform.rotate/scale/translate', function () {
+    $style = (new Style())
+        ->set(StyleProperty::Rotate, 90)
+        ->set(StyleProperty::Scale, 2.0)
+        ->set(StyleProperty::TranslateX, 10);
+    $out = backendGet('flutter')->generate((new Perry\UI\Widget\Text('Xform'))->style($style));
+    expect($out)->toContain('Transform.rotate');
+    expect($out)->toContain('angle: 1.5708');
+    expect($out)->toContain('Transform.scale');
+    expect($out)->toContain('scale: 2');
+    expect($out)->toContain('Transform.translate');
+    expect($out)->toContain('Offset(10, 0)');
 });

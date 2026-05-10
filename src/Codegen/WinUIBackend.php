@@ -819,6 +819,30 @@ XAML);
             $props[] = "Opacity=\"{$style->get(StyleProperty::Opacity)}\"";
         }
 
+        // Flex layout
+        if ($style->has(StyleProperty::FlexGrow) && $includeProp(StyleProperty::FlexGrow)) {
+            $props[] = "HorizontalAlignment=\"Stretch\"";
+        }
+
+        // Transform (basic RenderTransform)
+        $xforms = [];
+        if ($style->has(StyleProperty::Rotate)) {
+            $xforms[] = "<RotateTransform Angle=\"{$style->get(StyleProperty::Rotate)}\" />";
+        }
+        if ($style->has(StyleProperty::Scale)) {
+            $v = $style->get(StyleProperty::Scale);
+            $xforms[] = "<ScaleTransform ScaleX=\"{$v}\" ScaleY=\"{$v}\" />";
+        }
+        if ($style->has(StyleProperty::TranslateX) || $style->has(StyleProperty::TranslateY)) {
+            $tx = $style->has(StyleProperty::TranslateX) ? $style->get(StyleProperty::TranslateX) : 0;
+            $ty = $style->has(StyleProperty::TranslateY) ? $style->get(StyleProperty::TranslateY) : 0;
+            $xforms[] = "<TranslateTransform X=\"{$tx}\" Y=\"{$ty}\" />";
+        }
+        if (!empty($xforms)) {
+            $xformStr = implode('', $xforms);
+            $props[] = "RenderTransform=\"<TransformGroup>{$xformStr}</TransformGroup>\"";
+        }
+
         if (empty($props)) {
             return '';
         }
@@ -869,6 +893,10 @@ XAML);
             StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Margin,
             StyleProperty::Opacity, StyleProperty::TextDecoration, StyleProperty::LineSpacing,
             StyleProperty::LetterSpacing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
         ];
     }
 }

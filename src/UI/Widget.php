@@ -31,6 +31,11 @@ abstract class Widget
         return $this;
     }
 
+    public function setStyle(?Style $style): void
+    {
+        $this->style = $style;
+    }
+
     public function addChild(Widget $child): static
     {
         $this->children[] = $child;

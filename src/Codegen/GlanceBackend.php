@@ -442,6 +442,9 @@ final class GlanceBackend extends CodegenBackend
             StyleProperty::PaddingBottom, StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing,
             StyleProperty::Width, StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
             StyleProperty::BackgroundColor, StyleProperty::Opacity, StyleProperty::Margin,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            StyleProperty::Rotate, StyleProperty::Scale,
         ];
     }
 }

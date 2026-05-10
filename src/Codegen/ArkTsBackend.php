@@ -409,6 +409,36 @@ final class ArkTsBackend extends CodegenBackend
         if ($style->has($props::LetterSpacing)) {
             $mods[] = ".letterSpacing({$style->get($props::LetterSpacing)})";
         }
+
+        // Flex layout
+        if ($style->has($props::FlexGrow)) {
+            $mods[] = ".layoutWeight({$style->get($props::FlexGrow)})";
+        }
+        if ($style->has($props::JustifyContent)) {
+            $v = $style->get($props::JustifyContent);
+            $map = ['flex-start' => 'Start', 'center' => 'Center', 'flex-end' => 'End'];
+            $mods[] = ".alignItems(HorizontalAlign.{$map[$v]})";
+        }
+        if ($style->has($props::AlignItems)) {
+            $v = $style->get($props::AlignItems);
+            $map = ['flex-start' => 'Top', 'center' => 'Center', 'flex-end' => 'Bottom'];
+            $mods[] = ".alignContent(VerticalAlign.{$map[$v]})";
+        }
+
+        // Transform
+        if ($style->has($props::Rotate)) {
+            $mods[] = ".rotate({ angle: {$style->get($props::Rotate)} })";
+        }
+        if ($style->has($props::Scale)) {
+            $v = $style->get($props::Scale);
+            $mods[] = ".scale({ x: {$v}, y: {$v} })";
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $mods[] = ".offset({ x: {$tx}, y: {$ty} })";
+        }
+
         $pad = [];
         if ($style->has($props::PaddingTop)) {
             $pad['top'] = (int) $style->get($props::PaddingTop);
@@ -490,6 +520,10 @@ final class ArkTsBackend extends CodegenBackend
             StyleProperty::LetterSpacing,
             StyleProperty::PaddingTop, StyleProperty::PaddingBottom, StyleProperty::PaddingLeading,
             StyleProperty::PaddingTrailing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
         ];
     }
 }

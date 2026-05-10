@@ -452,6 +452,30 @@ final class FlutterBackend extends CodegenBackend
             $wraps[] = "Material(\n{$this->indentStr()}    elevation: {$this->getShadowElevation($style)},";
         }
 
+        if ($style->has($props::FlexGrow)) {
+            $wraps[] = "Expanded(\n{$this->indentStr()}    flex: {$style->get($props::FlexGrow)},";
+        }
+
+        if ($style->has($props::FlexShrink)) {
+            $wraps[] = "Flexible(\n{$this->indentStr()}    fit: FlexFit.loose,";
+        }
+
+        // Transform
+        if ($style->has($props::Rotate)) {
+            $angle = $style->get($props::Rotate) * M_PI / 180;
+            $angleStr = number_format($angle, 4);
+            $wraps[] = "Transform.rotate(\n{$this->indentStr()}    angle: {$angleStr},";
+        }
+        if ($style->has($props::Scale)) {
+            $v = $style->get($props::Scale);
+            $wraps[] = "Transform.scale(\n{$this->indentStr()}    scale: {$v},";
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $wraps[] = "Transform.translate(\n{$this->indentStr()}    offset: Offset({$tx}, {$ty}),";
+        }
+
         if (!empty($wraps)) {
             return implode("\n{$this->indentStr()}    child: ", $wraps) . "\n{$this->indentStr()}    child: ";
         }
@@ -603,6 +627,8 @@ final class FlutterBackend extends CodegenBackend
             StyleProperty::Opacity, StyleProperty::CornerRadius, StyleProperty::BorderWidth,
             StyleProperty::BorderColor, StyleProperty::Margin, StyleProperty::ShadowColor,
             StyleProperty::ShadowRadius,
+            StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
         ];
     }
 }

@@ -401,6 +401,9 @@ final class WearTilesBackend extends CodegenBackend
             StyleProperty::Width, StyleProperty::Height, StyleProperty::CornerRadius, StyleProperty::Opacity,
             StyleProperty::Padding, StyleProperty::PaddingTop,
             StyleProperty::PaddingBottom, StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
+            StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            StyleProperty::Rotate, StyleProperty::Scale,
         ];
     }
 }

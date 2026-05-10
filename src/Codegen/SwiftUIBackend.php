@@ -531,6 +531,51 @@ final class SwiftUIBackend extends CodegenBackend
         if ($style->has($props::LineSpacing)) {
             $mods[] = ".lineSpacing({$style->get($props::LineSpacing)})";
         }
+
+        // Flex layout
+        if ($style->has($props::FlexGrow)) {
+            $mods[] = ".frame(maxWidth: .infinity)";
+        }
+        if ($style->has($props::FlexShrink)) {
+            $mods[] = ".layoutPriority(0)";
+        }
+        if ($style->has($props::JustifyContent)) {
+            $v = $style->get($props::JustifyContent);
+            $map = ['flex-start' => 'leading', 'center' => 'center', 'flex-end' => 'trailing', 'space-between' => 'center', 'space-around' => 'center'];
+            $mods[] = ".frame(maxWidth: .infinity, alignment: .{$map[$v]})";
+        }
+        if ($style->has($props::AlignItems)) {
+            $v = $style->get($props::AlignItems);
+            $map = ['flex-start' => 'top', 'center' => 'center', 'flex-end' => 'bottom', 'stretch' => 'center'];
+            $mods[] = ".frame(maxHeight: .infinity, alignment: .{$map[$v]})";
+        }
+
+        // Transform
+        if ($style->has($props::Rotate)) {
+            $mods[] = ".rotationEffect(.degrees({$style->get($props::Rotate)}))";
+        }
+        if ($style->has($props::Scale)) {
+            $mods[] = ".scaleEffect({$style->get($props::Scale)})";
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $mods[] = ".offset(x: {$tx}, y: {$ty})";
+        }
+
+        // Animation
+        if ($style->has($props::AnimationDuration)) {
+            $dur = $style->get($props::AnimationDuration) / 1000.0;
+            $easing = $style->has($props::AnimationEasing) ? $style->get($props::AnimationEasing) : 'ease-in-out';
+            $curve = match ($easing) {
+                'linear' => '.linear',
+                'ease-in' => '.easeIn',
+                'ease-out' => '.easeOut',
+                default => '.easeInOut',
+            };
+            $mods[] = ".animation(.easeInOut(duration: {$dur}), value: id)";
+        }
+
         if ($style->has($props::PaddingTop)) {
             $mods[] = ".padding(.top, {$style->get($props::PaddingTop)})";
         }
@@ -621,7 +666,12 @@ final class SwiftUIBackend extends CodegenBackend
             StyleProperty::Height, StyleProperty::MinHeight, StyleProperty::Margin,
             StyleProperty::BorderWidth, StyleProperty::BorderColor, StyleProperty::ShadowColor,
             StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
-            StyleProperty::LineSpacing,
+            StyleProperty::LineSpacing, StyleProperty::FlexDirection, StyleProperty::JustifyContent,
+            StyleProperty::AlignItems, StyleProperty::FlexWrap, StyleProperty::Gap,
+            StyleProperty::FlexGrow, StyleProperty::FlexShrink,
+            // Transform & Animation
+            StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            StyleProperty::AnimationDuration, StyleProperty::AnimationEasing,
         ];
     }
 }

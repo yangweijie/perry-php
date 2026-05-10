@@ -35,4 +35,24 @@ enum StyleProperty: string
     case MinHeight = 'min_height';
     case MaxWidth = 'max_width';
     case MaxHeight = 'max_height';
+
+    // --- S0: Flex Layout Properties ---
+    case FlexDirection = 'flex_direction';
+    case JustifyContent = 'justify_content';
+    case AlignItems = 'align_items';
+    case FlexWrap = 'flex_wrap';
+    case Gap = 'gap';
+    case FlexGrow = 'flex_grow';
+    case FlexShrink = 'flex_shrink';
+
+    // --- S0: Transform Properties ---
+    case Rotate = 'rotate';
+    case Scale = 'scale';
+    case TranslateX = 'translate_x';
+    case TranslateY = 'translate_y';
+
+    // --- S0: Animation Properties ---
+    case AnimationDuration = 'animation_duration';
+    case AnimationDelay = 'animation_delay';
+    case AnimationEasing = 'animation_easing';
 }
