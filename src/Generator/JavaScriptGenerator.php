@@ -265,6 +265,30 @@ class JavaScriptGenerator implements IR\Generator
             'intval' => "parseInt({$args[0]}, 10) || 0",
             'floatval' => "parseFloat({$args[0]}) || 0.0",
 
+            // Number system (P7)
+            'decbin' => "({$args[0]} >>> 0).toString(2)",
+            'dechex' => "({$args[0]} >>> 0).toString(16)",
+            'decoct' => "({$args[0]} >>> 0).toString(8)",
+            'bindec' => "parseInt({$args[0]}, 2) || 0",
+            'hexdec' => "parseInt({$args[0]}, 16) || 0",
+            'octdec' => "parseInt({$args[0]}, 8) || 0",
+
+            // Math (P7)
+            'intdiv' => "Math.floor({$args[0]} / {$args[1]})",
+            'fmod' => "{$args[0]} % {$args[1]}",
+            'hypot' => "Math.hypot({$args[0]}, {$args[1]})",
+            'deg2rad' => "{$args[0]} * (Math.PI / 180)",
+            'rad2deg' => "{$args[0]} * (180 / Math.PI)",
+
+            // Type checking (P7)
+            'is_finite' => "typeof {$args[0]} === 'number' && isFinite({$args[0]})",
+            'is_infinite' => "{$args[0]} === Infinity || {$args[0]} === -Infinity",
+            'is_nan' => "typeof {$args[0]} === 'number' && isNaN({$args[0]})",
+            'is_scalar' => "typeof {$args[0]} === 'string' || typeof {$args[0]} === 'number' || typeof {$args[0]} === 'boolean'",
+
+            // Array (P7)
+            'array_key_first' => "Object.keys({$args[0]})[0] ?? undefined",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

@@ -294,6 +294,30 @@ class SwiftGenerator implements IR\Generator
             'intval' => "Int({$args[0]}) ?? 0",
             'floatval' => "Double({$args[0]}) ?? 0.0",
 
+            // Number system (P7)
+            'decbin' => "String({$args[0]}, radix: 2)",
+            'dechex' => "String({$args[0]}, radix: 16)",
+            'decoct' => "String({$args[0]}, radix: 8)",
+            'bindec' => "Int({$args[0]}, radix: 2) ?? 0",
+            'hexdec' => "Int({$args[0]}, radix: 16) ?? 0",
+            'octdec' => "Int({$args[0]}, radix: 8) ?? 0",
+
+            // Math (P7)
+            'intdiv' => "Int({$args[0]}) / Int({$args[1]})",
+            'fmod' => "({$args[0]} as! Double).truncatingRemainder(dividingBy: {$args[1]} as! Double)",
+            'hypot' => "hypot({$args[0]}, {$args[1]})",
+            'deg2rad' => "{$args[0]} * (.pi / 180.0)",
+            'rad2deg' => "{$args[0]} * (180.0 / .pi)",
+
+            // Type checking (P7)
+            'is_finite' => "({$args[0]} as? Double)?.isFinite ?? false",
+            'is_infinite' => "({$args[0]} as? Double)?.isInfinite ?? false",
+            'is_nan' => "({$args[0]} as? Double)?.isNaN ?? false",
+            'is_scalar' => "({$args[0]} is String) || ({$args[0]} is Int) || ({$args[0]} is Double) || ({$args[0]} is Bool)",
+
+            // Array (P7)
+            'array_key_first' => "({$args[0]} as? [String: Any])?.keys.first",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

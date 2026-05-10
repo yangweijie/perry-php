@@ -268,6 +268,30 @@ class KotlinGenerator implements IR\Generator
             'intval' => "({$args[0]} as? Number)?.toInt() ?: 0",
             'floatval' => "({$args[0]} as? Number)?.toDouble() ?: 0.0",
 
+            // Number system (P7)
+            'decbin' => "({$args[0]} as Int).toString(2)",
+            'dechex' => "({$args[0]} as Int).toString(16)",
+            'decoct' => "({$args[0]} as Int).toString(8)",
+            'bindec' => "({$args[0]} as String).toIntOrNull(2) ?: 0",
+            'hexdec' => "({$args[0]} as String).toIntOrNull(16) ?: 0",
+            'octdec' => "({$args[0]} as String).toIntOrNull(8) ?: 0",
+
+            // Math (P7)
+            'intdiv' => "({$args[0]} as Int) / ({$args[1]} as Int)",
+            'fmod' => "{$args[0]} % {$args[1]}",
+            'hypot' => "kotlin.math.hypot({$args[0]}, {$args[1]})",
+            'deg2rad' => "Math.toRadians({$args[0]})",
+            'rad2deg' => "Math.toDegrees({$args[0]})",
+
+            // Type checking (P7)
+            'is_finite' => "({$args[0]} as? Double)?.isFinite() ?: false",
+            'is_infinite' => "({$args[0]} as? Double)?.isInfinite() ?: false",
+            'is_nan' => "({$args[0]} as? Double)?.isNaN() ?: false",
+            'is_scalar' => "{$args[0]} is String || {$args[0]} is Int || {$args[0]} is Double || {$args[0]} is Boolean",
+
+            // Array (P7)
+            'array_key_first' => "({$args[0]} as? Map<*, *>)?.keys.firstOrNull()",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

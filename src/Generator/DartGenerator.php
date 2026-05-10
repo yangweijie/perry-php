@@ -268,6 +268,30 @@ class DartGenerator implements IR\Generator
             'intval' => "int.tryParse({$args[0]}.toString()) ?? 0",
             'floatval' => "double.tryParse({$args[0]}.toString()) ?? 0.0",
 
+            // Number system (P7)
+            'decbin' => "{$args[0]}.toRadixString(2)",
+            'dechex' => "{$args[0]}.toRadixString(16)",
+            'decoct' => "{$args[0]}.toRadixString(8)",
+            'bindec' => "int.tryParse({$args[0]}.toString(), radix: 2) ?? 0",
+            'hexdec' => "int.tryParse({$args[0]}.toString(), radix: 16) ?? 0",
+            'octdec' => "int.tryParse({$args[0]}.toString(), radix: 8) ?? 0",
+
+            // Math (P7)
+            'intdiv' => "{$args[0]} ~/ {$args[1]}",
+            'fmod' => "{$args[0]} % {$args[1]}",
+            'hypot' => "sqrt({$args[0]} * {$args[0]} + {$args[1]} * {$args[1]})",
+            'deg2rad' => "{$args[0]} * (pi / 180.0)",
+            'rad2deg' => "{$args[0]} * (180.0 / pi)",
+
+            // Type checking (P7)
+            'is_finite' => "{$args[0]} is double && {$args[0]}.isFinite",
+            'is_infinite' => "{$args[0]} is double && {$args[0]}.isInfinite",
+            'is_nan' => "{$args[0]} is double && {$args[0]}.isNaN",
+            'is_scalar' => "{$args[0]} is String || {$args[0]} is int || {$args[0]} is double || {$args[0]} is bool",
+
+            // Array (P7)
+            'array_key_first' => "({$args[0]} as Map).keys.isNotEmpty ? ({$args[0]} as Map).keys.first : null",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 

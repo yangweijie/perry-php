@@ -281,6 +281,30 @@ class CSharpGenerator implements IR\Generator
             'intval' => "Convert.ToInt32({$args[0]})",
             'floatval' => "Convert.ToDouble({$args[0]})",
 
+            // Number system (P7)
+            'decbin' => "Convert.ToString({$args[0]}, 2)",
+            'dechex' => "Convert.ToString({$args[0]}, 16)",
+            'decoct' => "Convert.ToString({$args[0]}, 8)",
+            'bindec' => "Convert.ToInt32({$args[0]}, 2)",
+            'hexdec' => "Convert.ToInt32({$args[0]}, 16)",
+            'octdec' => "Convert.ToInt32({$args[0]}, 8)",
+
+            // Math (P7)
+            'intdiv' => "Convert.ToInt32({$args[0]}) / Convert.ToInt32({$args[1]})",
+            'fmod' => "{$args[0]} % {$args[1]}",
+            'hypot' => "Math.Sqrt({$args[0]} * {$args[0]} + {$args[1]} * {$args[1]})",
+            'deg2rad' => "{$args[0]} * (Math.PI / 180.0)",
+            'rad2deg' => "{$args[0]} * (180.0 / Math.PI)",
+
+            // Type checking (P7)
+            'is_finite' => "double.IsFinite(Convert.ToDouble({$args[0]}))",
+            'is_infinite' => "double.IsInfinity(Convert.ToDouble({$args[0]}))",
+            'is_nan' => "double.IsNaN(Convert.ToDouble({$args[0]}))",
+            'is_scalar' => "{$args[0]} is string || {$args[0]} is int || {$args[0]} is double || {$args[0]} is bool",
+
+            // Array (P7)
+            'array_key_first' => "{$args[0]}.Keys.Cast<object>().FirstOrDefault()",
+
             default => "{$node->name}(" . implode(', ', $args) . ")",
         };
 
