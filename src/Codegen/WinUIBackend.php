@@ -374,9 +374,8 @@ XAML);
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $stackProps = $hasPadding
-            ? $this->generateProperties($style, self::PADDING_PROPS)
-            : $this->generateProperties($style);
+        $excludeStackProps = array_merge(['cornerRadius'], $hasPadding ? self::PADDING_PROPS : []);
+        $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $stackPanel = trim(<<<XAML
         {$this->indentStr()}<StackPanel Orientation="Vertical"{$stackProps}>
@@ -410,9 +409,8 @@ XAML);
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $stackProps = $hasPadding
-            ? $this->generateProperties($style, self::PADDING_PROPS)
-            : $this->generateProperties($style);
+        $excludeStackProps = array_merge(['cornerRadius'], $hasPadding ? self::PADDING_PROPS : []);
+        $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $stackPanel = trim(<<<XAML
         {$this->indentStr()}<StackPanel Orientation="Horizontal"{$stackProps}>

@@ -381,7 +381,7 @@ class CSharpGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return $node->value ? "return {$node->value->accept($this)}" : 'return';
+        return $node->value ? "return {$node->value->accept($this)};" : 'return;';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string
@@ -475,12 +475,12 @@ class CSharpGenerator implements IR\Generator
 
     public function generateBreak(IR\BreakStatement $node): string
     {
-        return 'break';
+        return 'break;';
     }
 
     public function generateContinue(IR\ContinueStatement $node): string
     {
-        return 'continue';
+        return 'continue;';
     }
 
     // ============================================================
