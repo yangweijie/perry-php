@@ -75,6 +75,6 @@ test('Compose generates style modifiers', function () {
     $widget = (new Perry\UI\Widget\Text('Styled'))
         ->style(Style::make()->fontSize(20)->foregroundColor('#ff0000'));
     $out = $b->generate($widget);
-    expect($out)->toContain('.fontSize(')
-        ->and($out)->toContain('.color(');
+    expect($out)->toContain('fontSize = 20.sp')
+        ->and($out)->toContain('color = Color(0xFFff0000)');
 });

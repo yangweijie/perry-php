@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Perry\UI\Binding;
+use Perry\UI\StateId;
 use Perry\UI\Styling\Style;
 use Perry\Codegen\CodegenFactory;
 use Perry\Build\Target;
@@ -51,6 +52,13 @@ test('AndroidXml generates all widget types', function () {
     $specs['Toggle'] = [new Perry\UI\Widget\Toggle('Dark'), ['Switch']];
     $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['SeekBar']];
     $specs['Image'] = [new Perry\UI\Widget\Image('photo.png'), ['ImageView']];
+    $specs['VStack'] = [new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('A')), ['LinearLayout', 'vertical']];
+    $specs['HStack'] = [new Perry\UI\Widget\HStack(new Perry\UI\Widget\Text('B')), ['LinearLayout']];
+    $specs['ScrollView'] = [new Perry\UI\Widget\ScrollView(new Perry\UI\Widget\Text('S')), ['ScrollView']];
+    $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['EditText']];
+    $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['LinearLayout']];
+    $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['FrameLayout']];
+    $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['LinearLayout']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

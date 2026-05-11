@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\Build;
 
 use Perry\Codegen\CodegenBackend;
+use Perry\Codegen\ComposeBackend;
 use Perry\UI\Widget;
 
 final class Compiler
@@ -251,17 +252,7 @@ CS;
     private function compileAndroid(CodegenBackend $backend, string $source, string $outputName, array $colors = []): CompileResult
     {
         $sdkPath = $this->findAndroidSdk();
-        if ($sdkPath === null) {
-            $layoutDir = $this->buildDir . '/res/layout';
-            if (!is_dir($layoutDir)) {
-                mkdir($layoutDir, 0755, true);
-            }
-            file_put_contents($layoutDir . '/activity_main.xml', $source);
-            return CompileResult::failure(
-                "Android SDK not found. Set ANDROID_HOME environment variable.",
-                $layoutDir . '/activity_main.xml'
-            );
-        }
+        $isCompose = $backend instanceof ComposeBackend;
 
         $projectDir = $this->buildDir . '/android';
         $appDir = $projectDir . '/app/src/main';
@@ -271,24 +262,50 @@ CS;
         $valuesDir = $resDir . '/values';
         $gradleWrapperDir = $projectDir . '/gradle/wrapper';
 
-        foreach ([$javaDir, $layoutDir, $valuesDir, $gradleWrapperDir] as $dir) {
+        $neededDirs = $isCompose
+            ? [$javaDir, $valuesDir, $gradleWrapperDir]
+            : [$javaDir, $layoutDir, $valuesDir, $gradleWrapperDir];
+
+        foreach ($neededDirs as $dir) {
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
         }
 
-        file_put_contents($layoutDir . '/activity_main.xml', $source);
+        if ($isCompose) {
+            // ComposeBackend: source is complete Kotlin file (MainActivity + PerryApp)
+            file_put_contents($javaDir . '/MainActivity.kt', $source);
+        } else {
+            // AndroidXmlBackend: source is XML layout
+            file_put_contents($layoutDir . '/activity_main.xml', $source);
+            file_put_contents($javaDir . '/MainActivity.kt', $backend->generateMainActivity($outputName));
+        }
 
         $this->writeColorsXml($valuesDir, $colors);
         $this->writeThemesXml($valuesDir);
 
         file_put_contents($projectDir . '/build.gradle', $this->generateAndroidRootBuildGradle());
-        file_put_contents($projectDir . '/app/build.gradle', $this->generateAndroidAppBuildGradle($outputName));
+        file_put_contents(
+            $projectDir . '/app/build.gradle',
+            $isCompose
+                ? $this->generateComposeAppBuildGradle($outputName)
+                : $this->generateAndroidAppBuildGradle($outputName)
+        );
         file_put_contents($projectDir . '/settings.gradle', $this->generateAndroidSettingsGradle());
-        file_put_contents($projectDir . '/gradle.properties', "android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2048m\n");
+        file_put_contents(
+            $projectDir . '/gradle.properties',
+            "android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2048m\n"
+        );
         file_put_contents($appDir . '/AndroidManifest.xml', $this->generateAndroidManifest($outputName));
-        file_put_contents($javaDir . '/MainActivity.kt', $backend->generateMainActivity($outputName));
         file_put_contents($gradleWrapperDir . '/gradle-wrapper.properties', $this->generateGradleWrapperProperties());
+
+        if ($sdkPath === null) {
+            $errorFile = $isCompose ? $javaDir . '/MainActivity.kt' : $layoutDir . '/activity_main.xml';
+            return CompileResult::failure(
+                "Android SDK not found. Set ANDROID_HOME environment variable.",
+                $errorFile
+            );
+        }
 
         $cmd = "cd " . escapeshellarg($projectDir)
             . " && ANDROID_HOME=" . escapeshellarg($sdkPath)
@@ -299,14 +316,16 @@ CS;
         $apkPath = $projectDir . '/app/build/outputs/apk/debug/app-debug.apk';
         $outputApk = $this->buildDir . '/' . $outputName . '.apk';
 
+        $sourceFile = $isCompose ? $javaDir . '/MainActivity.kt' : $layoutDir . '/activity_main.xml';
+
         if ($exitCode === 0 && file_exists($apkPath)) {
             copy($apkPath, $outputApk);
-            return CompileResult::success($outputApk, $layoutDir . '/activity_main.xml');
+            return CompileResult::success($outputApk, $sourceFile);
         }
 
         return CompileResult::failure(
             "Android build failed:\n" . implode("\n", $output),
-            $layoutDir . '/activity_main.xml'
+            $sourceFile
         );
     }
 
@@ -344,6 +363,69 @@ CS;
 plugins {
     id 'com.android.application' version '8.9.0' apply false
     id 'org.jetbrains.kotlin.android' version '2.0.21' apply false
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21' apply false
+}
+GRADLE;
+    }
+
+    private function generateComposeAppBuildGradle(string $outputName): string
+    {
+        $pkg = 'com.perry.' . $outputName;
+        return <<<GRADLE
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+android {
+    namespace '{$pkg}'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId '{$pkg}'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildFeatures {
+        compose true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.runtime:runtime-livedata'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
 }
 GRADLE;
     }

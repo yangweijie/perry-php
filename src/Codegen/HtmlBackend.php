@@ -83,6 +83,7 @@ final class HtmlBackend extends CodegenBackend
 
         $body = '';
         $title = 'Perry App';
+        $containerStyle = '';
 
         if ($root instanceof AppContainer) {
             $bindings = $root->bindings();
@@ -90,7 +91,16 @@ final class HtmlBackend extends CodegenBackend
             foreach ($bindings as $b) {
                 $this->stateBindings[$b->name] = $b;
             }
-            $body = $this->generateWidget($root->content());
+            $innerBody = $this->generateWidget($root->content());
+
+            $w = $root->windowWidth();
+            $h = $root->windowHeight();
+            if ($w !== null && $h !== null) {
+                $body = "<div class=\"app-container\" style=\"width: {$w}px; height: {$h}px;\">\n{$innerBody}\n</div>";
+                $containerStyle = ".app-container { margin: 0 auto; overflow: hidden; }\n";
+            } else {
+                $body = $innerBody;
+            }
         } else {
             $this->collectBindings($root);
             $body = $this->generateWidget($root);
@@ -109,7 +119,7 @@ final class HtmlBackend extends CodegenBackend
             <title>{$title}</title>
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
                 .vstack { display: flex; flex-direction: column; }
                 .hstack { display: flex; flex-direction: row; }
                 .spacer { flex: 1; }
@@ -126,6 +136,7 @@ final class HtmlBackend extends CodegenBackend
                 .calc-btn.eq { background: #10b981; color: #fff; }
                 .calc-btn.eq:hover { background: #059669; }
             </style>
+            {$containerStyle}
             {$responsiveCSS}
             {$themeCSS}
         </head>

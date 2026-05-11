@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Perry\UI\Binding;
+use Perry\UI\StateId;
 use Perry\UI\Styling\Style;
 use Perry\Codegen\CodegenFactory;
 use Perry\Build\Target;
@@ -50,6 +51,13 @@ test('Gtk4 generates all widget types', function () {
     $specs['Toggle'] = [new Perry\UI\Widget\Toggle('Dark'), ['GtkCheckButton']];
     $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['GtkScale']];
     $specs['Image'] = [new Perry\UI\Widget\Image('photo.png'), ['GtkImage']];
+    $specs['VStack'] = [new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('A')), ['GtkBox', 'vertical']];
+    $specs['HStack'] = [new Perry\UI\Widget\HStack(new Perry\UI\Widget\Text('B')), ['GtkBox', 'horizontal']];
+    $specs['ScrollView'] = [new Perry\UI\Widget\ScrollView(new Perry\UI\Widget\Text('S')), ['GtkScrolledWindow']];
+    $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['GtkEntry']];
+    $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['GtkBox']];
+    $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['GtkStack']];
+    $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['GtkNotebook']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

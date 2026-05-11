@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Perry\UI\Binding;
+use Perry\UI\StateId;
 use Perry\UI\Styling\Style;
 use Perry\Codegen\CodegenFactory;
 use Perry\Build\Target;
@@ -55,6 +57,13 @@ test('Glance generates all widget types', function () {
     $specs['Image'] = [new Perry\UI\Widget\Image('photo.png'), ['Image(']];
     $specs['ScrollView'] = [new Perry\UI\Widget\ScrollView(new Perry\UI\Widget\Text('S')), ['fillMaxWidth']];
     $specs['Toggle'] = [new Perry\UI\Widget\Toggle('Dark'), []];
+    $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['Text(']];
+    $specs['TextEditor'] = [new Perry\UI\Widget\TextEditor(new Binding('val', '')), ['not supported in Glance']];
+    $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['LazyColumn']];
+    $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['not supported in Glance']];
+    $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['not supported in Glance']];
+    $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>h</p>'), ['not supported in Glance']];
+    $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['not supported in Glance']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

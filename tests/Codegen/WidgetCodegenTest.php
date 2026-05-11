@@ -287,7 +287,10 @@ test('Compose AppContainer generates remember state', function () {
     );
     $output = $backend->generate($app);
     expect($output)->toContain('var name by remember');
-    expect($output)->toContain('.size(width = 400.dp, height = 600.dp)');
+    expect($output)->toContain('.size(400.dp, 600.dp)');
+    expect($output)->toContain('BoxWithConstraints');
+    expect($output)->toContain('graphicsLayer');
+    expect($output)->toContain('TransformOrigin');
 });
 
 test('Compose WebView uses AndroidView', function () {
@@ -901,9 +904,9 @@ test('Compose fontSize + fontWeight + color on Text', function () {
         ->set(StyleProperty::FontWeight, 'bold')
         ->set(StyleProperty::ForegroundColor, '#ff0000');
     $out = backendGet('compose')->generate((new Perry\UI\Widget\Text('Styled'))->style($style));
-    expect($out)->toContain('fontSize(22.sp)');
-    expect($out)->toContain('fontWeight(FontWeight.Bold)');
-    expect($out)->toContain('Color(0xFFff0000)');
+    expect($out)->toContain('fontSize = 22.sp');
+    expect($out)->toContain('fontWeight = FontWeight.Bold');
+    expect($out)->toContain('color = Color(0xFFff0000)');
 });
 
 test('Compose padding + width + height on Text', function () {

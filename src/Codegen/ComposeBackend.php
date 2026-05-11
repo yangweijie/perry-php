@@ -81,6 +81,15 @@ final class ComposeBackend extends CodegenBackend
             }
         }
 
+        // Handle TextInput StateId binding
+        if ($widget instanceof TextInput) {
+            $id = $widget->value();
+            $varName = !empty($id->name) ? $id->name : $id->id;
+            if (!in_array($varName, $this->stateVars, true)) {
+                $this->stateVars[] = $varName;
+            }
+        }
+
         foreach ($widget->children() as $child) {
             $this->collectBindings($child);
         }
@@ -94,9 +103,65 @@ final class ComposeBackend extends CodegenBackend
 
         $width = $app->windowWidth();
         $height = $app->windowHeight();
-        $sizeCode = 'Modifier.fillMaxSize()';
+
         if ($width !== null && $height !== null) {
-            $sizeCode = "Modifier.fillMaxSize().size(width = {$width}.dp, height = {$height}.dp)";
+            return <<<KOTLIN
+        package com.perry.app
+
+        import android.os.Bundle
+        import androidx.activity.ComponentActivity
+        import androidx.activity.compose.setContent
+        import androidx.compose.foundation.layout.*
+        import androidx.compose.material3.*
+        import androidx.compose.runtime.*
+        import androidx.compose.ui.Alignment
+        import androidx.compose.ui.Modifier
+        import androidx.compose.ui.graphics.graphicsLayer
+        import androidx.compose.ui.graphics.TransformOrigin
+        import androidx.compose.ui.text.font.FontFamily
+        import androidx.compose.ui.text.font.FontWeight
+        import androidx.compose.ui.text.style.TextAlign
+        import androidx.compose.ui.text.style.TextDecoration
+        import androidx.compose.ui.unit.dp
+        import androidx.compose.ui.unit.sp
+
+        class MainActivity : ComponentActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContent {
+                    PerryApp()
+                }
+            }
+        }
+
+        @Composable
+        fun PerryApp() {
+            {$stateVars}
+
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                val scale = minOf(
+                    maxWidth / {$width}.dp,
+                    maxHeight / {$height}.dp
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .size({$width}.dp, {$height}.dp)
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            transformOrigin = TransformOrigin(0f, 0f)
+                        ),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+        {$body}
+                }
+            }
+        }
+        KOTLIN;
         }
 
         return <<<KOTLIN
@@ -126,7 +191,7 @@ final class ComposeBackend extends CodegenBackend
             {$stateVars}
 
             Surface(
-                modifier = {$sizeCode},
+                modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
         {$body}
@@ -149,7 +214,12 @@ final class ComposeBackend extends CodegenBackend
         import androidx.compose.material3.*
         import androidx.compose.runtime.*
         import androidx.compose.ui.Modifier
+        import androidx.compose.ui.text.font.FontFamily
+        import androidx.compose.ui.text.font.FontWeight
+        import androidx.compose.ui.text.style.TextAlign
+        import androidx.compose.ui.text.style.TextDecoration
         import androidx.compose.ui.unit.dp
+        import androidx.compose.ui.unit.sp
 
         class MainActivity : ComponentActivity() {
             override fun onCreate(savedInstanceState: Bundle?) {
@@ -165,9 +235,17 @@ final class ComposeBackend extends CodegenBackend
     private function generateStateVars(array $bindings): string
     {
         $vars = [];
+        $boundNames = [];
         foreach ($bindings as $binding) {
             $initial = $this->formatValue($binding->initialValue);
             $vars[] = "var {$binding->name} by remember { mutableStateOf({$initial}) }";
+            $boundNames[] = $binding->name;
+        }
+        // Add state vars from TextInput StateId (not in bindings)
+        foreach ($this->stateVars as $name) {
+            if (!in_array($name, $boundNames, true)) {
+                $vars[] = "var {$name} by remember { mutableStateOf(\"\") }";
+            }
         }
         return implode("\n            ", $vars);
     }
@@ -221,8 +299,9 @@ final class ComposeBackend extends CodegenBackend
             $content = '"' . addslashes($widget->content()) . '"';
         }
 
+        $textArgs = $this->generateTextStyleArgs($widget->getStyle());
         $mods = $this->generateModifiers($widget->getStyle());
-        return "Text(text = {$content}{$mods})";
+        return "Text(text = {$content}{$textArgs}{$mods})";
     }
 
     private function generateButton(Button $widget): string
@@ -230,7 +309,54 @@ final class ComposeBackend extends CodegenBackend
         $label = addslashes($widget->label());
         $action = $this->generateAction($widget->getAction());
         $mods = $this->generateModifiers($widget->getStyle());
-        return "Button(onClick = {{$action}}){$mods} {\n{$this->indentStr()}    Text(\"{$label}\")\n{$this->indentStr()}}";
+        $textArgs = $this->generateTextStyleArgs($widget->getStyle());
+        return "Button(onClick = {{$action}}){$mods} {\n{$this->indentStr()}    Text(\"{$label}\"{$textArgs})\n{$this->indentStr()}}";
+    }
+
+    /**
+     * Generate text-style arguments for a Text widget (not Modifier).
+     * These are passed as direct parameters: Text(text = ..., color = ..., fontSize = ..., ...)
+     */
+    private function generateTextStyleArgs(?\Perry\UI\Styling\Style $style): string
+    {
+        if ($style === null) {
+            return '';
+        }
+        $args = [];
+        $props = \Perry\UI\Styling\StyleProperty::class;
+
+        if ($style->has($props::ForegroundColor)) {
+            $args[] = 'color = ' . $this->colorExpr($style->get($props::ForegroundColor));
+        }
+        if ($style->has($props::FontSize)) {
+            $args[] = 'fontSize = ' . $style->get($props::FontSize) . '.sp';
+        }
+        if ($style->has($props::FontWeight)) {
+            $v = $style->get($props::FontWeight);
+            $map = ['bold' => 'FontWeight.Bold', 'semibold' => 'FontWeight.SemiBold', 'medium' => 'FontWeight.Medium', 'normal' => 'FontWeight.Normal', 'light' => 'FontWeight.Light'];
+            $args[] = 'fontWeight = ' . ($map[$v] ?? 'FontWeight.Normal');
+        }
+        if ($style->has($props::FontFamily)) {
+            $args[] = 'fontFamily = FontFamily.' . ucfirst($style->get($props::FontFamily));
+        }
+        if ($style->has($props::TextAlignment)) {
+            $v = $style->get($props::TextAlignment);
+            $map = ['left' => 'TextAlign.Left', 'center' => 'TextAlign.Center', 'right' => 'TextAlign.Right'];
+            $args[] = 'textAlign = ' . ($map[$v] ?? 'TextAlign.Left');
+        }
+        if ($style->has($props::TextDecoration)) {
+            $v = $style->get($props::TextDecoration);
+            $map = ['underline' => 'TextDecoration.Underline', 'line-through' => 'TextDecoration.LineThrough'];
+            $args[] = 'textDecoration = ' . ($map[$v] ?? 'TextDecoration.None');
+        }
+        if ($style->has($props::LetterSpacing)) {
+            $args[] = 'letterSpacing = ' . $style->get($props::LetterSpacing) . '.sp';
+        }
+        if ($style->has($props::LineSpacing)) {
+            $args[] = 'lineHeight = ' . $style->get($props::LineSpacing) . '.sp';
+        }
+
+        return $args ? ', ' . implode(', ', $args) : '';
     }
 
     private function generateAction(?Action $action): string
@@ -288,7 +414,9 @@ final class ComposeBackend extends CodegenBackend
     private function generateTextInput(TextInput $widget): string
     {
         $placeholder = addslashes($widget->placeholder());
-        return "TextField(value = \"\", onValueChange = {{}}, placeholder = { Text(\"{$placeholder}\") })";
+        $valueId = $widget->value();
+        $varName = !empty($valueId->name) ? $valueId->name : $valueId->id;
+        return "TextField(value = {$varName}, onValueChange = {{$varName} = it}, placeholder = { Text(\"{$placeholder}\") })";
     }
 
     private function generateToggle(Toggle $widget): string
@@ -375,9 +503,7 @@ final class ComposeBackend extends CodegenBackend
         if ($style->has($props::BackgroundColor)) {
             $mods[] = ".background({$this->colorExpr($style->get($props::BackgroundColor))})";
         }
-        if ($style->has($props::ForegroundColor)) {
-            $mods[] = ".color({$this->colorExpr($style->get($props::ForegroundColor))})";
-        }
+        // ForegroundColor is handled via Text() color= parameter (not a valid Modifier)
         if ($style->has($props::BorderColor)) {
             $mods[] = ".border(color = {$this->colorExpr($style->get($props::BorderColor))})";
         }
@@ -479,38 +605,8 @@ final class ComposeBackend extends CodegenBackend
             $mods[] = ".shadow(radius = {$radius}.dp, color = {$color}, offset = Offset({$offsetX}.dp, {$offsetY}.dp))";
         }
 
-        // Font
-        if ($style->has($props::FontSize)) {
-            $mods[] = ".fontSize({$style->get($props::FontSize)}.sp)";
-        }
-        if ($style->has($props::FontWeight)) {
-            $v = $style->get($props::FontWeight);
-            $map = ['bold' => 'FontWeight.Bold', 'semibold' => 'FontWeight.SemiBold', 'medium' => 'FontWeight.Medium', 'normal' => 'FontWeight.Normal', 'light' => 'FontWeight.Light'];
-            $weight = $map[$v] ?? 'FontWeight.Normal';
-            $mods[] = ".fontWeight({$weight})";
-        }
-        if ($style->has($props::FontFamily)) {
-            $v = $style->get($props::FontFamily);
-            $mods[] = ".fontFamily(\"{$v}\")";
-        }
-        if ($style->has($props::TextAlignment)) {
-            $v = $style->get($props::TextAlignment);
-            $map = ['left' => 'TextAlign.Left', 'center' => 'TextAlign.Center', 'right' => 'TextAlign.Right'];
-            $align = $map[$v] ?? 'TextAlign.Left';
-            $mods[] = ".textAlign({$align})";
-        }
-        if ($style->has($props::TextDecoration)) {
-            $v = $style->get($props::TextDecoration);
-            $map = ['underline' => 'TextDecoration.Underline', 'line-through' => 'TextDecoration.LineThrough'];
-            $decoration = $map[$v] ?? 'TextDecoration.None';
-            $mods[] = ".textDecorationLine({$decoration})";
-        }
-        if ($style->has($props::LetterSpacing)) {
-            $mods[] = ".letterSpacing({$style->get($props::LetterSpacing)}.sp)";
-        }
-        if ($style->has($props::LineSpacing)) {
-            $mods[] = ".lineHeight({$style->get($props::LineSpacing)}.sp)";
-        }
+        // Font/text properties are handled via Text() widget parameters (generateTextStyleArgs)
+        // NOT as Modifier functions - Modifier.fontSize/color/fontWeight are not valid in Compose
 
         return $mods ? ', modifier = Modifier' . implode('', $mods) : '';
     }

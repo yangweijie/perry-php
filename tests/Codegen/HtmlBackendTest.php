@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Perry\UI\Binding;
+use Perry\UI\StateId;
 use Perry\UI\Styling\Style;
 use Perry\Codegen\CodegenFactory;
 use Perry\Build\Target;
@@ -50,6 +51,16 @@ test('Html generates all 16 widgets', function () {
     $specs['Spacer'] = [new Perry\UI\Widget\Spacer(), ['spacer']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>h</p>'), ['<iframe']];
     $specs['TextEditor'] = [new Perry\UI\Widget\TextEditor(new Binding('val', '')), ['<textarea']];
+    $specs['VStack'] = [new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('A')), ['vstack']];
+    $specs['HStack'] = [new Perry\UI\Widget\HStack(new Perry\UI\Widget\Text('B')), ['hstack']];
+    $specs['Image'] = [new Perry\UI\Widget\Image('photo.png'), ['<img']];
+    $specs['ScrollView'] = [new Perry\UI\Widget\ScrollView(new Perry\UI\Widget\Text('S')), ['overflow:auto']];
+    $specs['Toggle'] = [new Perry\UI\Widget\Toggle('Dark'), ['checkbox']];
+    $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['range']];
+    $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['class="list"']];
+    $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['class="nav-view"']];
+    $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['class="tab-view"']];
+    $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['type="text"']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

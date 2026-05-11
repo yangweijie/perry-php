@@ -64,17 +64,14 @@ final class AndroidXmlBackend extends CodegenBackend
             $body = $this->generateWidget($root);
         }
 
-        $width = $this->windowWidth !== null ? "{$this->windowWidth}dp" : "match_parent";
-        $height = $this->windowHeight !== null ? "{$this->windowHeight}dp" : "match_parent";
-
         return <<<XML
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:app="http://schemas.android.com/apk/res-auto"
-            android:layout_width="{$width}"
-            android:layout_height="{$height}"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:gravity="center_horizontal|top">
 
         {$body}
         </LinearLayout>

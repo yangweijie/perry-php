@@ -89,7 +89,7 @@ test('Break generates correctly', function () {
         ->and((new JavaScriptGenerator)->generate($break))->toBe('break')
         ->and((new KotlinGenerator)->generate($break))->toBe('break')
         ->and((new DartGenerator)->generate($break))->toBe('break')
-        ->and((new CSharpGenerator)->generate($break))->toBe('break');
+        ->and((new CSharpGenerator)->generate($break))->toBe('break;');
 });
 
 test('Continue generates correctly', function () {
@@ -99,7 +99,7 @@ test('Continue generates correctly', function () {
         ->and((new JavaScriptGenerator)->generate($continue))->toBe('continue')
         ->and((new KotlinGenerator)->generate($continue))->toBe('continue')
         ->and((new DartGenerator)->generate($continue))->toBe('continue')
-        ->and((new CSharpGenerator)->generate($continue))->toBe('continue');
+        ->and((new CSharpGenerator)->generate($continue))->toBe('continue;');
 });
 
 // ============================================================

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Perry\UI\Binding;
+use Perry\UI\StateId;
 use Perry\UI\Styling\Style;
 use Perry\Codegen\CodegenFactory;
 use Perry\Build\Target;
@@ -50,6 +51,13 @@ test('WinUI generates all widget types', function () {
     $specs['Toggle'] = [new Perry\UI\Widget\Toggle('Dark'), ['CheckBox']];
     $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['Slider']];
     $specs['Image'] = [new Perry\UI\Widget\Image('photo.png'), ['Image']];
+    $specs['VStack'] = [new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('A')), ['StackPanel', 'Vertical']];
+    $specs['HStack'] = [new Perry\UI\Widget\HStack(new Perry\UI\Widget\Text('B')), ['StackPanel', 'Horizontal']];
+    $specs['ScrollView'] = [new Perry\UI\Widget\ScrollView(new Perry\UI\Widget\Text('S')), ['ScrollViewer']];
+    $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['TextBox']];
+    $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['ItemsControl']];
+    $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['Frame']];
+    $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['TabControl']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);
