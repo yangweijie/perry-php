@@ -38,7 +38,9 @@ class JavaScriptGenerator implements IR\Generator
         }
         if (!in_array($node->variable, $this->declaredVars)) {
             $this->declaredVars[] = $node->variable;
-            return "let {$node->variable} = {$node->value->accept($this)}";
+            // Split declaration and assignment to avoid Temporal Dead Zone (TDZ)
+            // when the RHS references the same variable (e.g., `let x = x + 1`)
+            return "let {$node->variable};\n{$this->indent()}{$node->variable} = {$node->value->accept($this)}";
         }
         return "{$node->variable} = {$node->value->accept($this)}";
     }

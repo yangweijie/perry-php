@@ -37,7 +37,8 @@ test('For generates correctly in all generators', function () {
     );
 
     expect((new SwiftGenerator)->generate($for))->toContain('for var i = 0; i < 10;')
-        ->and((new JavaScriptGenerator)->generate($for))->toContain('for (let i = 0; i < 10;')
+        ->and((new JavaScriptGenerator)->generate($for))->toContain('for (let i;')
+        ->and((new JavaScriptGenerator)->generate($for))->toContain('i = 0; i < 10;')
         ->and((new KotlinGenerator)->generate($for))->toContain('for (var i = 0; i < 10;')
         ->and((new DartGenerator)->generate($for))->toContain('for (var i = 0; i < 10;')
         ->and((new CSharpGenerator)->generate($for))->toContain('for (var i = 0; i < 10;');

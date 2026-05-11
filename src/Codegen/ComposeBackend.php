@@ -32,6 +32,9 @@ use Perry\UI\WidgetKind;
 final class ComposeBackend extends CodegenBackend
 {
     private int $indent = 0;
+    private array $stateVars = [];
+    /** @var array<string, Binding> */
+    private array $stateBindings = [];
 
     public function name(): string
     {
@@ -46,12 +49,41 @@ final class ComposeBackend extends CodegenBackend
     public function generate(Widget $root): string
     {
         $this->indent = 0;
+        $this->stateVars = [];
+        $this->stateBindings = [];
 
         if ($root instanceof AppContainer) {
+            $bindings = $root->bindings();
+            $this->stateVars = array_map(fn(Binding $b) => $b->name, $bindings);
+            foreach ($bindings as $b) {
+                $this->stateBindings[$b->name] = $b;
+            }
             return $this->generateAppWithState($root);
         }
 
+        $this->collectBindings($root);
         return $this->generateSimpleApp($root);
+    }
+
+    private function collectBindings(Widget $widget): void
+    {
+        $ref = new \ReflectionObject($widget);
+        foreach ($ref->getProperties() as $prop) {
+            if (!$prop->isInitialized($widget)) {
+                continue;
+            }
+            $val = $prop->getValue($widget);
+            if ($val instanceof Binding) {
+                $this->stateBindings[$val->name] = $val;
+                if (!in_array($val->name, $this->stateVars, true)) {
+                    $this->stateVars[] = $val->name;
+                }
+            }
+        }
+
+        foreach ($widget->children() as $child) {
+            $this->collectBindings($child);
+        }
     }
 
     private function generateAppWithState(AppContainer $app): string
@@ -208,8 +240,7 @@ final class ComposeBackend extends CodegenBackend
         }
 
         if ($action->type === ActionType::Closure) {
-            $stateVars = ['display', 'result', 'operand1', 'operand2', 'operation', 'isTyping', 'typed'];
-            $generator = new \Perry\Generator\KotlinGenerator($stateVars);
+            $generator = new \Perry\Generator\KotlinGenerator($this->stateVars);
             return $action->generate($generator);
         }
 

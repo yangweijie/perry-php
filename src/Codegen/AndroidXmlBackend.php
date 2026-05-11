@@ -689,8 +689,10 @@ final class AndroidXmlBackend extends CodegenBackend
 KOTLIN;
         }
 
+        $package = 'com.perry.' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $outputName ?: 'app'));
+
         return <<<KOTLIN
-package com.perry.showcase
+package {$package}
 
 import android.os.Bundle
 import android.view.View
@@ -747,8 +749,10 @@ KOTLIN;
         $lines = [];
         
         // Get statements from IR
-        // Program should have a stmts property or getStmts() method
-        if (method_exists($ir, 'getStmts')) {
+        // Program has a $statements property (Perry IR)
+        if (property_exists($ir, 'statements')) {
+            $stmts = $ir->statements;
+        } elseif (method_exists($ir, 'getStmts')) {
             $stmts = $ir->getStmts();
         } elseif (property_exists($ir, 'stmts')) {
             $stmts = $ir->stmts;

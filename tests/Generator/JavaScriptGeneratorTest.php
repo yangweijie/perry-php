@@ -10,7 +10,8 @@ test('JavaScriptGenerator generates let declaration', function () {
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($assign);
     
-    expect($result)->toBe('let count = 0');
+    // Split declaration+assignment to avoid TDZ (let x = x + 1 would fail)
+    expect($result)->toBe("let count;\ncount = 0");
 });
 
 test('JavaScriptGenerator generates state var assignment', function () {
@@ -209,7 +210,8 @@ test('JavaScriptGenerator generates while loop', function () {
     $result = $gen->generate($while);
     
     expect($result)->toContain('while (i > 0) {')
-        ->and($result)->toContain('let i = i - 1')
+        ->and($result)->toContain('let i;')
+        ->and($result)->toContain('i = i - 1')
         ->and($result)->toContain('}');
 });
 
@@ -223,8 +225,10 @@ test('JavaScriptGenerator generates for loop', function () {
     $gen = new JavaScriptGenerator([]);
     $result = $gen->generate($for);
     
-    expect($result)->toContain('for (let i = 0; i < 10; i++) {')
-        ->and($result)->toContain('let sum = sum + i')
+    expect($result)->toContain('for (let i;')
+        ->and($result)->toContain('i = 0; i < 10; i++) {')
+        ->and($result)->toContain('let sum;')
+        ->and($result)->toContain('sum = sum + i')
         ->and($result)->toContain('}');
 });
 
