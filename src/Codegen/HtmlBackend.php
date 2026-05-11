@@ -40,6 +40,8 @@ final class HtmlBackend extends CodegenBackend
     private array $responsiveStyles = [];
     private ?Theme $theme = null;
     private ?StyleCache $styleCache = null;
+    /** @var array<string, Binding> */
+    private array $stateBindings = [];
 
     public function setTheme(?Theme $theme): self
     {
@@ -83,9 +85,14 @@ final class HtmlBackend extends CodegenBackend
         $title = 'Perry App';
 
         if ($root instanceof AppContainer) {
-            $this->stateVars = array_map(fn(Binding $b) => $b->name, $root->bindings());
+            $bindings = $root->bindings();
+            $this->stateVars = array_map(fn(Binding $b) => $b->name, $bindings);
+            foreach ($bindings as $b) {
+                $this->stateBindings[$b->name] = $b;
+            }
             $body = $this->generateWidget($root->content());
         } else {
+            $this->collectBindings($root);
             $body = $this->generateWidget($root);
         }
 
@@ -310,6 +317,10 @@ final class HtmlBackend extends CodegenBackend
 
     private function getDefaultValue(string $var): string
     {
+        if (isset($this->stateBindings[$var])) {
+            return $this->formatJsValue($this->stateBindings[$var]->initialValue);
+        }
+
         return match ($var) {
             'display' => "'0'",
             'result' => "''",
@@ -318,6 +329,27 @@ final class HtmlBackend extends CodegenBackend
             'isTyping' => 'false',
             default => "''",
         };
+    }
+
+    private function collectBindings(Widget $widget): void
+    {
+        $ref = new \ReflectionObject($widget);
+        foreach ($ref->getProperties() as $prop) {
+            if (!$prop->isInitialized($widget)) {
+                continue;
+            }
+            $val = $prop->getValue($widget);
+            if ($val instanceof Binding) {
+                $this->stateBindings[$val->name] = $val;
+                if (!in_array($val->name, $this->stateVars, true)) {
+                    $this->stateVars[] = $val->name;
+                }
+            }
+        }
+
+        foreach ($widget->children() as $child) {
+            $this->collectBindings($child);
+        }
     }
 
     private function generateRenderFunction(): string

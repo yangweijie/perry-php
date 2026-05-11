@@ -27,6 +27,7 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 
 use Perry\App;
 use Perry\Build\Compiler;
+use Perry\Build\PreviewServer;
 use Perry\Build\Target;
 use Perry\UI\Styling\Style;
 use Perry\UI\Widget\Button;
@@ -44,6 +45,7 @@ function usage(): void
 
     Usage:
       perry info                     Show current platform info
+      perry serve <file> [--port=N]  Start live preview server
       perry demo [--target=TARGET]   Run demo app
       perry codegen [--target=TARGET] [--backend=NAME] Generate code
       perry compile [--target=TARGET] [--output=NAME] Compile to executable
@@ -65,6 +67,7 @@ $command = $args[0] ?? 'info';
 
 $target = null;
 $backend = null;
+$port = 8080;
 
 foreach ($args as $arg) {
     if (str_starts_with($arg, '--target=')) {
@@ -72,6 +75,9 @@ foreach ($args as $arg) {
     }
     if (str_starts_with($arg, '--backend=')) {
         $backend = substr($arg, 10);
+    }
+    if (str_starts_with($arg, '--port=')) {
+        $port = (int) substr($arg, 7);
     }
 }
 
@@ -82,6 +88,16 @@ if ($target === null) {
 $app = new App($target);
 
 switch ($command) {
+    case 'serve':
+        $sourceFile = $args[1] ?? null;
+        if ($sourceFile === null) {
+            fwrite(STDERR, "Usage: perry serve <file> [--port=8080]\n");
+            exit(1);
+        }
+        $server = new PreviewServer($sourceFile, $port);
+        $server->serve();
+        break;
+
     case 'info':
         $info = $app->info();
         fwrite(STDOUT, "Platform: {$info['display_name']} ({$info['target']})\n");

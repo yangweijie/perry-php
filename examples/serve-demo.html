@@ -1,0 +1,36 @@
+<bind id="count" default="0" />
+<bind id="text" default="Hello Perry" />
+
+<style id="container">
+  backgroundColor: #f0f0f0;
+  padding: 40;
+  cornerRadius: 12;
+</style>
+
+<style id="heading">
+  fontSize: 28;
+  foregroundColor: #333;
+</style>
+
+<style id="counter">
+  fontSize: 48;
+  foregroundColor: #007AFF;
+  fontWeight: bold;
+</style>
+
+<style id="btn">
+  backgroundColor: #007AFF;
+  foregroundColor: #fff;
+  padding: 12;
+  cornerRadius: 8;
+</style>
+
+<vstack style="container">
+  <text style="heading">Perry Live Preview</text>
+  <text bind="text" />
+  <text style="counter" bind="count" />
+  <hstack>
+    <button onclick="dec" style="btn">-1</button>
+    <button onclick="inc" style="btn">+1</button>
+  </hstack>
+</vstack>
