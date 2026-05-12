@@ -11,10 +11,15 @@ class KotlinGenerator implements IR\Generator
     private int $indent = 0;
     private array $declaredVars = [];
     private array $stateVars = [];
+    private array $varTypes = []; // variable name => 'Double'
 
     public function __construct(array $stateVars = [])
     {
         $this->stateVars = $stateVars;
+        // State vars are initialized with mutableStateOf(0.0) = Double
+        foreach ($stateVars as $var) {
+            $this->varTypes[$var] = 'Double';
+        }
     }
 
     public function generate(IR\Node $node): string
@@ -33,14 +38,38 @@ class KotlinGenerator implements IR\Generator
 
     public function generateAssignment(IR\Assignment $node): string
     {
+        $escapedVar = $this->escapeKotlinKeyword($node->variable);
+        $value = $node->value->accept($this);
+
+        // Track Double type from state vars and propagated locals
+        $isDouble = false;
         if (in_array($node->variable, $this->stateVars)) {
-            return "{$node->variable}.value = {$node->value->accept($this)}";
+            $isDouble = true;
+        } elseif ($node->value instanceof IR\Variable &&
+                  ($this->varTypes[$node->value->name] ?? null) === 'Double') {
+            $isDouble = true;
+        } elseif (str_contains($value, '.toDouble()') || str_contains($value, '.toDoubleOrNull()')) {
+            $isDouble = true;
         }
+
+        if ($isDouble) {
+            $this->varTypes[$node->variable] = 'Double';
+            // Convert bare int literals to Double
+            if (preg_match('/^-?\d+$/', $value)) {
+                $value .= '.0';
+            }
+            if (!in_array($node->variable, $this->declaredVars) && !in_array($node->variable, $this->stateVars)) {
+                $this->declaredVars[] = $node->variable;
+                return "var {$escapedVar} = {$value}";
+            }
+            return "{$escapedVar} = {$value}";
+        }
+
         if (!in_array($node->variable, $this->declaredVars)) {
             $this->declaredVars[] = $node->variable;
-            return "var {$node->variable} = {$node->value->accept($this)}";
+            return "var {$escapedVar} = {$value}";
         }
-        return "{$node->variable} = {$node->value->accept($this)}";
+        return "{$escapedVar} = {$value}";
     }
 
     public function generateIf(IR\IfStatement $node): string
@@ -63,6 +92,17 @@ class KotlinGenerator implements IR\Generator
 
     public function generateBinaryOp(IR\BinaryOp $node): string
     {
+        // Handle strpos comparisons: strpos($x, $y) === false → indexOf == -1
+        if ($node->left instanceof IR\FunctionCall && $node->left->name === 'strpos') {
+            $left = $node->left->accept($this);
+            if ($node->right instanceof IR\Literal && $node->right->value === false) {
+                return "{$left} == -1";
+            }
+            if ($node->op === '!==') {
+                return "{$left} != -1";
+            }
+        }
+
         $op = match ($node->op) {
             '.' => '+',
             '===' => '==',
@@ -76,7 +116,25 @@ class KotlinGenerator implements IR\Generator
             return "!{$node->left->accept($this)}";
         }
 
-        return "{$node->left->accept($this)} {$op} {$node->right->accept($this)}";
+        $left = $node->left->accept($this);
+        $right = $node->right->accept($this);
+
+        // Convert bare int literals to Double when comparing with known-Double vars
+        $leftType = ($node->left instanceof IR\Variable) ? ($this->varTypes[$node->left->name] ?? null) : null;
+        $rightType = ($node->right instanceof IR\Variable) ? ($this->varTypes[$node->right->name] ?? null) : null;
+
+        if ($leftType === 'Double' && preg_match('/^-?\d+$/', $right)) {
+            $right .= '.0';
+        } elseif ($leftType === 'Double' && str_ends_with($right, '.toInt()')) {
+            $right = "({$right}).toDouble()";
+        }
+        if ($rightType === 'Double' && preg_match('/^-?\d+$/', $left)) {
+            $left .= '.0';
+        } elseif ($rightType === 'Double' && str_ends_with($left, '.toInt()')) {
+            $left = "({$left}).toDouble()";
+        }
+
+        return "{$left} {$op} {$right}";
     }
 
     public function generateUnaryOp(IR\UnaryOp $node): string
@@ -84,9 +142,24 @@ class KotlinGenerator implements IR\Generator
         return "{$node->op}{$node->operand->accept($this)}";
     }
 
+    private function escapeKotlinKeyword(string $name): string
+    {
+        return match ($name) {
+            'val' => 'value',
+            'var' => 'variable',
+            'fun' => 'function',
+            'is' => 'isFlag',
+            'in' => 'inValue',
+            'class' => 'clazz',
+            'when' => 'whenValue',
+            'object' => 'obj',
+            default => $name,
+        };
+    }
+
     public function generateVariable(IR\Variable $node): string
     {
-        return $node->name;
+        return $this->escapeKotlinKeyword($node->name);
     }
 
     public function generateLiteral(IR\Literal $node): string
@@ -102,7 +175,7 @@ class KotlinGenerator implements IR\Generator
         }
         if (is_float($node->value)) {
             $str = (string) $node->value;
-            return str_contains($str, '.') ? $str . 'f' : $str . '.0f';
+            return str_contains($str, '.') ? $str : $str . '.0';
         }
         return (string) $node->value;
     }
@@ -265,8 +338,8 @@ class KotlinGenerator implements IR\Generator
             'microtime' => "System.currentTimeMillis() / 1000.0",
 
             // Type conversion (P6)
-            'intval' => "(({$args[0]} as? Number)?.toInt() ?: 0)",
-            'floatval' => "(({$args[0]} as? Number)?.toDouble() ?: 0.0)",
+            'intval' => "((({$args[0]}) as? Number)?.toInt() ?: 0)",
+            'floatval' => "((({$args[0]}) as? Number)?.toDouble() ?: 0.0)",
 
             // Number system (P7)
             'decbin' => "({$args[0]} as Int).toString(2)",
@@ -368,7 +441,7 @@ class KotlinGenerator implements IR\Generator
 
     public function generateReturn(IR\ReturnStatement $node): string
     {
-        return $node->value ? "return {$node->value->accept($this)}" : 'return';
+        return $node->value ? "return@run {$node->value->accept($this)}" : 'return@run';
     }
 
     public function generateArrayAccess(IR\ArrayAccess $node): string

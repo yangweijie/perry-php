@@ -59,7 +59,7 @@ test('SwiftGenerator generates round', function () {
 test('KotlinGenerator generates round', function () {
     $call = new IR\FunctionCall('round', [new IR\Literal(3.7)]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('Math.round(3.7f).toInt()');
+    expect($gen->generate($call))->toBe('Math.round(3.7).toInt()');
 });
 
 test('DartGenerator generates round', function () {
@@ -91,7 +91,7 @@ test('SwiftGenerator generates ceil', function () {
 test('KotlinGenerator generates ceil', function () {
     $call = new IR\FunctionCall('ceil', [new IR\Literal(3.7)]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('Math.ceil(3.7f).toInt()');
+    expect($gen->generate($call))->toBe('Math.ceil(3.7).toInt()');
 });
 
 test('DartGenerator generates ceil', function () {
@@ -123,7 +123,7 @@ test('SwiftGenerator generates floor', function () {
 test('KotlinGenerator generates floor', function () {
     $call = new IR\FunctionCall('floor', [new IR\Literal(3.7)]);
     $gen = new KotlinGenerator();
-    expect($gen->generate($call))->toBe('Math.floor(3.7f).toInt()');
+    expect($gen->generate($call))->toBe('Math.floor(3.7).toInt()');
 });
 
 test('DartGenerator generates floor', function () {

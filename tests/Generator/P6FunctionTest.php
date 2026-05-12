@@ -472,7 +472,7 @@ test('SwiftGenerator generates intval', function () {
     expect($gen->generate($call))->toBe('(Int(42) ?? 0)');
     $call = new IR\FunctionCall('intval', [new IR\Literal('42')]);
     $gen = new KotlinGenerator([]);
-    expect($gen->generate($call))->toBe('(("42" as? Number)?.toInt() ?: 0)');
+    expect($gen->generate($call))->toBe('((("42") as? Number)?.toInt() ?: 0)');
 });
 
 test('DartGenerator generates intval', function () {
@@ -501,7 +501,7 @@ test('SwiftGenerator generates floatval', function () {
     expect($gen->generate($call))->toBe('(Double(42) ?? 0.0)');
     $call = new IR\FunctionCall('floatval', [new IR\Literal('42')]);
     $gen = new KotlinGenerator([]);
-    expect($gen->generate($call))->toBe('(("42" as? Number)?.toDouble() ?: 0.0)');
+    expect($gen->generate($call))->toBe('((("42") as? Number)?.toDouble() ?: 0.0)');
 });
 
 test('DartGenerator generates floatval', function () {

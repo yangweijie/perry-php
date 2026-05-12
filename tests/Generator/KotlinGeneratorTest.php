@@ -20,7 +20,7 @@ test('KotlinGenerator generates state var assignment', function () {
     $gen = new KotlinGenerator(['display']);
     $result = $gen->generate($assign);
     
-    expect($result)->toBe('display.value = "0"');
+    expect($result)->toBe('display = "0"');
 });
 
 test('KotlinGenerator generates toDoubleOrNull', function () {
@@ -31,7 +31,7 @@ test('KotlinGenerator generates toDoubleOrNull', function () {
     $gen = new KotlinGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('((x as? Number)?.toDouble() ?: 0.0)');
+    expect($result)->toBe('(((x) as? Number)?.toDouble() ?: 0.0)');
 });
 
 test('KotlinGenerator generates toIntOrNull', function () {
@@ -42,7 +42,7 @@ test('KotlinGenerator generates toIntOrNull', function () {
     $gen = new KotlinGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('((x as? Number)?.toInt() ?: 0)');
+    expect($result)->toBe('(((x) as? Number)?.toInt() ?: 0)');
 });
 
 test('KotlinGenerator generates length', function () {
@@ -65,7 +65,7 @@ test('KotlinGenerator generates contains', function () {
     $gen = new KotlinGenerator([]);
     $result = $gen->generate($call);
     
-    expect($result)->toBe('arr.contains(val)');
+    expect($result)->toBe('arr.contains(value)');
 });
 
 test('KotlinGenerator generates last()', function () {

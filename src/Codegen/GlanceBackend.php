@@ -38,6 +38,12 @@ final class GlanceBackend extends CodegenBackend
 {
     private int $indent = 0;
     private array $currentBindings = [];
+    private string $packageName = 'com.perry.app';
+
+    public function setPackageName(string $packageName): void
+    {
+        $this->packageName = $packageName;
+    }
 
     public function name(): string
     {
@@ -129,7 +135,7 @@ final class GlanceBackend extends CodegenBackend
         }
 
         return <<<KOTLIN
-        package com.perry.app
+        package {$this->packageName}
 
         {$imports}
         class PerryWidget : GlanceAppWidget() {

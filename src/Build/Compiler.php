@@ -27,6 +27,13 @@ final class Compiler
 
         $codegen = new \Perry\Codegen\CodegenFactory();
         $backend = $codegen->forTarget($this->target);
+
+        // Set package name for Kotlin-based backends to match build config
+        $pkg = 'com.perry.' . $outputName;
+        if ($backend instanceof ComposeBackend || $backend instanceof \Perry\Codegen\GlanceBackend) {
+            $backend->setPackageName($pkg);
+        }
+
         $source = $backend->generate($root);
 
         $colors = ($backend instanceof \Perry\Codegen\AndroidXmlBackend) ? $backend->getColors() : [];

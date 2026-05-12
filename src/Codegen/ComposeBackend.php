@@ -35,6 +35,12 @@ final class ComposeBackend extends CodegenBackend
     private array $stateVars = [];
     /** @var array<string, Binding> */
     private array $stateBindings = [];
+    private string $packageName = 'com.perry.app';
+
+    public function setPackageName(string $packageName): void
+    {
+        $this->packageName = $packageName;
+    }
 
     public function name(): string
     {
@@ -106,7 +112,7 @@ final class ComposeBackend extends CodegenBackend
 
         if ($width !== null && $height !== null) {
             return <<<KOTLIN
-        package com.perry.app
+        package {$this->packageName}
 
         import android.os.Bundle
         import androidx.activity.ComponentActivity
@@ -116,8 +122,12 @@ final class ComposeBackend extends CodegenBackend
         import androidx.compose.runtime.*
         import androidx.compose.ui.Alignment
         import androidx.compose.ui.Modifier
+        import androidx.compose.ui.draw.clip
+        import androidx.compose.foundation.background
+        import androidx.compose.foundation.shape.RoundedCornerShape
         import androidx.compose.ui.graphics.graphicsLayer
         import androidx.compose.ui.graphics.TransformOrigin
+        import androidx.compose.ui.graphics.Color
         import androidx.compose.ui.text.font.FontFamily
         import androidx.compose.ui.text.font.FontWeight
         import androidx.compose.ui.text.style.TextAlign
@@ -153,7 +163,7 @@ final class ComposeBackend extends CodegenBackend
                         .graphicsLayer(
                             scaleX = scale,
                             scaleY = scale,
-                            transformOrigin = TransformOrigin(0f, 0f)
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
                         ),
                     color = MaterialTheme.colorScheme.background
                 ) {
@@ -165,7 +175,7 @@ final class ComposeBackend extends CodegenBackend
         }
 
         return <<<KOTLIN
-        package com.perry.app
+        package {$this->packageName}
 
         import android.os.Bundle
         import androidx.activity.ComponentActivity
@@ -174,6 +184,10 @@ final class ComposeBackend extends CodegenBackend
         import androidx.compose.material3.*
         import androidx.compose.runtime.*
         import androidx.compose.ui.Modifier
+        import androidx.compose.ui.draw.clip
+        import androidx.compose.foundation.background
+        import androidx.compose.foundation.shape.RoundedCornerShape
+        import androidx.compose.ui.graphics.Color
         import androidx.compose.ui.unit.dp
         import androidx.compose.ui.unit.sp
 
@@ -205,7 +219,7 @@ final class ComposeBackend extends CodegenBackend
         $body = $this->generateWidget($root);
 
         return <<<KOTLIN
-        package com.perry.app
+        package {$this->packageName}
 
         import android.os.Bundle
         import androidx.activity.ComponentActivity
@@ -214,6 +228,10 @@ final class ComposeBackend extends CodegenBackend
         import androidx.compose.material3.*
         import androidx.compose.runtime.*
         import androidx.compose.ui.Modifier
+        import androidx.compose.ui.draw.clip
+        import androidx.compose.foundation.background
+        import androidx.compose.foundation.shape.RoundedCornerShape
+        import androidx.compose.ui.graphics.Color
         import androidx.compose.ui.text.font.FontFamily
         import androidx.compose.ui.text.font.FontWeight
         import androidx.compose.ui.text.style.TextAlign
@@ -260,7 +278,7 @@ final class ComposeBackend extends CodegenBackend
         }
         if (is_float($value)) {
             $str = (string) $value;
-            return str_contains($str, '.') ? $str . 'f' : $str . '.0f';
+            return str_contains($str, '.') ? $str : $str . '.0';
         }
         if (is_int($value)) {
             return (string) $value;
@@ -308,9 +326,37 @@ final class ComposeBackend extends CodegenBackend
     {
         $label = addslashes($widget->label());
         $action = $this->generateAction($widget->getAction());
-        $mods = $this->generateModifiers($widget->getStyle());
-        $textArgs = $this->generateTextStyleArgs($widget->getStyle());
-        return "Button(onClick = {{$action}}){$mods} {\n{$this->indentStr()}    Text(\"{$label}\"{$textArgs})\n{$this->indentStr()}}";
+        $style = $widget->getStyle();
+        $textArgs = $this->generateTextStyleArgs($style);
+        $props = \Perry\UI\Styling\StyleProperty::class;
+
+        // Button parameters: colors + shape + contentPadding instead of Modifier.background + .clip
+        // (Material3 Button has internal Surface with containerColor from theme primary,
+        //  and default contentPadding ~16-24dp horizontal — clips small buttons)
+        $buttonColors = '';
+        $colorsArgs = [];
+        if ($style && $style->has($props::BackgroundColor)) {
+            $colorsArgs[] = "containerColor = {$this->colorExpr($style->get($props::BackgroundColor))}";
+        }
+        if ($style && $style->has($props::ForegroundColor)) {
+            $colorsArgs[] = "contentColor = {$this->colorExpr($style->get($props::ForegroundColor))}";
+        }
+        if ($colorsArgs) {
+            $buttonColors = ", colors = ButtonDefaults.buttonColors(" . implode(', ', $colorsArgs) . ")";
+        }
+        $buttonShape = '';
+        if ($style && $style->has($props::CornerRadius)) {
+            $buttonShape = ", shape = RoundedCornerShape({$style->get($props::CornerRadius)}.dp)";
+        }
+
+        // Modifier chain — exclude .background() and .clip() (handled via colors/shape params)
+        $parts = $this->getModifierParts($style);
+        $filtered = array_values(array_filter($parts, fn(string $m) =>
+            !str_starts_with($m, '.background(') && !str_starts_with($m, '.clip(')
+        ));
+        $modifier = $filtered ? ', modifier = Modifier' . implode('', $filtered) : '';
+
+        return "Button(onClick = {{$action}}{$modifier}{$buttonColors}{$buttonShape}, contentPadding = PaddingValues(0.dp)) {\n{$this->indentStr()}    Text(\"{$label}\"{$textArgs})\n{$this->indentStr()}}";
     }
 
     /**
@@ -367,7 +413,9 @@ final class ComposeBackend extends CodegenBackend
 
         if ($action->type === ActionType::Closure) {
             $generator = new \Perry\Generator\KotlinGenerator($this->stateVars);
-            return $action->generate($generator);
+            $code = $action->generate($generator);
+            // Wrap in run {} so bare 'return' works (Kotlin lambda forbids unlabeled return)
+            return " run {\n{$code}\n} ";
         }
 
         return match ($action->type) {
@@ -385,7 +433,8 @@ final class ComposeBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
         $spacing = $this->getSpacing($widget->getStyle());
-        return "Column(verticalArrangement = Arrangement.spacing({$spacing}.dp), modifier = Modifier.fillMaxWidth()) {\n{$children}\n{$this->indentStr()}}";
+        $mods = $this->generateModifiers($widget->getStyle(), 'Modifier.fillMaxWidth()');
+        return "Column(verticalArrangement = Arrangement.spacedBy({$spacing}.dp){$mods}) {\n{$children}\n{$this->indentStr()}}";
     }
 
     private function generateHStack(HStack $widget): string
@@ -394,7 +443,8 @@ final class ComposeBackend extends CodegenBackend
         $children = $this->generateChildren($widget->children());
         $this->indent--;
         $spacing = $this->getSpacing($widget->getStyle());
-        return "Row(horizontalArrangement = Arrangement.spacing({$spacing}.dp), modifier = Modifier.fillMaxWidth()) {\n{$children}\n{$this->indentStr()}}";
+        $mods = $this->generateModifiers($widget->getStyle(), 'Modifier.fillMaxWidth()');
+        return "Row(horizontalArrangement = Arrangement.spacedBy({$spacing}.dp){$mods}) {\n{$children}\n{$this->indentStr()}}";
     }
 
     private function generateImage(Image $widget): string
@@ -491,10 +541,13 @@ final class ComposeBackend extends CodegenBackend
         return implode("\n", $parts);
     }
 
-    private function generateModifiers(?\Perry\UI\Styling\Style $style): string
+    /**
+     * @return string[] Modifier chain parts (e.g. [".background(...)", ".size(...)"])
+     */
+    private function getModifierParts(?\Perry\UI\Styling\Style $style): array
     {
         if ($style === null) {
-            return '';
+            return [];
         }
         $mods = [];
         $props = \Perry\UI\Styling\StyleProperty::class;
@@ -508,11 +561,18 @@ final class ComposeBackend extends CodegenBackend
             $mods[] = ".border(color = {$this->colorExpr($style->get($props::BorderColor))})";
         }
 
-        // Sizing
-        if ($style->has($props::Width) || $style->has($props::Height)) {
-            $w = $style->has($props::Width) ? $style->get($props::Width) . '.dp' : 'Modifier.fillMaxWidth()';
-            $h = $style->has($props::Height) ? $style->get($props::Height) . '.dp' : 'Modifier.fillMaxHeight()';
+        // Sizing — use .width/.height when only one dimension is set
+        if ($style->has($props::Width) && $style->has($props::Height)) {
+            $w = $style->get($props::Width) . '.dp';
+            $h = $style->get($props::Height) . '.dp';
             $mods[] = ".size({$w}, {$h})";
+        } else {
+            if ($style->has($props::Width)) {
+                $mods[] = ".width({$style->get($props::Width)}.dp)";
+            }
+            if ($style->has($props::Height)) {
+                $mods[] = ".height({$style->get($props::Height)}.dp)";
+            }
         }
         if ($style->has($props::MinWidth)) {
             $mods[] = ".requiredWidthIn(min = {$style->get($props::MinWidth)}.dp)";
@@ -608,7 +668,17 @@ final class ComposeBackend extends CodegenBackend
         // Font/text properties are handled via Text() widget parameters (generateTextStyleArgs)
         // NOT as Modifier functions - Modifier.fontSize/color/fontWeight are not valid in Compose
 
-        return $mods ? ', modifier = Modifier' . implode('', $mods) : '';
+        return $mods;
+    }
+
+    private function generateModifiers(?\Perry\UI\Styling\Style $style, string $modifierPrefix = 'Modifier'): string
+    {
+        $parts = $this->getModifierParts($style);
+        if (!$parts && $modifierPrefix === 'Modifier') {
+            return '';
+        }
+        $chain = $modifierPrefix . implode('', $parts);
+        return ", modifier = {$chain}";
     }
 
     private function colorExpr(string $hex): string
