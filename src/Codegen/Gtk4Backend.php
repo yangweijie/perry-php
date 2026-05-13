@@ -9,6 +9,7 @@ use Perry\Generator\CGenerator;
 use Perry\UI\Action;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
@@ -216,6 +217,8 @@ C;
             WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
             WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
             WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
+        WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+        WidgetKind::Transition => $this->generateTransition($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
@@ -589,6 +592,40 @@ C;
             };
             $cssProps[] = "animation-timing-function: {$cssEasing}";
         }
+        if ($style->has(StyleProperty::AnimationIterationCount)) {
+            $cssProps[] = "animation-iteration-count: {$style->get(StyleProperty::AnimationIterationCount)}";
+        }
+        if ($style->has(StyleProperty::AnimationDirection)) {
+            $cssProps[] = "animation-direction: {$style->get(StyleProperty::AnimationDirection)}";
+        }
+        if ($style->has(StyleProperty::AnimationFillMode)) {
+            $cssProps[] = "animation-fill-mode: {$style->get(StyleProperty::AnimationFillMode)}";
+        }
+        if ($style->has(StyleProperty::AnimationPlayState)) {
+            $cssProps[] = "animation-play-state: {$style->get(StyleProperty::AnimationPlayState)}";
+        }
+
+        // Transition (CSS)
+        if ($style->has(StyleProperty::TransitionProperty)) {
+            $cssProps[] = "transition-property: {$style->get(StyleProperty::TransitionProperty)}";
+        }
+        if ($style->has(StyleProperty::TransitionDuration)) {
+            $cssProps[] = "transition-duration: {$style->get(StyleProperty::TransitionDuration)}ms";
+        }
+        if ($style->has(StyleProperty::TransitionDelay)) {
+            $cssProps[] = "transition-delay: {$style->get(StyleProperty::TransitionDelay)}ms";
+        }
+        if ($style->has(StyleProperty::TransitionTimingFunction)) {
+            $easing = $style->get(StyleProperty::TransitionTimingFunction);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $cssProps[] = "transition-timing-function: {$cssEasing}";
+        }
 
         if (!empty($cssProps)) {
             $css = "{$this->indentStr()}    <style>css=\"" . implode('; ', $cssProps) . "\"</style>";
@@ -945,6 +982,11 @@ XML;
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
             StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
+            StyleProperty::AnimationIterationCount, StyleProperty::AnimationDirection,
+            StyleProperty::AnimationFillMode, StyleProperty::AnimationPlayState,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration,
+            StyleProperty::TransitionDelay, StyleProperty::TransitionTimingFunction,
         ];
     }
 
@@ -976,5 +1018,17 @@ XML;
             );
         }
         return $code;
+    }
+
+    private function generateAnimatedContainer(AnimatedContainer $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(\Perry\UI\Widget\Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
     }
 }

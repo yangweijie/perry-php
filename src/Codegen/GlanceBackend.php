@@ -191,6 +191,9 @@ final class GlanceBackend extends CodegenBackend
 
     private function generateWidget(Widget $widget): string
     {
+        if ($widget instanceof \Perry\UI\Composition) {
+            return $this->generateWidget($widget->toWidget());
+        }
         return match ($widget->kind()) {
             WidgetKind::Text => $this->generateText($widget),
             WidgetKind::Button => $this->generateButton($widget),
@@ -216,6 +219,8 @@ final class GlanceBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateUnsupported('SegmentedControl'),
             WidgetKind::ContextMenu => $this->generateUnsupported('ContextMenu'),
             WidgetKind::DatePicker => $this->generateUnsupported('DatePicker'),
+        WidgetKind::AnimatedContainer => $this->generateUnsupported('AnimatedContainer'),
+        WidgetKind::Transition => $this->generateUnsupported('Transition'),
             default => '',
         };
     }
@@ -460,6 +465,9 @@ final class GlanceBackend extends CodegenBackend
             StyleProperty::FlexDirection, StyleProperty::JustifyContent, StyleProperty::AlignItems,
             StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
             StyleProperty::Rotate, StyleProperty::Scale,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration, StyleProperty::TransitionDelay,
+            StyleProperty::TransitionTimingFunction,
         ];
     }
 }

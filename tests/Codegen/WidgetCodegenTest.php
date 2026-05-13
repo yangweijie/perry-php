@@ -794,6 +794,15 @@ test('each property produces non-empty output across all backends', function () 
         StyleProperty::AnimationDuration => 300,
         StyleProperty::AnimationDelay => 100,
         StyleProperty::AnimationEasing => 'ease-in-out',
+        StyleProperty::AnimationIterationCount => 'infinite',
+        StyleProperty::AnimationDirection => 'alternate',
+        StyleProperty::AnimationFillMode => 'forwards',
+        StyleProperty::AnimationPlayState => 'running',
+        // Transition
+        StyleProperty::TransitionProperty => 'all',
+        StyleProperty::TransitionDuration => 200,
+        StyleProperty::TransitionDelay => 50,
+        StyleProperty::TransitionTimingFunction => 'ease',
     };
     foreach ($factory->available() as $name) {
         $backend = $factory->get($name);

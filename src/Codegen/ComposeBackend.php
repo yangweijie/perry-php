@@ -12,6 +12,7 @@ use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
 use Perry\UI\Widget\ContextMenu;
@@ -34,6 +35,7 @@ use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
+use Perry\UI\Widget\Transition;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
@@ -322,6 +324,8 @@ final class ComposeBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
             WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
             WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
+            WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+            WidgetKind::Transition => $this->generateTransition($widget),
             default => 'Box {}',
         };
     }
@@ -659,6 +663,18 @@ final class ComposeBackend extends CodegenBackend
         return "var {$dateVar} by remember { mutableStateOf(\"\") }\n{$this->indentStr()}if ({$openVar}) {\n{$this->indentStr()}    DatePicker(state = rememberDatePickerState()){$mods}\n{$this->indentStr()}}";
     }
 
+    private function generateAnimatedContainer(AnimatedContainer $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
     private function generateModifiers(?\Perry\UI\Styling\Style $style): string
     {
         $parts = $this->getModifierParts($style);
@@ -715,6 +731,21 @@ if ($style->has($props::Scale)) {
             $parts[] = ".offset(x: {$x}.dp, y: {$y}.dp)";
         }
 
+        // Transition
+        if ($style->has($props::TransitionDuration)) {
+            $duration = $style->get($props::TransitionDuration);
+            $delay = $style->has($props::TransitionDelay) ? $style->get($props::TransitionDelay) : 0;
+            $easing = $style->has($props::TransitionTimingFunction) ? $style->get($props::TransitionTimingFunction) : 'ease';
+            $curve = match ($easing) {
+                'ease-in' => 'EaseIn',
+                'ease-out' => 'EaseOut',
+                'ease-in-out' => 'EaseInOutCubic',
+                'linear' => 'Linear',
+                default => 'EaseInOut',
+            };
+            $parts[] = ".animateContentSize(animation = {$curve}Easing.duration({$duration}))";
+        }
+
         return $parts;
     }
 
@@ -768,6 +799,9 @@ if ($style->has($props::Scale)) {
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
             StyleProperty::AnimationDuration,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration, StyleProperty::TransitionDelay,
+            StyleProperty::TransitionTimingFunction,
         ];
     }
 }

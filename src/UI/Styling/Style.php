@@ -224,4 +224,66 @@ final class Style
     {
         return $this->set(StyleProperty::AnimationEasing, $easing);
     }
+
+    public function animationIterationCount(int $count): static
+    {
+        return $this->set(StyleProperty::AnimationIterationCount, $count);
+    }
+
+    public function animationDirection(string $direction): static
+    {
+        // normal, reverse, alternate, alternate-reverse
+        return $this->set(StyleProperty::AnimationDirection, $direction);
+    }
+
+    public function animationFillMode(string $mode): static
+    {
+        // none, forwards, backwards, both
+        return $this->set(StyleProperty::AnimationFillMode, $mode);
+    }
+
+    public function animationPlayState(string $state): static
+    {
+        // running, paused
+        return $this->set(StyleProperty::AnimationPlayState, $state);
+    }
+
+    // --- Transition helpers ---
+
+    public function transition(string $property, int $duration, string $easing = 'ease'): static
+    {
+        return $this
+            ->set(StyleProperty::TransitionProperty, $property)
+            ->set(StyleProperty::TransitionDuration, $duration)
+            ->set(StyleProperty::TransitionTimingFunction, $easing);
+    }
+
+    public function transitionProperty(string $property): static
+    {
+        return $this->set(StyleProperty::TransitionProperty, $property);
+    }
+
+    public function transitionDuration(int $ms): static
+    {
+        return $this->set(StyleProperty::TransitionDuration, $ms);
+    }
+
+    public function transitionDelay(int $ms): static
+    {
+        return $this->set(StyleProperty::TransitionDelay, $ms);
+    }
+
+    public function transitionTimingFunction(string $easing): static
+    {
+        return $this->set(StyleProperty::TransitionTimingFunction, $easing);
+    }
+
+    // --- Shorthand: animate everything ---
+    public function animate(int $duration, string $easing = 'ease'): static
+    {
+        return $this
+            ->set(StyleProperty::TransitionProperty, 'all')
+            ->set(StyleProperty::TransitionDuration, $duration)
+            ->set(StyleProperty::TransitionTimingFunction, $easing);
+    }
 }

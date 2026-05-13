@@ -30,4 +30,6 @@ enum WidgetKind: int
     case SegmentedControl = 21;
     case ContextMenu = 22;
     case DatePicker = 23;
+    case AnimatedContainer = 24;
+    case Transition = 25;
 }

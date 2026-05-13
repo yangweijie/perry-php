@@ -9,6 +9,7 @@ use Perry\UI\Action;
 use Perry\UI\ActionType;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\HStack;
@@ -136,6 +137,10 @@ final class WasmBackend extends CodegenBackend
 
     private function emitWidget(Widget $widget, int &$handle): void
     {
+        if ($widget instanceof \Perry\UI\Composition) {
+            $this->emitWidget($widget->toWidget(), $handle);
+            return;
+        }
         match ($widget->kind()) {
             WidgetKind::Text => $this->emitText($widget, $handle),
             WidgetKind::Button => $this->emitButton($widget, $handle),
@@ -161,6 +166,8 @@ final class WasmBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->emitSegmentedControl($widget, $handle),
             WidgetKind::ContextMenu => $this->emitContextMenuWidget($widget, $handle),
             WidgetKind::DatePicker => $this->emitDatePickerWidget($widget, $handle),
+        WidgetKind::AnimatedContainer => $this->emitAnimatedContainer($widget, $handle),
+        WidgetKind::Transition => $this->emitTransition($widget, $handle),
             default => $this->emitDiv($handle),
         };
     }
@@ -734,6 +741,40 @@ final class WasmBackend extends CodegenBackend
             };
             $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-timing-function', '{$cssEasing}');");
         }
+        if ($style->has(StyleProperty::AnimationIterationCount)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-iteration-count', '{$style->get(StyleProperty::AnimationIterationCount)}');");
+        }
+        if ($style->has(StyleProperty::AnimationDirection)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-direction', '{$style->get(StyleProperty::AnimationDirection)}');");
+        }
+        if ($style->has(StyleProperty::AnimationFillMode)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-fill-mode', '{$style->get(StyleProperty::AnimationFillMode)}');");
+        }
+        if ($style->has(StyleProperty::AnimationPlayState)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'animation-play-state', '{$style->get(StyleProperty::AnimationPlayState)}');");
+        }
+
+        // Transition
+        if ($style->has(StyleProperty::TransitionProperty)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transition-property', '{$style->get(StyleProperty::TransitionProperty)}');");
+        }
+        if ($style->has(StyleProperty::TransitionDuration)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transition-duration', '{$style->get(StyleProperty::TransitionDuration)}ms');");
+        }
+        if ($style->has(StyleProperty::TransitionDelay)) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transition-delay', '{$style->get(StyleProperty::TransitionDelay)}ms');");
+        }
+        if ($style->has(StyleProperty::TransitionTimingFunction)) {
+            $easing = $style->get(StyleProperty::TransitionTimingFunction);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'transition-timing-function', '{$cssEasing}');");
+        }
 
         // Shadow
         $sx = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
@@ -887,6 +928,23 @@ final class WasmBackend extends CodegenBackend
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
             StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
+            StyleProperty::AnimationIterationCount, StyleProperty::AnimationDirection,
+            StyleProperty::AnimationFillMode, StyleProperty::AnimationPlayState,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration,
+            StyleProperty::TransitionDelay, StyleProperty::TransitionTimingFunction,
         ];
+    }
+
+    private function emitAnimatedContainer(AnimatedContainer $widget, int $handle): string
+    {
+        $child = $widget->getChild();
+        return $this->emitWidget($child, $handle);
+    }
+
+    private function emitTransition(\Perry\UI\Widget\Transition $widget, int $handle): string
+    {
+        $child = $widget->getChild();
+        return $this->emitWidget($child, $handle);
     }
 }

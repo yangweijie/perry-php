@@ -7,6 +7,7 @@ namespace Perry\Codegen;
 use Perry\Build\Target;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
@@ -110,6 +111,10 @@ final class AndroidXmlBackend extends CodegenBackend
             return $this->generateWidget($widget->content());
         }
 
+        if ($widget instanceof \Perry\UI\Composition) {
+            return $this->generateWidget($widget->toWidget());
+        }
+
         return match ($widget->kind()) {
             WidgetKind::Text => $this->generateText($widget),
             WidgetKind::Button => $this->generateButton($widget),
@@ -135,6 +140,8 @@ final class AndroidXmlBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
             WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
             WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
+        WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+        WidgetKind::Transition => $this->generateTransition($widget),
             default => '',
         };
     }
@@ -828,6 +835,9 @@ final class AndroidXmlBackend extends CodegenBackend
             StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
             // Transform
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration, StyleProperty::TransitionDelay,
+            StyleProperty::TransitionTimingFunction,
         ];
     }
 
@@ -1081,5 +1091,17 @@ KOTLIN;
         $lines = explode("\n", $code);
         $indent = str_repeat('    ', $level);
         return implode("\n", array_map(fn($line) => $indent . $line, $lines));
+    }
+
+    private function generateAnimatedContainer(AnimatedContainer $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(\Perry\UI\Widget\Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
     }
 }

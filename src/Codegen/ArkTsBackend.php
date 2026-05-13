@@ -11,6 +11,7 @@ use Perry\UI\Binding;
 use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
@@ -170,6 +171,9 @@ final class ArkTsBackend extends CodegenBackend
 
     private function generateWidget(Widget $widget): string
     {
+        if ($widget instanceof \Perry\UI\Composition) {
+            return $this->generateWidget($widget->toWidget());
+        }
         return match ($widget->kind()) {
             WidgetKind::Text => $this->generateText($widget),
             WidgetKind::Button => $this->generateButton($widget),
@@ -195,6 +199,8 @@ final class ArkTsBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
             WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
             WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
+        WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+        WidgetKind::Transition => $this->generateTransition($widget),
             default => 'Blank()',
         };
     }
@@ -628,6 +634,21 @@ final class ArkTsBackend extends CodegenBackend
             StyleProperty::FlexWrap, StyleProperty::Gap, StyleProperty::FlexGrow, StyleProperty::FlexShrink,
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration, StyleProperty::TransitionDelay,
+            StyleProperty::TransitionTimingFunction,
         ];
+    }
+
+    private function generateAnimatedContainer(AnimatedContainer $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(\Perry\UI\Widget\Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
     }
 }

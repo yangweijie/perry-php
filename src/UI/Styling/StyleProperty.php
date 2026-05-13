@@ -55,4 +55,14 @@ enum StyleProperty: string
     case AnimationDuration = 'animation_duration';
     case AnimationDelay = 'animation_delay';
     case AnimationEasing = 'animation_easing';
+    case AnimationIterationCount = 'animation_iteration_count';
+    case AnimationDirection = 'animation_direction';
+    case AnimationFillMode = 'animation_fill_mode';
+    case AnimationPlayState = 'animation_play_state';
+
+    // --- S0: Transition Properties ---
+    case TransitionProperty = 'transition_property';
+    case TransitionDuration = 'transition_duration';
+    case TransitionDelay = 'transition_delay';
+    case TransitionTimingFunction = 'transition_timing_function';
 }

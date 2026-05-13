@@ -12,6 +12,7 @@ use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
 use Perry\UI\Widget\ContextMenu;
@@ -34,6 +35,7 @@ use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
+use Perry\UI\Widget\Transition;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
@@ -259,6 +261,9 @@ final class SwiftUIBackend extends CodegenBackend
 
     private function generateWidget(Widget $widget): string
     {
+        if ($widget instanceof \Perry\UI\Composition) {
+            return $this->generateWidget($widget->toWidget());
+        }
         return match ($widget->kind()) {
             WidgetKind::Text => $this->generateText($widget),
             WidgetKind::Button => $this->generateButton($widget),
@@ -284,6 +289,8 @@ final class SwiftUIBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
             WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
             WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
+            WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+            WidgetKind::Transition => $this->generateTransition($widget),
             default => 'EmptyView()',
         };
     }
@@ -593,6 +600,18 @@ final class SwiftUIBackend extends CodegenBackend
         return "DatePicker(\"Date\", selection: {$dateVar}, displayedComponents: .date){$modifiers}";
     }
 
+    private function generateAnimatedContainer(AnimatedContainer $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
     private function generateModifiers(?\Perry\UI\Styling\Style $style): string
     {
         if ($style === null) {
@@ -722,6 +741,21 @@ final class SwiftUIBackend extends CodegenBackend
             $mods[] = ".offset(x: {$x}, y: {$y})";
         }
 
+        // Transition
+        if ($style->has($props::TransitionDuration) || $style->has($props::TransitionDelay)) {
+            $duration = $style->has($props::TransitionDuration) ? $style->get($props::TransitionDuration) : 300;
+            $delay = $style->has($props::TransitionDelay) ? $style->get($props::TransitionDelay) : 0;
+            $easing = $style->has($props::TransitionTimingFunction) ? $style->get($props::TransitionTimingFunction) : 'ease';
+            $curve = match ($easing) {
+                'ease-in' => 'easeIn',
+                'ease-out' => 'easeOut',
+                'ease-in-out' => 'easeInOut',
+                'linear' => 'linear',
+                default => 'ease',
+            };
+            $mods[] = ".animation(.{$curve}.duration({$duration}).delay({$delay}))";
+        }
+
         return implode('', $mods);
     }
 
@@ -762,6 +796,9 @@ final class SwiftUIBackend extends CodegenBackend
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
             StyleProperty::AnimationDuration, StyleProperty::AnimationEasing,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration, StyleProperty::TransitionDelay,
+            StyleProperty::TransitionTimingFunction,
         ];
     }
 }

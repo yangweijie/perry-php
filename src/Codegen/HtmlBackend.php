@@ -10,6 +10,7 @@ use Perry\UI\ActionType;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
+use Perry\UI\Widget\AnimatedContainer;
 use Perry\UI\Widget\Button;
 use Perry\UI\Widget\Checkbox;
 use Perry\UI\Widget\ContextMenu;
@@ -31,6 +32,7 @@ use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toast;
+use Perry\UI\Widget\Transition;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Binding;
@@ -159,6 +161,9 @@ final class HtmlBackend extends CodegenBackend
 
     private function generateWidget(Widget $widget): string
     {
+        if ($widget instanceof \Perry\UI\Composition) {
+            return $this->generateWidget($widget->toWidget());
+        }
         return match ($widget->kind()) {
             WidgetKind::Text => $this->generateText($widget),
             WidgetKind::Button => $this->generateButton($widget),
@@ -184,6 +189,8 @@ final class HtmlBackend extends CodegenBackend
             WidgetKind::ContextMenu => $this->generateContextMenu($widget),
             WidgetKind::DatePicker => $this->generateDatePicker($widget),
             WidgetKind::WebView => $this->generateWebViewHtml($widget),
+            WidgetKind::AnimatedContainer => $this->generateAnimatedContainer($widget),
+            WidgetKind::Transition => $this->generateTransition($widget),
             default => '',
         };
     }
@@ -683,6 +690,19 @@ final class HtmlBackend extends CodegenBackend
         return "<input type=\"date\" class=\"datepicker\" value=\"{$defaultDate}\"{$onchange}{$displayStyle}{$style} />";
     }
 
+    private function generateAnimatedContainer(\Perry\UI\Widget\AnimatedContainer $widget): string
+    {
+        $style = $this->generateStyle($widget->getStyle());
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
+    private function generateTransition(\Perry\UI\Widget\Transition $widget): string
+    {
+        $child = $widget->getChild();
+        return $this->generateWidget($child);
+    }
+
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string
     {
         $this->indent++;
@@ -896,6 +916,41 @@ final class HtmlBackend extends CodegenBackend
             };
             $css[] = "animation-timing-function: {$cssEasing}";
         }
+        if ($style->has(StyleProperty::AnimationIterationCount)) {
+            $count = $style->get(StyleProperty::AnimationIterationCount);
+            $css[] = "animation-iteration-count: {$count}";
+        }
+        if ($style->has(StyleProperty::AnimationDirection)) {
+            $css[] = "animation-direction: {$style->get(StyleProperty::AnimationDirection)}";
+        }
+        if ($style->has(StyleProperty::AnimationFillMode)) {
+            $css[] = "animation-fill-mode: {$style->get(StyleProperty::AnimationFillMode)}";
+        }
+        if ($style->has(StyleProperty::AnimationPlayState)) {
+            $css[] = "animation-play-state: {$style->get(StyleProperty::AnimationPlayState)}";
+        }
+
+        // Transition
+        if ($style->has(StyleProperty::TransitionProperty)) {
+            $css[] = "transition-property: {$style->get(StyleProperty::TransitionProperty)}";
+        }
+        if ($style->has(StyleProperty::TransitionDuration)) {
+            $css[] = "transition-duration: {$style->get(StyleProperty::TransitionDuration)}ms";
+        }
+        if ($style->has(StyleProperty::TransitionDelay)) {
+            $css[] = "transition-delay: {$style->get(StyleProperty::TransitionDelay)}ms";
+        }
+        if ($style->has(StyleProperty::TransitionTimingFunction)) {
+            $easing = $style->get(StyleProperty::TransitionTimingFunction);
+            $cssEasing = match ($easing) {
+                'ease-in' => 'ease-in',
+                'ease-out' => 'ease-out',
+                'ease-in-out' => 'ease-in-out',
+                'linear' => 'linear',
+                default => $easing,
+            };
+            $css[] = "transition-timing-function: {$cssEasing}";
+        }
 
         // Box-shadow: combine ShadowOffsetX, ShadowOffsetY, ShadowRadius, ShadowColor
         $shadowX = $style->has(StyleProperty::ShadowOffsetX) ? $style->get(StyleProperty::ShadowOffsetX) : 0;
@@ -980,6 +1035,11 @@ final class HtmlBackend extends CodegenBackend
             // Transform & Animation
             StyleProperty::Rotate, StyleProperty::Scale, StyleProperty::TranslateX, StyleProperty::TranslateY,
             StyleProperty::AnimationDuration, StyleProperty::AnimationDelay, StyleProperty::AnimationEasing,
+            StyleProperty::AnimationIterationCount, StyleProperty::AnimationDirection,
+            StyleProperty::AnimationFillMode, StyleProperty::AnimationPlayState,
+            // Transition
+            StyleProperty::TransitionProperty, StyleProperty::TransitionDuration,
+            StyleProperty::TransitionDelay, StyleProperty::TransitionTimingFunction,
         ];
     }
 }
