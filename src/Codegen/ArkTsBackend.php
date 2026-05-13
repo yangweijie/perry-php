@@ -13,10 +13,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -24,6 +32,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -177,6 +186,15 @@ final class ArkTsBackend extends CodegenBackend
             WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialogWidget($widget),
+            WidgetKind::Dropdown => $this->generateDropdownWidget($widget),
+            WidgetKind::Progress => $this->generateProgressWidget($widget),
+            WidgetKind::Toast => $this->generateToastWidget($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => 'Blank()',
         };
     }
@@ -322,6 +340,66 @@ final class ArkTsBackend extends CodegenBackend
     {
         $label = addslashes($widget->label());
         return "Toggle({ type: ToggleType.Switch })";
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $label = addslashes($widget->label());
+        $binding = $widget->getIsChecked();
+        $checked = $binding ? $binding->name : 'false';
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Row() {\n{$this->indentStr()}    Checkbox({ select: {$checked} }){$modifiers}\n{$this->indentStr()}    Text('{$label}')\n{$this->indentStr()}}";
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = addslashes($widget->label());
+        $group = addslashes($widget->group());
+        $value = addslashes($widget->getValue());
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Row() {\n{$this->indentStr()}    Radio({ value: '{$value}', group: '{$group}' }){$modifiers}\n{$this->indentStr()}    Text('{$label}')\n{$this->indentStr()}}";
+    }
+
+    private function generateDialogWidget(Dialog $widget): string
+    {
+        $binding = $widget->getIsOpen();
+        $isOpen = $binding ? $binding->name : 'false';
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "if (this.{$isOpen}) {\n{$this->indentStr()}    AlertDialog({ message: Column() {{$children}\n{$this->indentStr()}    }{$modifiers} }){$modifiers}\n{$this->indentStr()}}";
+    }
+
+    private function generateDropdownWidget(Dropdown $widget): string
+    {
+        $binding = $widget->getSelectedValue();
+        $selected = $binding ? $binding->name : "''";
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        $options = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $escValue = addslashes((string) $value);
+            $options[] = "{ value: '{$escValue}', icon: '', text: '{$escLabel}' }";
+        }
+        $optionsStr = implode(",\n{$this->indentStr()}    ", $options);
+        $onChange = $binding ? "onChange: (val: string) => { this.{$selected} = val }" : '';
+        return "Select([\n{$this->indentStr()}    {$optionsStr}\n{$this->indentStr()}]){$modifiers}\n{$this->indentStr()}.value('{$selected}')\n{$this->indentStr()}.onChange((val: string) => {{$onChange}})";
+    }
+
+    private function generateProgressWidget(Progress $widget): string
+    {
+        $binding = $widget->getProgress();
+        $progress = $binding ? $binding->name : '50';
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Progress({ value: {$progress}, total: 100, type: ProgressType.Linear }){$modifiers}";
+    }
+
+    private function generateToastWidget(Toast $widget): string
+    {
+        $message = addslashes($widget->message());
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Text('{$message}'){$modifiers}";
     }
 
     private function generateChildren(array $children): string
@@ -504,6 +582,32 @@ final class ArkTsBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        $items = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "TabContent() {\n{$this->indentStr()}    Text('{$escLabel}')\n{$this->indentStr()}}";
+        }
+        $itemsCode = implode("\n{$this->indentStr()}    ", $items);
+        return "Tabs({ index: 0 }){$modifiers} {\n{$this->indentStr()}    {$itemsCode}\n{$this->indentStr()}}";
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $openExpr = $isOpen ? $isOpen->name : 'false';
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Column() {\n{$this->indentStr()}    Text('ContextMenu')\n{$this->indentStr()}}{$modifiers}\n{$this->indentStr()}.bindPopup(\n{$this->indentStr()}    this.{$openExpr},\n{$this->indentStr()}    { message: 'ContextMenu' },\n{$this->indentStr()})";
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "DatePicker({ startDate: new Date('2026-01-01'), endDate: new Date('2030-12-31') }){$modifiers}";
     }
 
     /** @return StyleProperty[] */

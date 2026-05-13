@@ -9,10 +9,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -20,6 +28,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -117,6 +126,15 @@ final class AndroidXmlBackend extends CodegenBackend
             WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::WebView => $this->generateWebView($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => '',
         };
     }
@@ -640,6 +658,151 @@ final class AndroidXmlBackend extends CodegenBackend
             . "{$this->indentStr()}    android:orientation=\"vertical\">\n"
             . $children
             . "{$this->indentStr()}</LinearLayout>";
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $label = htmlspecialchars($widget->label());
+        $isChecked = $widget->getIsChecked();
+        $idLine = '';
+        if ($isChecked !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/cb_{$isChecked->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<CheckBox\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:text=\"{$label}\" />";
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = htmlspecialchars($widget->label());
+        $binding = $widget->getSelectedValue();
+        $idLine = '';
+        if ($binding !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/rb_{$binding->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<RadioButton\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:text=\"{$label}\" />";
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $idLine = '';
+        if ($isOpen !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/dlg_{$isOpen->name}\"\n";
+        }
+
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+
+        return "{$this->indentStr()}<FrameLayout\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"match_parent\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:visibility=\"gone\">\n"
+            . $children . "\n"
+            . "{$this->indentStr()}</FrameLayout>";
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $selected = $widget->getSelectedValue();
+        $name = $selected !== null ? $selected->name : 'items';
+        $idLine = '';
+        if ($selected !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/sp_{$selected->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<Spinner\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:entries=\"@array/perry_dropdown_{$name}\" />";
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $progress = $widget->getProgress();
+        $idLine = '';
+        if ($progress !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/pb_{$progress->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<ProgressBar\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    style=\"?android:attr/progressBarStyleHorizontal\" />";
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $message = htmlspecialchars($widget->message());
+
+        return "{$this->indentStr()}<TextView\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:text=\"{$message}\"\n"
+            . "{$this->indentStr()}    android:visibility=\"gone\" />";
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $selected = $widget->getSelectedValue();
+        $idLine = '';
+        if ($selected !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/seg_{$selected->name}\"\n";
+        }
+
+        $this->indent++;
+        $items = '';
+        foreach ($widget->options() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $escapedVal = htmlspecialchars((string) $val);
+            $items .= "{$this->indentStr()}<RadioButton\n"
+                . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+                . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+                . "{$this->indentStr()}    android:text=\"{$escapedLabel}\" />\n";
+        }
+        $this->indent--;
+
+        return "{$this->indentStr()}<RadioGroup\n"
+            . "{$this->indentStr()}    android:layout_width=\"match_parent\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:orientation=\"horizontal\"\n"
+            . $idLine
+            . "{$this->indentStr()}>\n"
+            . $items
+            . "{$this->indentStr()}</RadioGroup>";
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        return "{$this->indentStr()}<!-- ContextMenu not supported in Android XML -->";
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $idLine = '';
+        if ($isOpen !== null) {
+            $idLine = "{$this->indentStr()}    android:id=\"@+id/dp_{$isOpen->name}\"\n";
+        }
+
+        return "{$this->indentStr()}<DatePicker\n"
+            . "{$this->indentStr()}    android:layout_width=\"wrap_content\"\n"
+            . "{$this->indentStr()}    android:layout_height=\"wrap_content\"\n"
+            . $idLine
+            . "{$this->indentStr()}    android:datePickerMode=\"spinner\" />";
     }
 
     private function indentStr(): string

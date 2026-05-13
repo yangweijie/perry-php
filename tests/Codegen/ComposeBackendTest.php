@@ -42,7 +42,7 @@ test('Compose generate with AppContainer produces state', function () {
     expect($out)->toContain('var count by remember');
 });
 
-test('Compose generates all 16 widgets', function () {
+test('Compose generates all widget types', function () {
     $b = (new CodegenFactory())->get('compose');
 
     $specs['Text'] = [new Perry\UI\Widget\Text('Hello'), ['Text(']];
@@ -60,6 +60,15 @@ test('Compose generates all 16 widgets', function () {
     $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('Item')), ['LazyColumn']];
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('P'))), ['fillMaxSize']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('T'))), ['TabRow']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Enable'), ['Checkbox(']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('Option A', 'group1', 'a'), ['RadioButton(']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('Content')), ['Dialog(']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['One' => '1', 'Two' => '2']), ['ExposedDropdownMenuBox']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['LinearProgressIndicator']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hello'), ['Hello']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['ExposedDropdownMenuBox']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['DropdownMenu']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

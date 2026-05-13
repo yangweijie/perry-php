@@ -11,17 +11,26 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
 use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Binding;
@@ -165,6 +174,15 @@ final class HtmlBackend extends CodegenBackend
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenu($widget),
+            WidgetKind::DatePicker => $this->generateDatePicker($widget),
             WidgetKind::WebView => $this->generateWebViewHtml($widget),
             default => '',
         };
@@ -492,6 +510,177 @@ final class HtmlBackend extends CodegenBackend
         }
 
         return "<label{$onclick}><input type=\"checkbox\" id=\"{$id}\"> {$label}</label>";
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $id = 'checkbox_' . $this->nextId();
+        $label = htmlspecialchars($widget->label());
+        $isChecked = $widget->getIsChecked();
+        $onChange = $widget->getOnChange();
+
+        $checkedAttr = '';
+        if ($isChecked !== null) {
+            $id = $isChecked->name;
+            $checkedAttr = " checked=\"checked\"";
+        }
+
+        $onclick = '';
+        if ($onChange !== null) {
+            $funcName = $this->generateActionFunction($onChange);
+            $onclick = " onclick=\"{$funcName}()\"";
+        }
+
+        return "<label{$onclick}><input type=\"checkbox\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $id = 'radio_' . $this->nextId();
+        $label = htmlspecialchars($widget->label());
+        $group = htmlspecialchars($widget->group());
+        $value = htmlspecialchars($widget->getValue());
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+
+        $checkedAttr = '';
+        if ($selectedValue !== null) {
+            $checkedAttr = " data-selected=\"{$selectedValue->name}\"";
+        }
+
+        $onclick = '';
+        if ($onChange !== null) {
+            $funcName = $this->generateActionFunction($onChange);
+            $onclick = " onclick=\"{$funcName}()\"";
+        }
+
+        return "<label{$onclick}><input type=\"radio\" name=\"{$group}\" value=\"{$value}\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $displayStyle = 'display:none';
+        if ($isOpen !== null) {
+            $displayStyle = 'display:none'; // controlled via JS binding
+        }
+
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+
+        return "<div class=\"dialog\" style=\"{$displayStyle}\">\n{$children}\n{$this->indentStr()}</div>";
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $id = 'dropdown_' . $this->nextId();
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+        $style = $this->generateStyle($widget->getStyle());
+
+        $onchange = '';
+        if ($onChange !== null) {
+            $funcName = $this->generateActionFunction($onChange);
+            $onchange = " onchange=\"{$funcName}()\"";
+        }
+
+        $options = '';
+        foreach ($widget->options() as $label => $value) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $escapedValue = htmlspecialchars((string) $value);
+            $selected = '';
+            if ($selectedValue !== null) {
+                $selected = " data-value=\"{$selectedValue->name}\"";
+            }
+            $options .= "\n{$this->indentStr()}    <option value=\"{$escapedValue}\"{$selected}>{$escapedLabel}</option>";
+        }
+
+        return "<select id=\"{$id}\"{$onchange}{$style}>{$options}\n{$this->indentStr()}</select>";
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $progress = $widget->getProgress();
+        $id = $progress ? $progress->name : 'progress_' . $this->nextId();
+        $value = $progress ? '0' : '0';
+        $style = $this->generateStyle($widget->getStyle());
+
+        return "<progress id=\"{$id}\" value=\"{$value}\" max=\"1\"{$style}></progress>";
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $message = htmlspecialchars($widget->message());
+        $style = $this->generateStyle($widget->getStyle());
+
+        return "<div class=\"toast\"{$style}>{$message}</div>";
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $options = $widget->options();
+        $selected = $widget->getSelectedValue();
+        $selName = $selected ? $selected->name() : '';
+        $style = $this->generateStyle($widget->getStyle());
+        $indent = $this->indentStr();
+
+        $buttons = '';
+        foreach ($options as $label => $value) {
+            $escLabel = htmlspecialchars($label);
+            $escValue = htmlspecialchars($value);
+            $selAttr = ($selected && $selected->value() === $value) ? ' data-selected="1"' : '';
+            $onclick = $selected ? " onclick=\"updateBinding('{$selName}','{$escValue}')\"" : '';
+            $buttons .= "{$indent}    <button class=\"segmented-option\"{$selAttr} value=\"{$escValue}\"{$onclick}>{$escLabel}</button>\n";
+        }
+
+        return "<div class=\"segmented-control\"{$style}>\n{$buttons}{$indent}</div>";
+    }
+
+    private function generateContextMenu(ContextMenu $widget): string
+    {
+        $items = $widget->items();
+        $isOpen = $widget->getIsOpen();
+        $onSelect = $widget->getOnSelect();
+        $isOpenName = $isOpen ? $isOpen->name() : '';
+        $style = $this->generateStyle($widget->getStyle());
+        $indent = $this->indentStr();
+        $displayStyle = $isOpen && $isOpen->value() ? '' : ' style="display:none"';
+
+        $menuItems = '';
+        foreach ($items as $label => $value) {
+            $escLabel = htmlspecialchars($label);
+            $escValue = htmlspecialchars($value);
+            $onclick = '';
+            if ($onSelect) {
+                $onclick = " onclick=\"executeAction('{$onSelect->name()}','{$escValue}')\"";
+            } elseif ($isOpen) {
+                $onclick = " onclick=\"updateBinding('{$isOpenName}','false')\"";
+            }
+            $menuItems .= "{$indent}    <button class=\"context-menu-item\" value=\"{$escValue}\"{$onclick}>{$escLabel}</button>\n";
+        }
+
+        return "<div class=\"context-menu\"{$displayStyle}{$style}>\n{$menuItems}{$indent}</div>";
+    }
+
+    private function generateDatePicker(DatePicker $widget): string
+    {
+        $date = $widget->getDate();
+        $isOpen = $widget->getIsOpen();
+        $onChange = $widget->getOnChange();
+        $dateName = $date ? $date->name() : '';
+        $isOpenName = $isOpen ? $isOpen->name() : '';
+        $style = $this->generateStyle($widget->getStyle());
+        $displayStyle = $isOpen && $isOpen->value() ? '' : ' style="display:none"';
+        $defaultDate = $date ? $date->value() : date('Y-m-d');
+        $onchange = '';
+        if ($onChange) {
+            $onchange = " onchange=\"executeAction('{$onChange->name()}',this.value)\"";
+        } elseif ($date) {
+            $onchange = " onchange=\"updateBinding('{$dateName}',this.value)\"";
+        }
+
+        return "<input type=\"date\" class=\"datepicker\" value=\"{$defaultDate}\"{$onchange}{$displayStyle}{$style} />";
     }
 
     private function generateListWidget(\Perry\UI\Widget\ListWidget $widget): string

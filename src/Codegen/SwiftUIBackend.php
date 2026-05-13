@@ -13,10 +13,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -24,6 +32,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -266,6 +275,15 @@ final class SwiftUIBackend extends CodegenBackend
             WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => 'EmptyView()',
         };
     }
@@ -452,6 +470,266 @@ final class SwiftUIBackend extends CodegenBackend
         return $result;
     }
 
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $label = addslashes($widget->label());
+        $isChecked = $widget->getIsChecked();
+        $bindingExpr = $isChecked ? '$' . $isChecked->name : '.constant(false)';
+
+        $result = "Toggle(\"{$label}\", isOn: {$bindingExpr}).toggleStyle(.checkbox)";
+
+        $onChange = $widget->getOnChange();
+        if ($onChange !== null) {
+            $varName = $isChecked ? $isChecked->name : 'false';
+            $result .= ".onChange(of: {$varName}) {" . $this->generateAction($onChange) . "}";
+        }
+
+        return $result;
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = addslashes($widget->label());
+        $value = addslashes($widget->getValue());
+        $selected = $widget->getSelectedValue();
+
+        return "Button(action: { {$selected->name} = \"{$value}\" }) {\n{$this->indentStr()}    Text(\"{$label}\")\n{$this->indentStr()}}";
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+
+        if ($isOpen) {
+            return "VStack {\n{$children}\n{$this->indentStr()}}\n{$this->indentStr()}.opacity({$isOpen->name} ? 1.0 : 0.0)";
+        }
+        return "VStack {\n{$children}\n{$this->indentStr()}}";
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $selected = $widget->getSelectedValue();
+        $selectedName = $selected ? $selected->name : 'selection';
+        $options = $widget->options();
+
+        $parts = [];
+        foreach ($options as $label => $val) {
+            $escapedLabel = addslashes((string) $label);
+            $escapedVal = addslashes((string) $val);
+            $parts[] = "Text(\"{$escapedLabel}\").tag(\"{$escapedVal}\")";
+        }
+        $optionsCode = implode("\n{$this->indentStr()}", $parts);
+
+        $result = "Picker(\"{$selectedName}\", selection: \${$selectedName}) {\n{$this->indentStr()}{$optionsCode}\n{$this->indentStr()}}";
+
+        $onChange = $widget->getOnChange();
+        if ($onChange !== null) {
+            $result .= ".onChange(of: {$selectedName}) {" . $this->generateAction($onChange) . "}";
+        }
+
+        return $result;
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $progress = $widget->getProgress();
+        if ($progress) {
+            return "ProgressView(value: \${$progress->name})";
+        }
+        return "ProgressView()";
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $message = addslashes($widget->message());
+        return "Text(\"{$message}\")";
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $selected = $widget->getSelectedValue();
+        $selectedName = $selected ? $selected->name : 'selection';
+        $parts = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $parts[] = "Text(\"{$escLabel}\").tag(\"{$value}\")";
+        }
+        $optionsCode = implode("\n{$this->indentStr()}", $parts);
+
+        $result = "Picker(\"{$selectedName}\", selection: \${$selectedName}) {\n{$this->indentStr()}{$optionsCode}\n{$this->indentStr()}}\n{$this->indentStr()}.pickerStyle(.segmented)";
+
+        $onChange = $widget->getOnChange();
+        if ($onChange !== null && $selected) {
+            $result .= "\n{$this->indentStr()}.onChange(of: {$selected->name}) {" . $this->generateAction($onChange) . "}";
+        }
+
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        $result .= $modifiers;
+        return $result;
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $openExpr = $isOpen ? $isOpen->name : 'false';
+        $items = [];
+        foreach ($widget->items() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "Button(\"{$escLabel}\") { {$openExpr} = false }";
+        }
+        $itemsCode = implode("\n{$this->indentStr()}    ", $items);
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "Text(\"Menu\").contextMenu {\n{$this->indentStr()}    {$itemsCode}\n{$this->indentStr()}}{$modifiers}";
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $date = $widget->getDate();
+        $dateVar = $date ? '$' . $date->name : '.constant(Date())';
+        $modifiers = $this->generateModifiers($widget->getStyle());
+        return "DatePicker(\"Date\", selection: {$dateVar}, displayedComponents: .date){$modifiers}";
+    }
+
+    private function generateModifiers(?\Perry\UI\Styling\Style $style): string
+    {
+        if ($style === null) {
+            return '';
+        }
+        $mods = [];
+        $props = \Perry\UI\Styling\StyleProperty::class;
+
+        if ($style->has($props::FontSize)) {
+            $mods[] = '.font(.system(size: ' . $style->get($props::FontSize) . '))';
+        }
+        if ($style->has($props::FontWeight)) {
+            $v = $style->get($props::FontWeight);
+            $map = ['bold' => '.bold', 'semibold' => '.semibold', 'medium' => '.medium', 'normal' => '.regular', 'light' => '.light'];
+            $mods[] = '.fontWeight(' . ($map[$v] ?? '.regular') . ')';
+        }
+        if ($style->has($props::TextDecoration)) {
+             $v = $style->get($props::TextDecoration);
+             $map = ['underline' => '.underline', 'line-through' => '.strikethrough', 'overline' => '.overline'];
+             $mods[] = $map[$v] ?? '';
+         }
+         if ($style->has($props::ForegroundColor)) {
+            $hex = ltrim($style->get($props::ForegroundColor), '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = sprintf('.foregroundColor(Color(red: %.2f, green: %.2f, blue: %.2f))', $r, $g, $b);
+        }
+        if ($style->has($props::FontFamily)) {
+            $size = $style->has($props::FontSize) ? $style->get($props::FontSize) : 17;
+            $mods[] = '.font(.custom("' . $style->get($props::FontFamily) . '", size: ' . $size . '))';
+        }
+        if ($style->has($props::TextAlignment)) {
+            $v = $style->get($props::TextAlignment);
+            $map = ['left' => '.leading', 'center' => '.center', 'right' => '.trailing'];
+            $mods[] = '.multilineTextAlignment(TextAlignment' . ($map[$v] ?? '.leading') . ')';
+        }
+        if ($style->has($props::LineSpacing)) {
+            $mods[] = '.lineSpacing(' . $style->get($props::LineSpacing) . ')';
+        }
+        if ($style->has($props::Padding)) {
+            $mods[] = '.padding(' . $style->get($props::Padding) . ')';
+        }
+        if ($style->has($props::CornerRadius)) {
+            $mods[] = '.cornerRadius(' . $style->get($props::CornerRadius) . ')';
+        }
+        if ($style->has($props::Opacity)) {
+            $mods[] = '.opacity(' . $style->get($props::Opacity) . ')';
+        }
+        if ($style->has($props::BackgroundColor)) {
+            $hex = ltrim($style->get($props::BackgroundColor), '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = sprintf('.background(Color(red: %.2f, green: %.2f, blue: %.2f))', $r, $g, $b);
+        }
+        if ($style->has($props::Width) || $style->has($props::Height)) {
+            $w = $style->has($props::Width) ? $style->get($props::Width) : 'nil';
+            $h = $style->has($props::Height) ? $style->get($props::Height) : 'nil';
+            $mods[] = ".frame(width: {$w}, height: {$h})";
+        }
+        if ($style->has($props::BorderWidth)) {
+            $w = $style->get($props::BorderWidth);
+            $color = $style->has($props::BorderColor) ? $style->get($props::BorderColor) : '#000000';
+            $hex = ltrim($color, '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = ".overlay(RoundedRectangle(cornerRadius: 0).stroke(Color(red: {$r}, green: {$g}, blue: {$b}), lineWidth: {$w}))";
+        }
+        if ($style->has($props::ShadowColor)) {
+            $hex = ltrim($style->get($props::ShadowColor), '#');
+            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 4;
+            $ox = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
+            $oy = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 2;
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = ".shadow(color: Color(red: {$r}, green: {$g}, blue: {$b}), radius: {$radius}, x: {$ox}, y: {$oy})";
+        }
+        if ($style->has($props::PaddingLeading)) {
+            $mods[] = '.padding(.leading, ' . $style->get($props::PaddingLeading) . ')';
+        }
+        if ($style->has($props::PaddingTrailing)) {
+            $mods[] = '.padding(.trailing, ' . $style->get($props::PaddingTrailing) . ')';
+        }
+        if ($style->has($props::PaddingTop)) {
+            $mods[] = '.padding(.top, ' . $style->get($props::PaddingTop) . ')';
+        }
+        if ($style->has($props::PaddingBottom)) {
+            $mods[] = '.padding(.bottom, ' . $style->get($props::PaddingBottom) . ')';
+        }
+        if ($style->has($props::FlexGrow)) {
+            $mods[] = '.frame(maxWidth: .infinity)';
+        }
+        if ($style->has($props::JustifyContent)) {
+            $v = $style->get($props::JustifyContent);
+            $map = ['center' => '.frame(maxWidth: .infinity)', 'end' => '.frame(maxWidth: .infinity)', 'space-between' => '.frame(maxWidth: .infinity)'];
+            $mods[] = $map[$v] ?? '.frame(maxWidth: .infinity)';
+        }
+        if ($style->has($props::AlignItems)) {
+             $v = $style->get($props::AlignItems);
+             $map = ['center' => '.center', 'start' => '.leading', 'end' => '.trailing'];
+             $mods[] = '.frame(alignment: ' . ($map[$v] ?? '.center') . ')';
+         }
+         if ($style->has($props::Rotate)) {
+            $mods[] = '.rotationEffect(.degrees(' . $style->get($props::Rotate) . '))';
+        }
+        if ($style->has($props::Scale)) {
+            $mods[] = '.scaleEffect(' . $style->get($props::Scale) . ')';
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $x = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $y = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $mods[] = ".offset(x: {$x}, y: {$y})";
+        }
+
+        return implode('', $mods);
+    }
+
+    private function indentStr(): string
+    {
+        return str_repeat('    ', $this->indent);
+    }
+
     private function generateChildren(array $children): string
     {
         $parts = [];
@@ -461,199 +739,9 @@ final class SwiftUIBackend extends CodegenBackend
         return implode("\n", $parts);
     }
 
-    private function generateModifiers(?Style $style): string
+    private function getSpacing(?\Perry\UI\Styling\Style $style): string
     {
-        if ($style === null) {
-            return '';
-        }
-        $mods = [];
-        $props = \Perry\UI\Styling\StyleProperty::class;
-
-        if ($style->has($props::FontSize)) {
-            $mods[] = ".font(.system(size: {$style->get($props::FontSize)}))";
-        }
-        if ($style->has($props::ForegroundColor)) {
-            $mods[] = ".foregroundColor({$this->colorExpr($style->get($props::ForegroundColor))})";
-        }
-        if ($style->has($props::Width) || $style->has($props::Height) || $style->has($props::MinHeight)) {
-            $w = $style->has($props::Width) ? $style->get($props::Width) : 'nil';
-            $h = $style->has($props::Height) ? $style->get($props::Height) : 'nil';
-            if ($style->has($props::MinHeight)) {
-                $mods[] = ".frame(minHeight: {$style->get($props::MinHeight)})";
-            } else {
-                $mods[] = ".frame(width: {$w}, height: {$h})";
-            }
-        }
-        if ($style->has($props::BackgroundColor)) {
-            $mods[] = ".background({$this->colorExpr($style->get($props::BackgroundColor))})";
-        }
-        if ($style->has($props::CornerRadius)) {
-            $mods[] = ".cornerRadius({$style->get($props::CornerRadius)})";
-        }
-        if ($style->has($props::Padding)) {
-            $mods[] = ".padding({$style->get($props::Padding)})";
-        }
-        if ($style->has($props::Opacity)) {
-            $mods[] = ".opacity({$style->get($props::Opacity)})";
-        }
-        if ($style->has($props::Margin)) {
-            $m = $style->get($props::Margin);
-            $mods[] = ".padding(.horizontal, {$m})";
-        }
-        if ($style->has($props::BorderWidth)) {
-            $mods[] = ".border(width: {$style->get($props::BorderWidth)})";
-        }
-        if ($style->has($props::BorderColor)) {
-            $mods[] = ".borderColor({$this->colorExpr($style->get($props::BorderColor))})";
-        }
-        if ($style->has($props::ShadowColor) || $style->has($props::ShadowRadius) || $style->has($props::ShadowOffsetX) || $style->has($props::ShadowOffsetY)) {
-            $color = $style->has($props::ShadowColor) ? $this->colorExpr($style->get($props::ShadowColor)) : 'Color.black';
-            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 0;
-            $x = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
-            $y = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 0;
-            $mods[] = ".shadow(color: {$color}, radius: {$radius}, x: {$x}, y: {$y})";
-        }
-        if ($style->has($props::FontWeight)) {
-            $mods[] = ".fontWeight({$this->mapFontWeight($style->get($props::FontWeight))})";
-        }
-        if ($style->has($props::FontFamily)) {
-            $mods[] = ".font(.custom(\"{$style->get($props::FontFamily)}\"))";
-        }
-        if ($style->has($props::TextAlignment)) {
-            $mods[] = ".multilineTextAlignment({$this->mapTextAlignment($style->get($props::TextAlignment))})";
-        }
-        if ($style->has($props::TextDecoration)) {
-            $decoration = $style->get($props::TextDecoration);
-            $underline = $decoration === 'underline' || $decoration === 'lineThrough' ? 'true' : 'false';
-            $mods[] = ".underline({$underline})";
-        }
-        if ($style->has($props::LetterSpacing)) {
-            $mods[] = ".tracking({$style->get($props::LetterSpacing)})";
-        }
-        if ($style->has($props::LineSpacing)) {
-            $mods[] = ".lineSpacing({$style->get($props::LineSpacing)})";
-        }
-
-        // Flex layout
-        if ($style->has($props::FlexGrow)) {
-            $mods[] = ".frame(maxWidth: .infinity)";
-        }
-        if ($style->has($props::FlexShrink)) {
-            $mods[] = ".layoutPriority(0)";
-        }
-        if ($style->has($props::JustifyContent)) {
-            $v = $style->get($props::JustifyContent);
-            $map = ['flex-start' => 'leading', 'center' => 'center', 'flex-end' => 'trailing', 'space-between' => 'center', 'space-around' => 'center'];
-            $mods[] = ".frame(maxWidth: .infinity, alignment: .{$map[$v]})";
-        }
-        if ($style->has($props::AlignItems)) {
-            $v = $style->get($props::AlignItems);
-            $map = ['flex-start' => 'top', 'center' => 'center', 'flex-end' => 'bottom', 'stretch' => 'center'];
-            $mods[] = ".frame(maxHeight: .infinity, alignment: .{$map[$v]})";
-        }
-
-        // Transform
-        if ($style->has($props::Rotate)) {
-            $mods[] = ".rotationEffect(.degrees({$style->get($props::Rotate)}))";
-        }
-        if ($style->has($props::Scale)) {
-            $mods[] = ".scaleEffect({$style->get($props::Scale)})";
-        }
-        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
-            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
-            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
-            $mods[] = ".offset(x: {$tx}, y: {$ty})";
-        }
-
-        // Animation
-        if ($style->has($props::AnimationDuration)) {
-            $dur = $style->get($props::AnimationDuration) / 1000.0;
-            $easing = $style->has($props::AnimationEasing) ? $style->get($props::AnimationEasing) : 'ease-in-out';
-            $curve = match ($easing) {
-                'linear' => '.linear',
-                'ease-in' => '.easeIn',
-                'ease-out' => '.easeOut',
-                default => '.easeInOut',
-            };
-            $mods[] = ".animation(.easeInOut(duration: {$dur}), value: id)";
-        }
-
-        if ($style->has($props::PaddingTop)) {
-            $mods[] = ".padding(.top, {$style->get($props::PaddingTop)})";
-        }
-        if ($style->has($props::PaddingBottom)) {
-            $mods[] = ".padding(.bottom, {$style->get($props::PaddingBottom)})";
-        }
-        if ($style->has($props::PaddingLeading)) {
-            $mods[] = ".padding(.leading, {$style->get($props::PaddingLeading)})";
-        }
-        if ($style->has($props::PaddingTrailing)) {
-            $mods[] = ".padding(.trailing, {$style->get($props::PaddingTrailing)})";
-        }
-        return $mods ? "\n        " . implode("\n        ", $mods) : '';
-    }
-
-    private function colorExpr(string $hex): string
-    {
-        $hex = ltrim($hex, '#');
-        if (strlen($hex) === 3) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-        }
-        if (strlen($hex) !== 6) {
-            return 'Color.white';
-        }
-        $r = hexdec(substr($hex, 0, 2)) / 255;
-        $g = hexdec(substr($hex, 2, 2)) / 255;
-        $b = hexdec(substr($hex, 4, 2)) / 255;
-        return sprintf('Color(red: %.2f, green: %.2f, blue: %.2f)', $r, $g, $b);
-    }
-
-    private function mapFontWeight(string $weight): string
-    {
-        $map = [
-            'bold' => '.bold',
-            'semibold' => '.semibold',
-            'medium' => '.medium',
-            'light' => '.light',
-            'regular' => '.regular',
-            700 => '.bold',
-            600 => '.semibold',
-            500 => '.medium',
-            300 => '.light',
-        ];
-        return $map[$weight] ?? '.regular';
-    }
-
-    private function mapTextAlignment(string $alignment): string
-    {
-        return match ($alignment) {
-            'left' => 'TextAlignment.leading',
-            'right' => 'TextAlignment.trailing',
-            'center' => 'TextAlignment.center',
-            default => 'TextAlignment.leading',
-        };
-    }
-
-    private function mapTextDecoration(string $decoration): string
-    {
-        return match ($decoration) {
-            'underline' => 'true',
-            'lineThrough' => 'true', // SwiftUI uses underline for both
-            default => 'false',
-        };
-    }
-
-    private function getSpacing(?Style $style): string
-    {
-        if ($style && $style->has(\Perry\UI\Styling\StyleProperty::Padding)) {
-            return (string) $style->get(\Perry\UI\Styling\StyleProperty::Padding);
-        }
-        return '8';
-    }
-
-    private function indentStr(): string
-    {
-        return str_repeat('    ', $this->indent);
+        return '0';
     }
 
     /** @return StyleProperty[] */

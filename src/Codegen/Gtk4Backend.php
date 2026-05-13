@@ -11,10 +11,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -22,6 +30,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -42,6 +51,18 @@ final class Gtk4Backend extends CodegenBackend
     
     /** @var array<array{id: string, action: Action}> */
     private array $toggleActions = [];
+    
+    /** @var array<array{id: string, action: Action}> */
+    private array $checkboxActions = [];
+    
+    /** Track first radio button id per group for radio grouping */
+    private array $radioGroups = [];
+    
+    /** @var array<array{id: string, action: Action, group: string, value: string}> */
+    private array $radioActions = [];
+    
+    /** @var array<array{id: string, action: Action}> */
+    private array $dropdownActions = [];
 
     public function name(): string
     {
@@ -61,6 +82,10 @@ final class Gtk4Backend extends CodegenBackend
         $this->sliderActions = [];
         $this->textInputActions = [];
         $this->toggleActions = [];
+        $this->checkboxActions = [];
+        $this->radioGroups = [];
+        $this->radioActions = [];
+        $this->dropdownActions = [];
         $body = $this->generateWidget($root);
 
         return <<<XML
@@ -182,6 +207,15 @@ C;
             WidgetKind::Slider => $this->generateSlider($widget),
             WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
             WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
@@ -657,6 +691,240 @@ XML;
         }
 
         return rtrim($result);
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $id = $this->nextId();
+        $label = addslashes($widget->label());
+        $isChecked = $widget->getIsChecked();
+        $onChange = $widget->getOnChange();
+
+        $props = $this->generateProperties($widget->getStyle());
+        $isCheckedExpr = $isChecked ? '$' . $isChecked->name : 'false';
+        
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkCheckButton" id="{$id}">
+{$this->indentStr()}    <property name="label">{$label}</property>
+{$this->indentStr()}    <property name="active">{$isCheckedExpr}</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+
+        if ($onChange !== null) {
+            $this->checkboxActions[] = ['id' => $id, 'action' => $onChange];
+            $result .= "{$this->indentStr()}<signal name=\"state-set\" handler=\"on_{$id}_state_set\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $id = $this->nextId();
+        $label = addslashes($widget->label());
+        $group = $widget->group();
+        $value = $widget->getValue();
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+
+        $props = $this->generateProperties($widget->getStyle());
+
+        // Determine if this radio button is selected
+        $isActive = 'false';
+        if ($selectedValue !== null) {
+            $isActive = '$' . $selectedValue->name . ' == "' . addslashes($value) . '"';
+        }
+
+        // Group: first radio in group acts as group anchor
+        $groupAnchor = $this->radioGroups[$group] ?? null;
+        if ($groupAnchor === null) {
+            // First radio in this group — it's the anchor
+            $this->radioGroups[$group] = $id;
+        }
+        $groupAttr = $groupAnchor !== null ? "\n{$this->indentStr()}    <property name=\"group\">{$groupAnchor}</property>" : '';
+
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkCheckButton" id="{$id}">
+{$this->indentStr()}    <property name="label">{$label}</property>
+{$this->indentStr()}    <property name="active">{$isActive}</property>{$groupAttr}
+{$props}
+{$this->indentStr()}</object>
+XML;
+
+        if ($onChange !== null) {
+            $this->radioActions[] = ['id' => $id, 'action' => $onChange, 'group' => $group, 'value' => $value];
+            $result .= "{$this->indentStr()}<signal name=\"state-set\" handler=\"on_{$id}_state_set\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $id = $this->nextId();
+        $progress = $widget->getProgress();
+        $props = $this->generateProperties($widget->getStyle());
+        $fraction = $progress ? '$' . $progress->name : '0.0';
+
+        return <<<XML
+{$this->indentStr()}<object class="GtkProgressBar" id="{$id}">
+{$this->indentStr()}    <property name="fraction">{$fraction}</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        $id = $this->nextId();
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+
+        $isOpen = $widget->getIsOpen();
+        $visible = $isOpen ? '$' . $isOpen->name : 'false';
+
+        return <<<XML
+{$this->indentStr()}<object class="GtkBox" id="{$id}">
+{$this->indentStr()}    <property name="orientation">vertical</property>
+{$this->indentStr()}    <property name="visible">{$visible}</property>
+{$children}
+{$this->indentStr()}</object>
+XML;
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $id = $this->nextId();
+        $message = htmlspecialchars($widget->message());
+        $props = $this->generateProperties($widget->getStyle());
+
+        return <<<XML
+{$this->indentStr()}<object class="GtkLabel" id="{$id}">
+{$this->indentStr()}    <property name="label">{$message}</property>
+{$this->indentStr()}    <property name="xalign">0.5</property>
+{$this->indentStr()}    <property name="halign">center</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $id = $this->nextId();
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+        $props = $this->generateProperties($widget->getStyle());
+
+        $active = $selectedValue ? '$' . $selectedValue->name : '0';
+
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkComboBoxText" id="{$id}">
+{$this->indentStr()}    <property name="active">{$active}</property>
+{$props}
+XML;
+
+        foreach ($widget->options() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $result .= "\n{$this->indentStr()}    <items>\n";
+            $result .= "{$this->indentStr()}        <item translatable=\"yes\">{$escapedLabel}</item>\n";
+            $result .= "{$this->indentStr()}    </items>";
+        }
+
+        $result .= "\n{$this->indentStr()}</object>";
+
+        if ($onChange !== null) {
+            $this->dropdownActions[] = ['id' => $id, 'action' => $onChange];
+            $result .= "{$this->indentStr()}<signal name=\"changed\" handler=\"on_{$id}_changed\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $id = $this->nextId();
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+        $props = $this->generateProperties($widget->getStyle());
+
+        $active = $selectedValue ? '$' . $selectedValue->name : '0';
+
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkComboBoxText" id="{$id}">
+{$this->indentStr()}    <property name="active">{$active}</property>
+{$props}
+XML;
+
+        foreach ($widget->options() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $result .= "\n{$this->indentStr()}    <items>\n";
+            $result .= "{$this->indentStr()}        <item translatable=\"yes\">{$escapedLabel}</item>\n";
+            $result .= "{$this->indentStr()}    </items>";
+        }
+
+        $result .= "\n{$this->indentStr()}</object>";
+
+        if ($onChange !== null) {
+            $this->dropdownActions[] = ['id' => $id, 'action' => $onChange];
+            $result .= "{$this->indentStr()}<signal name=\"changed\" handler=\"on_{$id}_changed\"/>\n";
+        }
+
+        return rtrim($result);
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $id = $this->nextId();
+        $isOpen = $widget->getIsOpen();
+        $onDismiss = $widget->getOnDismiss();
+        $props = $this->generateProperties($widget->getStyle());
+
+        $visible = $isOpen ? '$' . $isOpen->name : 'false';
+
+        $result = <<<XML
+{$this->indentStr()}<object class="GtkPopover" id="{$id}">
+{$this->indentStr()}    <property name="visible">{$visible}</property>
+{$props}
+{$this->indentStr()}    <child>
+{$this->indentStr()}        <object class="GtkBox">
+{$this->indentStr()}            <property name="orientation">vertical</property>
+XML;
+
+        foreach ($widget->items() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $result .= <<<XML
+
+{$this->indentStr()}            <child>
+{$this->indentStr()}                <object class="GtkButton">
+{$this->indentStr()}                    <property name="label">{$escapedLabel}</property>
+{$this->indentStr()}                </object>
+{$this->indentStr()}            </child>
+XML;
+        }
+
+        $result .= "\n{$this->indentStr()}        </object>\n";
+        $result .= "{$this->indentStr()}    </child>\n";
+        $result .= "{$this->indentStr()}</object>";
+
+        return rtrim($result);
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $id = $this->nextId();
+        $isOpen = $widget->getIsOpen();
+        $props = $this->generateProperties($widget->getStyle());
+
+        $visible = $isOpen ? '$' . $isOpen->name : 'false';
+
+        return <<<XML
+{$this->indentStr()}<object class="GtkCalendar" id="{$id}">
+{$this->indentStr()}    <property name="visible">{$visible}</property>
+{$props}
+{$this->indentStr()}</object>
+XML;
     }
 
     /** @return StyleProperty[] */

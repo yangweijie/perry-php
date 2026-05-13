@@ -58,6 +58,15 @@ test('Gtk4 generates all widget types', function () {
     $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['GtkBox']];
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['GtkStack']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['GtkNotebook']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['GtkCheckButton']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['GtkCheckButton']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['GtkBox', 'visible']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1', 'b' => '2']), ['GtkComboBoxText', 'items']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['GtkProgressBar']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['xalign']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => '1', 'B' => '2']), ['GtkComboBoxText']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['GtkBox']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['GtkCalendar']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

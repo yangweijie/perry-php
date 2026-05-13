@@ -58,6 +58,15 @@ test('WinUI generates all widget types', function () {
     $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['ItemsControl']];
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['Frame']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['TabControl']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['CheckBox']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['RadioButton', 'GroupName']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['Border']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['ComboBox']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['ProgressBar']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['TextBlock']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['RadioButton']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['MenuItem']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

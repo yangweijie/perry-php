@@ -57,6 +57,12 @@ test('WearTiles generates all widget types', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['not supported in Wear Tiles']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['not supported in Wear Tiles']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>h</p>'), ['not supported in Wear Tiles']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['not supported in Wear Tiles']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['not supported in Wear Tiles']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['not supported in Wear Tiles']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['not supported in Wear Tiles']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['not supported in Wear Tiles']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['not supported in Wear Tiles']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

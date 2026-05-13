@@ -71,6 +71,15 @@ test('ArkTs generates all widget types', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('P'))), ['NavDestination']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('T'))), ['Tabs(']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>hello</p>'), ['Web(']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Enable'), ['Checkbox(']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('Opt A', 'g', 'a'), ['Radio(']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('C')), ['AlertDialog']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['One' => '1']), ['Select(']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['Progress(']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['Hi']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => '1']), ['Tabs']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['bindPopup']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

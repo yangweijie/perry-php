@@ -13,10 +13,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -24,6 +32,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -304,6 +313,15 @@ final class ComposeBackend extends CodegenBackend
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialogWidget($widget),
+            WidgetKind::Dropdown => $this->generateDropdownWidget($widget),
+            WidgetKind::Progress => $this->generateProgressWidget($widget),
+            WidgetKind::Toast => $this->generateToastWidget($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => 'Box {}',
         };
     }
@@ -532,153 +550,177 @@ final class ComposeBackend extends CodegenBackend
         return "TabRow() {\n{$children}\n{$this->indentStr()}}";
     }
 
-    private function generateChildren(array $children): string
+    private function generateCheckbox(Checkbox $widget): string
     {
-        $parts = [];
-        foreach ($children as $child) {
-            $parts[] = $this->indentStr() . $this->generateWidget($child);
-        }
-        return implode("\n", $parts);
+        $label = addslashes($widget->label());
+        $binding = $widget->getIsChecked();
+        $checked = $binding ? $binding->name : 'false';
+        $action = $widget->getOnChange();
+        $onChange = $action ? $this->generateAction($action) : '';
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "Row(verticalAlignment = Alignment.CenterVertically{$mods}) {\n{$this->indentStr()}    Checkbox(checked = {$checked}, onCheckedChange = {{$onChange}})\n{$this->indentStr()}    Text(\"{$label}\")\n{$this->indentStr()}}";
     }
 
-    /**
-     * @return string[] Modifier chain parts (e.g. [".background(...)", ".size(...)"])
-     */
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = addslashes($widget->label());
+        $value = addslashes($widget->getValue());
+        $binding = $widget->getSelectedValue();
+        $selected = $binding ? $binding->name : '""';
+        $action = $widget->getOnChange();
+        $onChange = $action ? $this->generateAction($action) : "{$selected} = \"{$value}\"";
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "Row(verticalAlignment = Alignment.CenterVertically{$mods}) {\n{$this->indentStr()}    RadioButton(selected = {$selected} == \"{$value}\", onClick = {{$onChange}})\n{$this->indentStr()}    Text(\"{$label}\")\n{$this->indentStr()}}";
+    }
+
+    private function generateDialogWidget(Dialog $widget): string
+    {
+        $binding = $widget->getIsOpen();
+        $isOpen = $binding ? $binding->name : 'false';
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "if ({$isOpen}) {\n{$this->indentStr()}    Dialog(onDismissRequest = { {$isOpen} = false }) {\n{$this->indentStr()}        Column{$mods} {\n{$children}\n{$this->indentStr()}        }\n{$this->indentStr()}    }\n{$this->indentStr()}}";
+    }
+
+    private function generateDropdownWidget(Dropdown $widget): string
+    {
+        $binding = $widget->getSelectedValue();
+        $selected = $binding ? $binding->name : '""';
+        $action = $widget->getOnChange();
+        $expandedVar = 'expanded_' . $selected;
+        $items = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $escValue = addslashes((string) $value);
+            $onClick = $action ? str_replace('{$value}', "\"{$escValue}\"", $this->generateAction($action)) : "{$selected} = \"{$escValue}\"";
+            $items[] = "{$this->indentStr()}        DropdownMenuItem(text = { Text(\"{$escLabel}\") }, onClick = { {$onClick}; {$expandedVar} = false })";
+        }
+        $itemsStr = implode(",\n", $items);
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "var {$expandedVar} by remember { mutableStateOf(false) }\n{$this->indentStr()}ExposedDropdownMenuBox(expanded = {$expandedVar}, onExpandedChange = {{ {$expandedVar} = it }}{$mods}) {\n{$this->indentStr()}    TextField(value = {$selected}, onValueChange = {{}}, readOnly = true, modifier = Modifier.menuAnchor())\n{$this->indentStr()}    ExposedDropdownMenu(expanded = {$expandedVar}, onDismissRequest = {{ {$expandedVar} = false }}) {\n{$itemsStr}\n{$this->indentStr()}    }\n{$this->indentStr()}}";
+    }
+
+    private function generateProgressWidget(Progress $widget): string
+    {
+        $binding = $widget->getProgress();
+        $progress = $binding ? $binding->name : '0.5';
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "LinearProgressIndicator(progress = { {$progress}.toFloat() }{$mods})";
+    }
+
+    private function generateToastWidget(Toast $widget): string
+    {
+        $message = addslashes($widget->message());
+        $mods = $this->generateModifiers($widget->getStyle());
+        return "Text(text = \"{$message}\"{$mods})";
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $binding = $widget->getSelectedValue();
+        $selected = $binding ? $binding->name : '0';
+        $action = $widget->getOnChange();
+        $mods = $this->generateModifiers($widget->getStyle());
+        $items = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "{$this->indentStr()}            DropdownMenuItem(text = { Text(\"{$escLabel}\") }, onClick = {{ {$selected} = \"{$value}\" }})";
+        }
+        $itemsStr = implode(",\n", $items);
+
+        return "var expanded_{$selected} by remember { mutableStateOf(false) }\n{$this->indentStr()}ExposedDropdownMenuBox(expanded = expanded_{$selected}, onExpandedChange = {{ expanded_{$selected} = it }}{$mods}) {\n{$this->indentStr()}    OutlinedTextField(value = {$selected}, onValueChange = {{}}, readOnly = true, modifier = Modifier.menuAnchor())\n{$this->indentStr()}    ExposedDropdownMenu(expanded = expanded_{$selected}, onDismissRequest = {{ expanded_{$selected} = false }}) {\n{$itemsStr}\n{$this->indentStr()}    }\n{$this->indentStr()}}";
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $openVar = $isOpen ? $isOpen->name : 'false';
+        $mods = $this->generateModifiers($widget->getStyle());
+        $items = [];
+        foreach ($widget->items() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "{$this->indentStr()}        DropdownMenuItem(text = { Text(\"{$escLabel}\") }, onClick = {{ {$openVar} = false }})";
+        }
+        $itemsStr = implode(",\n", $items);
+
+        return "DropdownMenu(expanded = {$openVar}, onDismissRequest = {{ {$openVar} = false }}{$mods}) {\n{$itemsStr}\n{$this->indentStr()}}";
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $date = $widget->getDate();
+        $isOpen = $widget->getIsOpen();
+        $dateVar = $date ? $date->name : 'dateState';
+        $openVar = $isOpen ? $isOpen->name : 'true';
+        $mods = $this->generateModifiers($widget->getStyle());
+
+        return "var {$dateVar} by remember { mutableStateOf(\"\") }\n{$this->indentStr()}if ({$openVar}) {\n{$this->indentStr()}    DatePicker(state = rememberDatePickerState()){$mods}\n{$this->indentStr()}}";
+    }
+
+    private function generateModifiers(?\Perry\UI\Styling\Style $style): string
+    {
+        $parts = $this->getModifierParts($style);
+        if (empty($parts)) {
+            return '';
+        }
+        return ', modifier = Modifier' . implode('', $parts);
+    }
+
     private function getModifierParts(?\Perry\UI\Styling\Style $style): array
     {
         if ($style === null) {
             return [];
         }
-        $mods = [];
+        $parts = [];
         $props = \Perry\UI\Styling\StyleProperty::class;
 
-        // Colors
-        if ($style->has($props::BackgroundColor)) {
-            $mods[] = ".background({$this->colorExpr($style->get($props::BackgroundColor))})";
-        }
-        // ForegroundColor is handled via Text() color= parameter (not a valid Modifier)
-        if ($style->has($props::BorderColor)) {
-            $mods[] = ".border(color = {$this->colorExpr($style->get($props::BorderColor))})";
-        }
-
-        // Sizing — use .width/.height when only one dimension is set
-        if ($style->has($props::Width) && $style->has($props::Height)) {
-            $w = $style->get($props::Width) . '.dp';
-            $h = $style->get($props::Height) . '.dp';
-            $mods[] = ".size({$w}, {$h})";
-        } else {
-            if ($style->has($props::Width)) {
-                $mods[] = ".width({$style->get($props::Width)}.dp)";
-            }
-            if ($style->has($props::Height)) {
-                $mods[] = ".height({$style->get($props::Height)}.dp)";
-            }
-        }
-        if ($style->has($props::MinWidth)) {
-            $mods[] = ".requiredWidthIn(min = {$style->get($props::MinWidth)}.dp)";
-        }
-        if ($style->has($props::MinHeight)) {
-            $mods[] = ".requiredHeightIn(min = {$style->get($props::MinHeight)}.dp)";
-        }
-        if ($style->has($props::MaxWidth)) {
-            $mods[] = ".requiredWidthIn(max = {$style->get($props::MaxWidth)}.dp)";
-        }
-        if ($style->has($props::MaxHeight)) {
-            $mods[] = ".requiredHeightIn(max = {$style->get($props::MaxHeight)}.dp)";
-        }
-
-        // Border
-        if ($style->has($props::BorderWidth)) {
-            $mods[] = ".border(width = {$style->get($props::BorderWidth)}.dp" .
-                ($style->has($props::BorderColor) ? ", color = {$this->colorExpr($style->get($props::BorderColor))}" : '') . ')';
-        }
-
-        // Corner radius
-        if ($style->has($props::CornerRadius)) {
-            $mods[] = ".clip(RoundedCornerShape({$style->get($props::CornerRadius)}.dp))";
-        }
-
-        // Flex layout
-        if ($style->has($props::FlexGrow)) {
-            $mods[] = ".weight({$style->get($props::FlexGrow)}f)";
-        }
-        if ($style->has($props::JustifyContent)) {
-            $v = $style->get($props::JustifyContent);
-            $map = ['flex-start' => 'Start', 'center' => 'CenterHorizontally', 'flex-end' => 'End'];
-            $mods[] = ".align({$map[$v]}.alignmentLine)";
-        }
-        if ($style->has($props::AlignItems)) {
-            $v = $style->get($props::AlignItems);
-            $map = ['flex-start' => 'Top', 'center' => 'CenterVertically', 'flex-end' => 'Bottom'];
-            $mods[] = ".align({$map[$v]}.alignmentLine)";
-        }
-
-        // Transform
-        if ($style->has($props::Rotate)) {
-            $mods[] = ".rotate({$style->get($props::Rotate)}f)";
-        }
-        if ($style->has($props::Scale)) {
-            $v = $style->get($props::Scale);
-            $mods[] = ".graphicsLayer(scaleX: {$v}f, scaleY: {$v}f)";
-        }
-        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
-            $tx = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
-            $ty = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
-            $mods[] = ".offset(x: {$tx}.dp, y: {$ty}.dp)";
-        }
-
-        // Animation
-        if ($style->has($props::AnimationDuration)) {
-            $mods[] = ".animateContentSize()";
-        }
-
-        // Margin (Compose uses padding with offset, or just padding on outer container)
-        if ($style->has($props::Margin)) {
-            $v = $style->get($props::Margin);
-            $mods[] = ".padding({$v}.dp)";
-        }
-
-        // Padding
         if ($style->has($props::Padding)) {
-            $mods[] = ".padding({$style->get($props::Padding)}.dp)";
+            $parts[] = '.padding(' . $style->get($props::Padding) . '.dp)';
         }
-        if ($style->has($props::PaddingTop) || $style->has($props::PaddingBottom) ||
-            $style->has($props::PaddingLeading) || $style->has($props::PaddingTrailing)) {
-            $top = $style->has($props::PaddingTop) ? $style->get($props::PaddingTop) : 0;
-            $bottom = $style->has($props::PaddingBottom) ? $style->get($props::PaddingBottom) : 0;
-            $start = $style->has($props::PaddingLeading) ? $style->get($props::PaddingLeading) : 0;
-            $end = $style->has($props::PaddingTrailing) ? $style->get($props::PaddingTrailing) : 0;
-            $mods[] = ".padding(start = {$start}.dp, top = {$top}.dp, end = {$end}.dp, bottom = {$bottom}.dp)";
+        if ($style->has($props::Width) && $style->has($props::Height)) {
+            $parts[] = '.size(' . $style->get($props::Width) . '.dp, ' . $style->get($props::Height) . '.dp)';
+        } elseif ($style->has($props::Width)) {
+            $parts[] = '.width(' . $style->get($props::Width) . '.dp)';
+        } elseif ($style->has($props::Height)) {
+            $parts[] = '.height(' . $style->get($props::Height) . '.dp)';
         }
-
-        // Opacity
+        if ($style->has($props::BackgroundColor)) {
+            $hex = $style->get($props::BackgroundColor);
+            $parts[] = '.background(' . $this->colorExpr($hex) . ')';
+        }
+        if ($style->has($props::CornerRadius)) {
+            $parts[] = '.clip(RoundedCornerShape(' . $style->get($props::CornerRadius) . '.dp))';
+        }
         if ($style->has($props::Opacity)) {
-            $mods[] = ".alpha({$style->get($props::Opacity)})";
+            $parts[] = '.alpha(' . $style->get($props::Opacity) . 'f)';
+        }
+        if ($style->has($props::Margin)) {
+            $parts[] = '.padding(' . $style->get($props::Margin) . '.dp)';
+        }
+        if ($style->has($props::FlexGrow)) {
+            $parts[] = '.weight(' . $style->get($props::FlexGrow) . 'f)';
+        }
+        if ($style->has($props::Rotate)) {
+            $parts[] = '.rotate(' . $style->get($props::Rotate) . 'f)';
+        }
+if ($style->has($props::Scale)) {
+             $s = $style->get($props::Scale);
+             $parts[] = ".graphicsLayer { scaleX: {$s}f, scaleY: {$s}f }";
+         }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $x = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $y = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $parts[] = ".offset(x: {$x}.dp, y: {$y}.dp)";
         }
 
-        // Shadow
-        if ($style->has($props::ShadowRadius) || $style->has($props::ShadowColor)) {
-            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 4;
-            $color = $style->has($props::ShadowColor) ? $this->colorExpr($style->get($props::ShadowColor)) : 'Color.Black';
-            $offsetX = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
-            $offsetY = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 2;
-            $mods[] = ".shadow(radius = {$radius}.dp, color = {$color}, offset = Offset({$offsetX}.dp, {$offsetY}.dp))";
-        }
-
-        // Font/text properties are handled via Text() widget parameters (generateTextStyleArgs)
-        // NOT as Modifier functions - Modifier.fontSize/color/fontWeight are not valid in Compose
-
-        return $mods;
+        return $parts;
     }
 
-    private function generateModifiers(?\Perry\UI\Styling\Style $style, string $modifierPrefix = 'Modifier'): string
+    private function indentStr(): string
     {
-        $parts = $this->getModifierParts($style);
-        if (!$parts && $modifierPrefix === 'Modifier') {
-            return '';
-        }
-        $chain = $modifierPrefix . implode('', $parts);
-        return ", modifier = {$chain}";
+        return str_repeat('    ', $this->indent ?? 0);
     }
 
     private function colorExpr(string $hex): string
@@ -687,20 +729,25 @@ final class ComposeBackend extends CodegenBackend
         if (strlen($hex) === 3) {
             $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
         }
-        return "Color(0xFF{$hex})";
+        if (strlen($hex) === 6) {
+            $hex = 'FF' . $hex;
+        }
+        return 'Color(0x' . $hex . ')';
+    }
+
+    private function generateChildren(array $children): string
+    {
+        $parts = [];
+        foreach ($children as $child) {
+            $code = $this->generateWidget($child);
+            $parts[] = $this->indentStr() . $code;
+        }
+        return implode("\n", $parts);
     }
 
     private function getSpacing(?\Perry\UI\Styling\Style $style): string
     {
-        if ($style && $style->has(\Perry\UI\Styling\StyleProperty::Padding)) {
-            return (string) $style->get(\Perry\UI\Styling\StyleProperty::Padding);
-        }
-        return '8';
-    }
-
-    private function indentStr(): string
-    {
-        return str_repeat('    ', $this->indent);
+        return '0';
     }
 
     /** @return StyleProperty[] */

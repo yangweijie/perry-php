@@ -22,6 +22,15 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Binding;
@@ -143,6 +152,15 @@ final class WasmBackend extends CodegenBackend
             WidgetKind::NavigationView => $this->emitNavigationView($widget, $handle),
             WidgetKind::TabView => $this->emitTabView($widget, $handle),
             WidgetKind::WebView => $this->emitWebView($widget, $handle),
+            WidgetKind::Checkbox => $this->emitCheckbox($widget, $handle),
+            WidgetKind::RadioButton => $this->emitRadioButton($widget, $handle),
+            WidgetKind::Dialog => $this->emitDialogWidget($widget, $handle),
+            WidgetKind::Dropdown => $this->emitDropdownWidget($widget, $handle),
+            WidgetKind::Progress => $this->emitProgressWidget($widget, $handle),
+            WidgetKind::Toast => $this->emitToastWidget($widget, $handle),
+            WidgetKind::SegmentedControl => $this->emitSegmentedControl($widget, $handle),
+            WidgetKind::ContextMenu => $this->emitContextMenuWidget($widget, $handle),
+            WidgetKind::DatePicker => $this->emitDatePickerWidget($widget, $handle),
             default => $this->emitDiv($handle),
         };
     }
@@ -380,6 +398,200 @@ final class WasmBackend extends CodegenBackend
         $this->addLine("perry_ui_setStyle(w{$handle}, 'width', '100%');");
         $this->addLine("perry_ui_setStyle(w{$handle}, 'height', '300px');");
         $this->addLine("perry_ui_setStyle(w{$handle}, 'border', 'none');");
+    }
+
+    private function emitCheckbox(Checkbox $widget, int &$handle): void
+    {
+        $label = $this->escapeJs($widget->label());
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('label');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-toggle');");
+
+        $cb = $this->nextHandle();
+        $this->addLine("var w{$cb} = perry_ui_createWidget('input');");
+        $this->addLine("perry_ui_setAttribute(w{$cb}, 'type', 'checkbox');");
+
+        $binding = $widget->getIsChecked();
+        if ($binding && in_array($binding->name, $this->stateVars, true)) {
+            $this->addLine("perry_ui_setId(w{$cb}, '{$binding->name}');");
+        }
+
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $funcName = $this->emitAction($action);
+            $this->addLine("perry_ui_onClick(w{$cb}, function() {{$funcName}(); render?.();});");
+        }
+
+        $this->addLine("perry_ui_addChild(w{$handle}, w{$cb});");
+
+        $textHandle = $this->nextHandle();
+        $this->addLine("var w{$textHandle} = perry_ui_createWidget('span');");
+        $this->addLine("perry_ui_setTextContent(w{$textHandle}, '{$label}');");
+        $this->addLine("perry_ui_addChild(w{$handle}, w{$textHandle});");
+
+        $this->emitStyle($widget->getStyle(), $handle);
+    }
+
+    private function emitRadioButton(RadioButton $widget, int &$handle): void
+    {
+        $label = $this->escapeJs($widget->label());
+        $group = $this->escapeJs($widget->group());
+        $value = $this->escapeJs($widget->getValue());
+
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('label');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-toggle');");
+
+        $rb = $this->nextHandle();
+        $this->addLine("var w{$rb} = perry_ui_createWidget('input');");
+        $this->addLine("perry_ui_setAttribute(w{$rb}, 'type', 'radio');");
+        $this->addLine("perry_ui_setAttribute(w{$rb}, 'name', '{$group}');");
+        $this->addLine("perry_ui_setAttribute(w{$rb}, 'value', '{$value}');");
+
+        $binding = $widget->getSelectedValue();
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $funcName = $this->emitAction($action);
+            $this->addLine("perry_ui_onClick(w{$rb}, function() {{$funcName}(); render?.();});");
+        } elseif ($binding && in_array($binding->name, $this->stateVars, true)) {
+            $this->addLine("perry_ui_onClick(w{$rb}, function() {{$binding->name} = '{$value}'; render?.();});");
+        }
+
+        $this->addLine("perry_ui_addChild(w{$handle}, w{$rb});");
+
+        $textHandle = $this->nextHandle();
+        $this->addLine("var w{$textHandle} = perry_ui_createWidget('span');");
+        $this->addLine("perry_ui_setTextContent(w{$textHandle}, '{$label}');");
+        $this->addLine("perry_ui_addChild(w{$handle}, w{$textHandle});");
+
+        $this->emitStyle($widget->getStyle(), $handle);
+    }
+
+    private function emitDialogWidget(Dialog $widget, int &$handle): void
+    {
+        $binding = $widget->getIsOpen();
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('div');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-dialog');");
+
+        $visBinding = $binding?->name ?? null;
+        if ($visBinding) {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'display', {$visBinding} ? 'block' : 'none');");
+        } else {
+            $this->addLine("perry_ui_setStyle(w{$handle}, 'display', 'none');");
+        }
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'position', 'fixed');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'top', '0');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'left', '0');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'right', '0');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'bottom', '0');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'background', 'rgba(0,0,0,0.5)');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'display', 'flex');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'align-items', 'center');");
+        $this->addLine("perry_ui_setStyle(w{$handle}, 'justify-content', 'center');");
+
+        $this->emitStyle($widget->getStyle(), $handle);
+
+        foreach ($widget->children() as $child) {
+            $childHandle = 0;
+            $this->emitWidget($child, $childHandle);
+            $this->addLine("perry_ui_addChild(w{$handle}, w{$childHandle});");
+        }
+    }
+
+    private function emitDropdownWidget(Dropdown $widget, int &$handle): void
+    {
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('select');");
+
+        $options = $widget->options();
+        foreach ($options as $label => $value) {
+            $escLabel = $this->escapeJs((string) $label);
+            $escValue = $this->escapeJs((string) $value);
+            $childHandle = $this->nextHandle();
+            $this->addLine("var w{$childHandle} = perry_ui_createWidget('option');");
+            $this->addLine("perry_ui_setAttribute(w{$childHandle}, 'value', '{$escValue}');");
+            $this->addLine("perry_ui_setTextContent(w{$childHandle}, '{$escLabel}');");
+            $this->addLine("perry_ui_addChild(w{$handle}, w{$childHandle});");
+        }
+
+        $binding = $widget->getSelectedValue();
+        $action = $widget->getOnChange();
+        if ($action !== null) {
+            $funcName = $this->emitAction($action);
+            $this->addLine("perry_ui_onChange(w{$handle}, function() {{$funcName}(); render?.();});");
+        } elseif ($binding && in_array($binding->name, $this->stateVars, true)) {
+            $this->addLine("perry_ui_setId(w{$handle}, '{$binding->name}');");
+        }
+
+        $this->emitStyle($widget->getStyle(), $handle);
+    }
+
+    private function emitProgressWidget(Progress $widget, int &$handle): void
+    {
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('progress');");
+        $this->addLine("perry_ui_setAttribute(w{$handle}, 'max', '100');");
+
+        $binding = $widget->getProgress();
+        if ($binding && in_array($binding->name, $this->stateVars, true)) {
+            $this->addLine("perry_ui_setId(w{$handle}, '{$binding->name}');");
+        } else {
+            $this->addLine("perry_ui_setAttribute(w{$handle}, 'value', '0');");
+        }
+
+        $this->emitStyle($widget->getStyle(), $handle);
+    }
+
+    private function emitToastWidget(Toast $widget, int &$handle): void
+    {
+        $message = $this->escapeJs($widget->message());
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('div');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-toast');");
+        $this->addLine("perry_ui_setTextContent(w{$handle}, '{$message}');");
+
+        $this->emitStyle($widget->getStyle(), $handle);
+    }
+
+    private function emitSegmentedControl(SegmentedControl $widget, int &$handle): void
+    {
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('div');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-flex-row');");
+        $this->emitStyle($widget->getStyle(), $handle);
+
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = $this->escapeJs((string) $label);
+            $childHandle = $this->nextHandle();
+            $this->addLine("var w{$childHandle} = perry_ui_createWidget('button');");
+            $this->addLine("perry_ui_setTextContent(w{$childHandle}, '{$escLabel}');");
+            $this->addLine("perry_ui_addChild(w{$handle}, w{$childHandle});");
+        }
+    }
+
+    private function emitContextMenuWidget(ContextMenu $widget, int &$handle): void
+    {
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('div');");
+        $this->addLine("perry_ui_addClass(w{$handle}, 'perry-context-menu');");
+        $this->emitStyle($widget->getStyle(), $handle);
+
+        foreach ($widget->items() as $label => $value) {
+            $escLabel = $this->escapeJs((string) $label);
+            $childHandle = $this->nextHandle();
+            $this->addLine("var w{$childHandle} = perry_ui_createWidget('button');");
+            $this->addLine("perry_ui_setTextContent(w{$childHandle}, '{$escLabel}');");
+            $this->addLine("perry_ui_addChild(w{$handle}, w{$childHandle});");
+        }
+    }
+
+    private function emitDatePickerWidget(DatePicker $widget, int &$handle): void
+    {
+        $handle = $this->nextHandle();
+        $this->addLine("var w{$handle} = perry_ui_createWidget('input');");
+        $this->addLine("perry_ui_setAttribute(w{$handle}, 'type', 'date');");
+        $this->emitStyle($widget->getStyle(), $handle);
     }
 
     private function emitDiv(int &$handle): void

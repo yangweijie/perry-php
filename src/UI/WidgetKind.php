@@ -21,4 +21,13 @@ enum WidgetKind: int
     case TabView = 12;
     case TextEditor = 13;
     case WebView = 14;
+    case Checkbox = 15;
+    case RadioButton = 16;
+    case Progress = 17;
+    case Dialog = 18;
+    case Toast = 19;
+    case Dropdown = 20;
+    case SegmentedControl = 21;
+    case ContextMenu = 22;
+    case DatePicker = 23;
 }

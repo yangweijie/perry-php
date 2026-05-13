@@ -48,7 +48,7 @@ test('SwiftUI generate with AppContainer produces @State binding', function () {
         ->and($out)->toContain('count');
 });
 
-test('SwiftUI generates all 16 widgets', function () {
+test('SwiftUI generates all widget types', function () {
     $b = (new CodegenFactory())->get('swiftui');
 
     $specs['Text'] = [new Perry\UI\Widget\Text('Hello'), ['Text(']];
@@ -66,6 +66,15 @@ test('SwiftUI generates all 16 widgets', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('Page'))), ['NavigationView']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('T'))), ['TabView']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>hello</p>'), ['WebViewWrapper']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['Toggle', 'checkbox']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['Button', '"A"']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(new Binding('dialogOpen', true), new Perry\UI\Widget\Text('content')), ['opacity']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['Picker']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['ProgressView']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['Text']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['segmented']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['contextMenu']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

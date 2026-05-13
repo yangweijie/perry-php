@@ -87,6 +87,15 @@ test('Wasm backend generates all 16 widgets', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('Page'))), ['perry-nav-view']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('Tab 1'))), ['perry-tab-view']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>hello</p>'), ['iframe', 'srcdoc']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Enable'), ['checkbox']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('Opt A', 'g', 'a'), ["'radio'"]];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('C')), ['perry-dialog']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['One' => '1']), ["'select'"]];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ["'progress'"]];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['perry-toast']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['button']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['perry-context-menu']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['date']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

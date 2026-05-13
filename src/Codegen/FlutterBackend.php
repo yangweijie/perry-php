@@ -13,10 +13,18 @@ use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
 use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
 use Perry\UI\Widget\ListWidget;
 use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
 use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
@@ -24,6 +32,7 @@ use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
@@ -188,6 +197,15 @@ final class FlutterBackend extends CodegenBackend
             WidgetKind::TabView => $this->generateTabView($widget),
             WidgetKind::Toggle => $this->generateToggle($widget),
             WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => 'const SizedBox.shrink()',
         };
     }
@@ -344,6 +362,84 @@ final class FlutterBackend extends CodegenBackend
     {
         $wrappers = $this->generateStyleWrappers($widget->getStyle());
         return $wrappers . "const Text('WebView')";
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $label = addslashes($widget->label());
+        $isChecked = $widget->getIsChecked();
+        $name = $isChecked?->name ?? 'false';
+        $onChange = $widget->getOnChange();
+        $actionBody = '';
+        if ($onChange !== null) {
+            $actionBody = "\n{$this->indentStr()}      {$this->generateAction($onChange)}";
+        }
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "Row(\n{$this->indentStr()}    children: [\n{$this->indentStr()}      Text('{$label}'),\n{$this->indentStr()}      Checkbox(\n{$this->indentStr()}        value: {$name},\n{$this->indentStr()}        onChanged: (v) {\n{$this->indentStr()}          setState(() => {$name} = v!);{$actionBody}\n{$this->indentStr()}        },\n{$this->indentStr()}      ),\n{$this->indentStr()}    ],\n{$this->indentStr()}  )";
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = addslashes($widget->label());
+        $group = addslashes($widget->group());
+        $val = (string) $widget->getValue();
+        $selected = $widget->getSelectedValue();
+        $groupValue = $selected?->name ?? 'null';
+        $onChange = $widget->getOnChange();
+        $actionBody = '';
+        if ($onChange !== null) {
+            $actionBody = "\n{$this->indentStr()}      {$this->generateAction($onChange)}";
+        }
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "Row(\n{$this->indentStr()}    children: [\n{$this->indentStr()}      Radio<String>(\n{$this->indentStr()}        value: '{$val}',\n{$this->indentStr()}        groupValue: {$groupValue},\n{$this->indentStr()}        onChanged: (v) {\n{$this->indentStr()}          setState(() => {$groupValue} = v);{$actionBody}\n{$this->indentStr()}        },\n{$this->indentStr()}      ),\n{$this->indentStr()}      Text('{$label}'),\n{$this->indentStr()}    ],\n{$this->indentStr()}  )";
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "AlertDialog(\n{$this->indentStr()}    content: SingleChildScrollView(\n{$this->indentStr()}      child: Column(\n{$this->indentStr()}        children: [\n{$children}\n{$this->indentStr()}        ],\n{$this->indentStr()}      ),\n{$this->indentStr()}    ),\n{$this->indentStr()  })";
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $selectedBinding = $widget->getSelectedValue();
+        $name = $selectedBinding?->name ?? 'null';
+        $options = $widget->options();
+        $items = [];
+        foreach ($options as $key => $label) {
+            $key = addslashes((string) $key);
+            $label = addslashes((string) $label);
+            $items[] = "{$this->indentStr()}      DropdownMenuItem<String>(\n{$this->indentStr()}        value: '{$key}',\n{$this->indentStr()}        child: Text('{$label}'),\n{$this->indentStr()}      )";
+        }
+        $itemsCode = implode(",\n", $items);
+        $onChange = $widget->getOnChange();
+        $actionBody = '';
+        if ($onChange !== null) {
+            $actionBody = "\n{$this->indentStr()}      {$this->generateAction($onChange)}";
+        }
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "DropdownButton<String>(\n{$this->indentStr()}    value: {$name},\n{$this->indentStr()}    items: [\n{$itemsCode},\n{$this->indentStr()}    ],\n{$this->indentStr()}    onChanged: (v) {\n{$this->indentStr()}      setState(() => {$name} = v);{$actionBody}\n{$this->indentStr()}    },\n{$this->indentStr()}  )";
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $progressBinding = $widget->getProgress();
+        $progressExpr = $progressBinding !== null ? $progressBinding->name : 'null';
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        if ($progressExpr !== 'null') {
+            return $wrappers . "LinearProgressIndicator(\n{$this->indentStr()}    value: {$progressExpr},\n{$this->indentStr()  })";
+        }
+        return $wrappers . "const LinearProgressIndicator()";
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $message = addslashes($widget->message());
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "Text(\n{$this->indentStr()}    '{$message}',\n{$this->indentStr()}    style: TextStyle(\n{$this->indentStr()}      color: Colors.white,\n{$this->indentStr()}      fontWeight: FontWeight.w500,\n{$this->indentStr()}    ),\n{$this->indentStr()}  )";
     }
 
     private function generateAction(?Action $action): string
@@ -612,6 +708,45 @@ final class FlutterBackend extends CodegenBackend
     private function indentStr(): string
     {
         return str_repeat('  ', $this->indent);
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $binding = $widget->getSelectedValue();
+        $selected = $binding ? $binding->name : 'null';
+        $onChange = $widget->getOnChange();
+        $actionBody = '';
+        if ($onChange !== null) {
+            $actionBody = "{$this->generateAction($onChange)}";
+        }
+        $items = [];
+        foreach ($widget->options() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "{$this->indentStr()}      SegmentedButton<String>(\n{$this->indentStr()}        value: '{$escLabel}',\n{$this->indentStr()}        label: const Text('{$escLabel}'),\n{$this->indentStr()}      )";
+        }
+        $itemsCode = implode(",\n", $items);
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "SegmentedButton<String>(\n{$this->indentStr()}    segments: [\n{$itemsCode},\n{$this->indentStr()}    ],\n{$this->indentStr()}    selected: { {$selected} },\n{$this->indentStr()}    onSelectionChanged: (v) {\n{$this->indentStr()}      {$actionBody}\n{$this->indentStr()}    },\n{$this->indentStr()  })";
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $items = [];
+        foreach ($widget->items() as $label => $value) {
+            $escLabel = addslashes((string) $label);
+            $items[] = "{$this->indentStr()}    PopupMenuItem<String>(\n{$this->indentStr()}      value: '{$escLabel}',\n{$this->indentStr()}      child: Text('{$escLabel}'),\n{$this->indentStr()}    )";
+        }
+        $itemsCode = implode(",\n", $items);
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "PopupMenuButton<String>(\n{$this->indentStr()}    itemBuilder: (context) => [\n{$itemsCode},\n{$this->indentStr()}    ],\n{$this->indentStr()  })";
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $date = $widget->getDate();
+        $dateVar = $date ? $date->name : 'null';
+        $wrappers = $this->generateStyleWrappers($widget->getStyle());
+        return $wrappers . "TextButton(\n{$this->indentStr()}    onPressed: () async {\n{$this->indentStr()}      final picked = await showDatePicker(\n{$this->indentStr()}        context: context,\n{$this->indentStr()}        initialDate: DateTime.now(),\n{$this->indentStr()}        firstDate: DateTime(2000),\n{$this->indentStr()}        lastDate: DateTime(2100),\n{$this->indentStr()}      );\n{$this->indentStr()}      if (picked != null) { {$dateVar} = picked.toString(); }\n{$this->indentStr()}    },\n{$this->indentStr()}    child: const Text('{$dateVar}'),\n{$this->indentStr()  })";
     }
 
     /** @return StyleProperty[] */

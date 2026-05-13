@@ -8,20 +8,29 @@ use Perry\Build\Target;
 use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
+use Perry\UI\Widget\AppContainer;
 use Perry\UI\Widget\Button;
+use Perry\UI\Widget\Checkbox;
+use Perry\UI\Widget\ContextMenu;
+use Perry\UI\Widget\DatePicker;
+use Perry\UI\Widget\Dialog;
+use Perry\UI\Widget\Dropdown;
+use Perry\UI\Widget\SegmentedControl;
 use Perry\UI\Widget\HStack;
 use Perry\UI\Widget\Image;
+use Perry\UI\Widget\ListWidget;
+use Perry\UI\Widget\NavigationView;
+use Perry\UI\Widget\Progress;
+use Perry\UI\Widget\RadioButton;
 use Perry\UI\Widget\ScrollView;
+use Perry\UI\Widget\Slider;
 use Perry\UI\Widget\Spacer;
+use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\Text;
 use Perry\UI\Widget\TextEditor;
 use Perry\UI\Widget\TextInput;
+use Perry\UI\Widget\Toast;
 use Perry\UI\Widget\Toggle;
-use Perry\UI\Widget\AppContainer;
-use Perry\UI\Widget\ListWidget;
-use Perry\UI\Widget\NavigationView;
-use Perry\UI\Widget\Slider;
-use Perry\UI\Widget\TabView;
 use Perry\UI\Widget\VStack;
 use Perry\UI\Widget\WebView;
 use Perry\UI\WidgetKind;
@@ -263,9 +272,18 @@ XAML);
             WidgetKind::Slider => $this->generateSlider($widget),
             WidgetKind::TextEditor => $this->generateTextEditorWidget($widget),
             WidgetKind::WebView => $this->generateWebViewWidget($widget),
+            WidgetKind::Checkbox => $this->generateCheckbox($widget),
+            WidgetKind::RadioButton => $this->generateRadioButton($widget),
+            WidgetKind::Progress => $this->generateProgress($widget),
+            WidgetKind::Dialog => $this->generateDialog($widget),
+            WidgetKind::Toast => $this->generateToast($widget),
+            WidgetKind::Dropdown => $this->generateDropdown($widget),
             WidgetKind::ListWidget => $this->generateListWidget($widget),
             WidgetKind::NavigationView => $this->generateNavigationView($widget),
             WidgetKind::TabView => $this->generateTabView($widget),
+            WidgetKind::SegmentedControl => $this->generateSegmentedControl($widget),
+            WidgetKind::ContextMenu => $this->generateContextMenuWidget($widget),
+            WidgetKind::DatePicker => $this->generateDatePickerWidget($widget),
             default => '',
         };
     }
@@ -876,6 +894,202 @@ XAML);
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    private function generateCheckbox(Checkbox $widget): string
+    {
+        $label = htmlspecialchars($widget->label());
+        $props = $this->generateProperties($widget->getStyle());
+
+        $isChecked = $widget->getIsChecked();
+        $isCheckedAttr = $isChecked ? " IsChecked=\"{" . $isChecked->name . "}\"" : '';
+
+        $onChange = $widget->getOnChange();
+        $clickAttr = '';
+        if ($onChange !== null) {
+            $safeId = $this->safeMethodName($widget->label());
+            $methodName = 'On' . $safeId . 'CheckChange';
+            $this->buttonActions[] = [
+                'id' => $widget->label(),
+                'method' => $methodName,
+                'action' => $onChange,
+                'eventType' => 'CheckChanged',
+                'bindingName' => $isChecked ? $isChecked->name : '',
+            ];
+            $clickAttr = " Checked=\"{$methodName}\" Unchecked=\"{$methodName}\"";
+        }
+
+        return trim(<<<XAML
+        {$this->indentStr()}<CheckBox Content="{$label}"{$isCheckedAttr}{$clickAttr}{$props} />
+XAML);
+    }
+
+    private function generateRadioButton(RadioButton $widget): string
+    {
+        $label = htmlspecialchars($widget->label());
+        $group = htmlspecialchars($widget->group());
+        $value = htmlspecialchars($widget->getValue());
+        $props = $this->generateProperties($widget->getStyle());
+
+        $selectedValue = $widget->getSelectedValue();
+        $isCheckedAttr = '';
+        if ($selectedValue !== null) {
+            $isCheckedAttr = " IsChecked=\"{" . $selectedValue->name . " == '" . $value . "'}\"";
+        }
+
+        $onChange = $widget->getOnChange();
+        $clickAttr = '';
+        if ($onChange !== null) {
+            $safeId = $this->safeMethodName($widget->label());
+            $methodName = 'On' . $safeId . 'RadioChange_' . $group;
+            $this->buttonActions[] = [
+                'id' => $widget->label(),
+                'method' => $methodName,
+                'action' => $onChange,
+            ];
+            $clickAttr = " Checked=\"{$methodName}\"";
+        }
+
+        return trim(<<<XAML
+        {$this->indentStr()}<RadioButton Content="{$label}" GroupName="{$group}"{$isCheckedAttr}{$clickAttr}{$props} />
+XAML);
+    }
+
+    private function generateProgress(Progress $widget): string
+    {
+        $props = $this->generateProperties($widget->getStyle());
+
+        $progress = $widget->getProgress();
+        $valueAttr = $progress ? " Value=\"{" . $progress->name . "}\"" : '';
+
+        return trim(<<<XAML
+        {$this->indentStr()}<ProgressBar{$valueAttr}{$props} />
+XAML);
+    }
+
+    private function generateDialog(Dialog $widget): string
+    {
+        // WinUI has ContentDialog, but it requires code-behind. For codegen simplicity,
+        // generate a Border overlay that acts as a modal dialog container.
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $this->indent--;
+
+        $isOpen = $widget->getIsOpen();
+        $visibility = $isOpen ? " Visibility=\"Visible\"" : ' Visibility="Collapsed"';
+
+        return trim(<<<XAML
+        {$this->indentStr()}<Border Background="#80FFFFFF"{$visibility}>
+        {$this->indentStr()}    <Border Background="White" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="20" Margin="50">
+        {$children}
+        {$this->indentStr()}    </Border>
+        {$this->indentStr()}</Border>
+XAML);
+    }
+
+    private function generateToast(Toast $widget): string
+    {
+        $message = htmlspecialchars($widget->message());
+
+        return trim(<<<XAML
+        {$this->indentStr()}<Border Background="#333333" CornerRadius="4" Padding="12,8" Margin="20" HorizontalAlignment="Center">
+        {$this->indentStr()}    <TextBlock Text="{$message}" Foreground="White" TextWrapping="Wrap" />
+        {$this->indentStr()}</Border>
+XAML);
+    }
+
+    private function generateDropdown(Dropdown $widget): string
+    {
+        $props = $this->generateProperties($widget->getStyle());
+
+        $selectedValue = $widget->getSelectedValue();
+        $selectedAttr = $selectedValue ? " SelectedValue=\"{" . $selectedValue->name . "}\"" : '';
+
+        $onChange = $widget->getOnChange();
+        $changeAttr = '';
+        if ($onChange !== null) {
+            $methodName = 'OnDropdownChange';
+            $this->buttonActions[] = [
+                'id' => 'dropdown',
+                'method' => $methodName,
+                'action' => $onChange,
+            ];
+            $changeAttr = " SelectionChanged=\"{$methodName}\"";
+        }
+
+        $this->indent++;
+        $items = '';
+        foreach ($widget->options() as $label => $value) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $items .= "\n" . $this->indentStr() . "<ComboBoxItem Content=\"{$escapedLabel}\" />";
+        }
+        $this->indent--;
+
+        return trim(<<<XAML
+        {$this->indentStr()}<ComboBox{$selectedAttr}{$changeAttr}{$props}>{$items}
+        {$this->indentStr()}</ComboBox>
+XAML);
+    }
+
+    private function generateSegmentedControl(SegmentedControl $widget): string
+    {
+        $props = $this->generateProperties($widget->getStyle());
+        $selectedValue = $widget->getSelectedValue();
+        $onChange = $widget->getOnChange();
+
+        $changeAttr = '';
+        if ($onChange !== null) {
+            $methodName = 'OnSegmentedChange';
+            $this->buttonActions[] = ['id' => 'segmented', 'method' => $methodName, 'action' => $onChange];
+            $changeAttr = " SelectionChanged=\"{$methodName}\"";
+        }
+
+        $this->indent++;
+        $items = '';
+        foreach ($widget->options() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $selectedPrefix = ' ';
+            if ($selectedValue !== null) {
+                $selectedPrefix = " IsChecked=\"True\"";
+            }
+            $items .= "\n" . $this->indentStr() . "<RadioButton Content=\"{$escapedLabel}\"{$selectedPrefix} GroupName=\"seg\" />";
+        }
+        $this->indent--;
+
+        return trim(<<<XAML
+        {$this->indentStr()}<StackPanel Orientation="Horizontal"{$props}{$changeAttr}>{$items}
+        {$this->indentStr()}</StackPanel>
+XAML);
+    }
+
+    private function generateContextMenuWidget(ContextMenu $widget): string
+    {
+        $isOpen = $widget->getIsOpen();
+        $visibility = $isOpen ? 'Visible' : 'Collapsed';
+
+        $this->indent++;
+        $items = '';
+        foreach ($widget->items() as $label => $val) {
+            $escapedLabel = htmlspecialchars((string) $label);
+            $items .= "\n" . $this->indentStr() . "<MenuItem Header=\"{$escapedLabel}\" />";
+        }
+        $this->indent--;
+
+        return trim(<<<XAML
+        {$this->indentStr()}<Menu Visibility="{$visibility}">{$items}
+        {$this->indentStr()}</Menu>
+XAML);
+    }
+
+    private function generateDatePickerWidget(DatePicker $widget): string
+    {
+        $props = $this->generateProperties($widget->getStyle());
+        $isOpen = $widget->getIsOpen();
+        $visibility = $isOpen ? 'Visible' : 'Collapsed';
+
+        return trim(<<<XAML
+        {$this->indentStr()}<DatePicker Visibility="{$visibility}"{$props} />
+XAML);
     }
 
     /** @return StyleProperty[] */

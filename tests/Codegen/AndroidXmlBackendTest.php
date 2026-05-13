@@ -59,6 +59,15 @@ test('AndroidXml generates all widget types', function () {
     $specs['ListWidget'] = [new Perry\UI\Widget\ListWidget(new Perry\UI\Widget\Text('item')), ['LinearLayout']];
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['FrameLayout']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['LinearLayout']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['CheckBox']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['RadioButton']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['FrameLayout']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['Spinner']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['ProgressBar']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['TextView', 'Hi']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => '1']), ['RadioGroup']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['not supported']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

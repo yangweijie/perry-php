@@ -71,6 +71,15 @@ test('Flutter generates all widget types', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('P'))), ['AppBar']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\VStack(new Perry\UI\Widget\Text('T'))), ['TabBar']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>hello</p>'), ["'WebView'"]];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Enable'), ['Checkbox(']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('Opt A', 'g', 'a'), ['Radio<']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('C')), ['AlertDialog']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['One' => '1']), ['DropdownButton']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['LinearProgressIndicator']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['Hi']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['SegmentedButton']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['PopupMenuButton']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['DatePicker']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

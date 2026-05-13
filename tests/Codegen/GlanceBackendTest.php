@@ -64,6 +64,12 @@ test('Glance generates all widget types', function () {
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['not supported in Glance']];
     $specs['WebView'] = [new Perry\UI\Widget\WebView('<p>h</p>'), ['not supported in Glance']];
     $specs['Slider'] = [new Perry\UI\Widget\Slider(new Binding('sv', 50.0)), ['not supported in Glance']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['not supported in Glance']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['not supported in Glance']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['not supported in Glance']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['not supported in Glance']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['not supported in Glance']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['not supported in Glance']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);

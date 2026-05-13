@@ -207,6 +207,15 @@ final class GlanceBackend extends CodegenBackend
             WidgetKind::NavigationView => $this->generateUnsupported('NavigationView'),
             WidgetKind::TabView => $this->generateUnsupported('TabView'),
             WidgetKind::WebView => $this->generateUnsupported('WebView'),
+            WidgetKind::Checkbox => $this->generateUnsupported('Checkbox'),
+            WidgetKind::RadioButton => $this->generateUnsupported('RadioButton'),
+            WidgetKind::Dialog => $this->generateUnsupported('Dialog'),
+            WidgetKind::Dropdown => $this->generateUnsupported('Dropdown'),
+            WidgetKind::Progress => $this->generateUnsupported('Progress'),
+            WidgetKind::Toast => $this->generateUnsupported('Toast'),
+            WidgetKind::SegmentedControl => $this->generateUnsupported('SegmentedControl'),
+            WidgetKind::ContextMenu => $this->generateUnsupported('ContextMenu'),
+            WidgetKind::DatePicker => $this->generateUnsupported('DatePicker'),
             default => '',
         };
     }

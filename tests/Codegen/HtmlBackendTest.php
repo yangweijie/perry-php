@@ -43,7 +43,7 @@ test('Html generate produces inline CSS', function () {
         ->and($out)->toContain('padding');
 });
 
-test('Html generates all 16 widgets', function () {
+test('Html generates all widget types', function () {
     $b = (new CodegenFactory())->get('html');
 
     $specs['Text'] = [new Perry\UI\Widget\Text('Hello'), ['Hello']];
@@ -61,6 +61,15 @@ test('Html generates all 16 widgets', function () {
     $specs['NavigationView'] = [new Perry\UI\Widget\NavigationView(new Perry\UI\Widget\Text('screen')), ['class="nav-view"']];
     $specs['TabView'] = [new Perry\UI\Widget\TabView(new Perry\UI\Widget\Text('tab')), ['class="tab-view"']];
     $specs['TextInput'] = [new Perry\UI\Widget\TextInput(StateId::next(), 'Enter...'), ['type="text"']];
+    $specs['Checkbox'] = [new Perry\UI\Widget\Checkbox('Dark'), ['checkbox']];
+    $specs['RadioButton'] = [new Perry\UI\Widget\RadioButton('A', 'g', 'a'), ['radio']];
+    $specs['Dialog'] = [new Perry\UI\Widget\Dialog(null, new Perry\UI\Widget\Text('content')), ['dialog']];
+    $specs['Dropdown'] = [new Perry\UI\Widget\Dropdown(['a' => '1']), ['select']];
+    $specs['Progress'] = [new Perry\UI\Widget\Progress(), ['progress']];
+    $specs['Toast'] = [new Perry\UI\Widget\Toast('Hi'), ['toast']];
+    $specs['SegmentedControl'] = [new Perry\UI\Widget\SegmentedControl(['A' => 'a']), ['button']];
+    $specs['ContextMenu'] = [new Perry\UI\Widget\ContextMenu(['X' => 'x']), ['context']];
+    $specs['DatePicker'] = [new Perry\UI\Widget\DatePicker(), ['date']];
 
     foreach ($specs as $label => [$w, $kws]) {
         $out = $b->generate($w);
