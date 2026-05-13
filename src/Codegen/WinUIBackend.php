@@ -207,7 +207,13 @@ CS;
         if ($action->type === \Perry\UI\ActionType::Closure) {
             $generator = new \Perry\Generator\CSharpGenerator(array_keys($this->stateVars));
             $code = $action->generate($generator);
-            return $this->indentCs($code, 3);
+            $code = $this->indentCs($code, 3);
+            // Ensure code ends with semicolon
+            $code = rtrim($code);
+            if (!empty($code) && substr($code, -1) !== ';') {
+                $code .= ';';
+            }
+            return $code;
         }
 
         if ($action->type === \Perry\UI\ActionType::SetValue) {
