@@ -1257,7 +1257,34 @@ php examples/calculator.php macos --build
 
 php examples/calculator.php web
 # Output: build/calculator.html
+
+php examples/pry.php windows --build
+# Output: build/pry.exe
 ```
+
+### Windows Requirements
+
+Apps that use the `WebView` widget (e.g., the Pry JSON viewer) require **WebView2 Runtime** on Windows.
+
+**Install WebView2 Runtime:**
+
+- **Option 1 — Evergreen Bootstrapper** (recommended, auto-updates):  
+  Download from [Microsoft Edge WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/):  
+  https://go.microsoft.com/fwlink/p/?LinkId=2124703
+
+- **Option 2 — Evergreen Standalone Installer**:  
+  https://go.microsoft.com/fwlink/p/?LinkId=2124702
+
+- **Option 3 — Fixed Version** (for offline/restricted environments):  
+  https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
+
+- **Check if already installed**:  
+  Open `Control Panel → Programs and Features` and look for **WebView2 Runtime**.  
+  Or check `C:\Program Files (x86)\Microsoft\EdgeWebView\Application\`.
+
+  WebView2 ships with Microsoft Edge (Chromium-based), so it's often already present on modern Windows systems.
+
+**Build output:** The compiler writes `pry.html` alongside the `.exe` file. The app reads it at runtime via WebView2's `NavigateToString()`.
 
 ---
 
@@ -1428,6 +1455,21 @@ $app->setRoot(
 
 echo $app->generateCode('swiftui');
 ```
+
+### Pry — JSON Viewer (with WebView2 on Windows)
+
+A native JSON viewer with tree view, search, syntax highlighting, and clipboard support. Uses `WebView` widget to embed a full HTML/JS UI.
+
+```bash
+php examples/pry.php windows --build
+# Output: build/pry.exe + build/pry.html
+
+# Also works on other platforms:
+php examples/pry.php macos --build
+php examples/pry.php web
+```
+
+**Note for Windows:** Requires [WebView2 Runtime](#windows-requirements). The generated `pry.html` file contains the complete viewer UI (tree rendering, search, context menus) and is loaded at runtime.
 
 ---
 

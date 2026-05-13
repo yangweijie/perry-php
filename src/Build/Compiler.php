@@ -209,7 +209,14 @@ final class Compiler
         $csSource = $backend->generateMainActivity($outputName);
         file_put_contents($mainWindowCsFile, $csSource);
 
-        $csproj = $this->generateCsproj($outputName);
+        $needsWebView2 = $backend instanceof \Perry\Codegen\WinUIBackend && $backend->needsWebView2();
+        if ($needsWebView2) {
+            $webViewHtml = $backend->getWebViewHtml();
+            if ($webViewHtml !== null) {
+                file_put_contents($this->buildDir . '/' . $outputName . '.html', $webViewHtml);
+            }
+        }
+        $csproj = $this->generateCsproj($outputName, $needsWebView2);
         file_put_contents($csprojFile, $csproj);
 
         $cmd = sprintf('dotnet build %s -o %s 2>&1', escapeshellarg($csprojFile), escapeshellarg($this->buildDir));
@@ -638,9 +645,9 @@ SETTINGS;
         CS;
     }
 
-    private function generateCsproj(string $appName): string
+    private function generateCsproj(string $appName, bool $needsWebView2 = false): string
     {
-        return <<<XML
+        $proj = <<<XML
         <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
                 <OutputType>WinExe</OutputType>
@@ -660,7 +667,17 @@ SETTINGS;
                 <Compile Include="MainWindow.xaml.cs" />
                 <Compile Include="App.xaml.cs" />
             </ItemGroup>
-        </Project>
-        XML;
+XML;
+
+        if ($needsWebView2) {
+            $proj .= <<<XML
+            <ItemGroup>
+                <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2957.106" />
+            </ItemGroup>
+XML;
+        }
+
+        $proj .= "\n        </Project>\n";
+        return $proj;
     }
 }

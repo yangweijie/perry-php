@@ -52,8 +52,25 @@ final class WinUIBackend extends CodegenBackend
     /** @var string|null */
     private ?string $windowHeight = null;
     
+    /** @var bool 是否需要 WebView2 支持 */
+    /** @var bool 是否需要 WebView2 支持 */
+    private bool $needsWebView2 = false;
+
+    /** @var string|null WebView 的 HTML 内容 */
+    private ?string $webViewHtml = null;
+    
     /** @var array<string, string> 绑定变量名到 TextBlock 名称的映射 */
     private array $textBindings = [];
+
+    public function needsWebView2(): bool
+    {
+        return $this->needsWebView2;
+    }
+
+    public function getWebViewHtml(): ?string
+    {
+        return $this->webViewHtml;
+    }
 
     public function name(): string
     {
@@ -70,6 +87,8 @@ final class WinUIBackend extends CodegenBackend
         $this->indent = 0;
         $this->buttonActions = [];
         $this->stateVars = [];
+        $this->needsWebView2 = false;
+        $this->webViewHtml = null;
         $this->textBindings = [];
         
         // Extract state variables and window size from AppContainer
@@ -87,16 +106,22 @@ final class WinUIBackend extends CodegenBackend
             explode("\n", $body)
         ));
 
+        $wv2ns = $this->needsWebView2
+            ? "\n        xmlns:wv2=\"clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf\""
+            : '';
+
         return trim(<<<XAML
 <Window x:Class="PerryApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"{$wv2ns}
         Title="Perry App"
         Width="{$this->windowWidth}"
         Height="{$this->windowHeight}"
         Background="White"
         WindowStartupLocation="CenterScreen">
+    <Grid>
 {$indentedBody}
+    </Grid>
 </Window>
 XAML);
     }
@@ -164,7 +189,7 @@ CS;
         }
 
         $fields = $this->generateFields();
-        
+
         $updateUICode = '';
         foreach ($this->textBindings as $bindingName => $textBlockName) {
             $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}.ToString() ?? \"\";\n";
@@ -175,6 +200,70 @@ CS;
             $usings .= "using System.Windows.Controls.Primitives;\n";
         }
         $usings .= "using System.Windows;\nusing System.Windows.Controls;\n";
+        if ($this->needsWebView2) {
+            $usings .= "using Microsoft.Web.WebView2.Wpf;\nusing Microsoft.Web.WebView2.Core;\n";
+        }
+
+        if ($this->needsWebView2 && $this->webViewHtml !== null) {
+            // Write HTML to file alongside the executable, then load via Source
+            // This avoids C# string escaping issues and is more robust than embedding HTML in source
+            $csWebViewInit = <<<CS_WEBVIEW
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            try {
+                var appDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
+                var htmlFile = System.IO.Path.Combine(appDir, "{$outputName}.html");
+                await webView.EnsureCoreWebView2Async();
+                webView.CoreWebView2.NavigateToString(System.IO.File.ReadAllText(htmlFile));
+            } catch (Exception ex) {
+                try {
+                    webView.CoreWebView2.NavigateToString("<html><body><h1>Error</h1><p>" + ex.Message + "</p></body></html>");
+                } catch {
+                    // WebView2 may not be available
+                }
+            }
+        }
+CS_WEBVIEW;
+        } elseif ($this->needsWebView2) {
+            $csWebViewInit = <<<'CS_WEBVIEW'
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            try {
+                await webView.EnsureCoreWebView2Async();
+                webView.CoreWebView2.NavigateToString("<html><body><h1>WebView2 Ready</h1></body></html>");
+            } catch (Exception ex) {
+                // WebView2 not available
+            }
+        }
+CS_WEBVIEW;
+        } else {
+            $csWebViewInit = <<<'CS_WEBVIEW'
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // WebView2 not used in this app
+        }
+CS_WEBVIEW;
+        }
+
+        $openBrowserMethod = <<<'CS'
+
+        private void OpenInDefaultBrowser(string url)
+        {
+            try {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            } catch (Exception ex)
+            {
+                MessageBox.Show("Please open this URL manually:" + Environment.NewLine + Environment.NewLine + url, "WebView2 Download", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+CS;
 
         return <<<CS
 {$usings}
@@ -186,6 +275,7 @@ namespace PerryApp
         public MainWindow() {
             InitializeComponent();
             UpdateUI();
+            Loaded += MainWindow_Loaded;
         }
 {$methods}
 
@@ -193,6 +283,8 @@ namespace PerryApp
         {
 {$updateUICode}
         }
+{$csWebViewInit}
+{$openBrowserMethod}
     }
 }
 CS;
@@ -689,8 +781,10 @@ XAML);
 
     private function generateWebViewWidget(WebView $widget): string
     {
+        $this->needsWebView2 = true;
+        $this->webViewHtml = $widget->html();
         return trim(<<<XAML
-        {$this->indentStr()}<WebView2 Source="about:blank" />
+        {$this->indentStr()}<wv2:WebView2 x:Name="webView" />
 XAML);
     }
 

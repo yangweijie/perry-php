@@ -146,8 +146,8 @@ final class HtmlBackend extends CodegenBackend
                 .calc-btn.op:hover { background: #d97706; }
                 .calc-btn.eq { background: #10b981; color: #fff; }
                 .calc-btn.eq:hover { background: #059669; }
+                {$containerStyle}
             </style>
-            {$containerStyle}
             {$responsiveCSS}
             {$themeCSS}
         </head>
