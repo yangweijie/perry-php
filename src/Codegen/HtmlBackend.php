@@ -130,7 +130,7 @@ final class HtmlBackend extends CodegenBackend
             <title>{$title}</title>
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #000; }
                 .vstack { display: flex; flex-direction: column; }
                 .hstack { display: flex; flex-direction: row; }
                 .spacer { flex: 1; }
@@ -523,7 +523,8 @@ final class HtmlBackend extends CodegenBackend
             $onclick = " onclick=\"{$funcName}()\"";
         }
 
-        return "<label{$onclick}><input type=\"checkbox\" id=\"{$id}\"> {$label}</label>";
+        $style = $this->generateStyle($widget->getStyle());
+        return "<label{$onclick}{$style}><input type=\"checkbox\" id=\"{$id}\"> {$label}</label>";
     }
 
     private function generateCheckbox(Checkbox $widget): string
@@ -545,7 +546,8 @@ final class HtmlBackend extends CodegenBackend
             $onclick = " onclick=\"{$funcName}()\"";
         }
 
-        return "<label{$onclick}><input type=\"checkbox\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
+        $style = $this->generateStyle($widget->getStyle());
+        return "<label{$onclick}{$style}><input type=\"checkbox\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
     }
 
     private function generateRadioButton(RadioButton $widget): string
@@ -568,7 +570,8 @@ final class HtmlBackend extends CodegenBackend
             $onclick = " onclick=\"{$funcName}()\"";
         }
 
-        return "<label{$onclick}><input type=\"radio\" name=\"{$group}\" value=\"{$value}\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
+        $style = $this->generateStyle($widget->getStyle());
+        return "<label{$onclick}{$style}><input type=\"radio\" name=\"{$group}\" value=\"{$value}\" id=\"{$id}\"{$checkedAttr}> {$label}</label>";
     }
 
     private function generateDialog(Dialog $widget): string
