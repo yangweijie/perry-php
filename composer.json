@@ -1,5 +1,5 @@
 {
-    "name": "perry/perry",
+    "name": "yangweijie/perry-php",
     "description": "Cross-platform UI abstraction and build system inspired by Perry-TS",
     "type": "library",
     "license": "MIT",
