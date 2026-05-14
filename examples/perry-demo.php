@@ -38,6 +38,16 @@ use Perry\UI\Widget\TextInput;
 use Perry\UI\Widget\Toggle;
 use Perry\UI\Widget\VStack;
 
+// Helper: factory for parameterized button
+function addLabeled(string $label, string $suffix, Binding $items): Button {
+    return new Button($label, Action::fromClosure(
+        function () use ($items, $suffix) {
+            $items .= "\n• " . $suffix;
+        },
+        compact('suffix')
+    ));
+}
+
 // ============================================================
 // 1. State — Bindings & StateId
 // ============================================================
@@ -127,19 +137,9 @@ $toggleDark = Action::fromClosure(function () use ($isDark, $greeting) {
     }
 });
 
-// 3c. Closure with parameter substitution
-$addDemo = Action::fromClosure(
-    function () use ($items, $text) {
-        $items .= "\n• " . $text;
-    },
-    ['text' => 'Demo']
-);
-$addTest = Action::fromClosure(
-    function () use ($items, $text) {
-        $items .= "\n• " . $text;
-    },
-    ['text' => 'Test']
-);
+// 3c. Closure with parameter substitution (factory pattern)
+$addDemo = addLabeled('Add Demo', 'Demo', $items);
+$addTest = addLabeled('Add Test', 'Test', $items);
 
 // 3d. Progress action
 $randomProgress = Action::fromClosure(function () use ($progress) {
@@ -210,8 +210,8 @@ $root = new VStack(
     new Text(' Closure Actions (param substitution)')->style($sectionTitle),
     (new VStack(
         new HStack(
-            new Button('Add Demo', $addDemo)->style($primaryBtn),
-            new Button('Add Test', $addTest)->style($successBtn),
+            $addDemo->style($primaryBtn),
+            $addTest->style($successBtn),
             new Button('Clear', Action::clear($items))->style($dangerBtn),
         ),
         (new Text($items))->style(Style::make()->fontSize(14)->padding(8)),
