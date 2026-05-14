@@ -1,0 +1,62 @@
+{
+  "name": "@vuepress/cli",
+  "version": "2.0.0-rc.28",
+  "description": "CLI package of VuePress",
+  "keywords": [
+    "cli",
+    "vuepress"
+  ],
+  "homepage": "https://github.com/vuepress",
+  "bugs": {
+    "url": "https://github.com/vuepress/core/issues"
+  },
+  "license": "MIT",
+  "author": "meteorlxy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuepress/core.git"
+  },
+  "bin": {
+    "vuepress-cli": "./bin/vuepress.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./bin": "./dist/vuepress.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "cac": "^7.0.0",
+    "chokidar": "^5.0.0",
+    "envinfo": "^7.21.0",
+    "esbuild": "^0.27.4",
+    "@vuepress/core": "2.0.0-rc.28",
+    "@vuepress/utils": "2.0.0-rc.28",
+    "@vuepress/shared": "2.0.0-rc.28"
+  },
+  "devDependencies": {
+    "@types/envinfo": "^7.8.4"
+  },
+  "tsdown": {
+    "dts": true,
+    "entry": "./src/index.ts",
+    "fixedExtension": false,
+    "format": "esm",
+    "target": "es2023",
+    "tsconfig": "../../tsconfig.dts.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rimraf dist"
+  }
+}

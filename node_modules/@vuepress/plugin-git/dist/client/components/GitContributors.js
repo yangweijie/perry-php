@@ -1,0 +1,1 @@
+import{n as e,t}from"../../GitContributors-6yW-5mIh.js";export{t as GitContributor,e as GitContributors};

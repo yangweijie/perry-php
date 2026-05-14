@@ -1,0 +1,64 @@
+{
+  "name": "@vuepress/highlighter-helper",
+  "version": "2.0.0-rc.128",
+  "description": "VuePress Highlighter helper",
+  "keywords": [
+    "helper",
+    "highlighter-helper",
+    "vuepress"
+  ],
+  "homepage": "https://ecosystem.vuejs.press/tools/highlighter-helper/",
+  "bugs": {
+    "url": "https://github.com/vuepress/ecosystem/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Mr.Hope",
+    "email": "mister-hope@outlook.com",
+    "url": "https://mister-hope.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuepress/ecosystem.git",
+    "directory": "tools/highlighter-helper"
+  },
+  "files": [
+    "dist",
+    "scss"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./dist/**/*.css",
+    "./scss/**/*.scss"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./styles/*.css": "./dist/client/styles/*.css",
+    "./scss/*.scss": "./scss/*.scss",
+    "./scss/*": {
+      "sass": "./scss/*.scss"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@vuepress/helper": "2.0.0-rc.128",
+    "@vueuse/core": "^14.2.1",
+    "vuepress": "2.0.0-rc.28"
+  },
+  "peerDependenciesMeta": {
+    "@vueuse/core": {
+      "optional": true
+    }
+  },
+  "gitHead": "47b25c2008dc496e4638cae7528374846d3660dd"
+}

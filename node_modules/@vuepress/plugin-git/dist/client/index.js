@@ -1,0 +1,1 @@
+import{n as e,r as t,t as n}from"../GitChangelog-Crl01_KU.js";import{n as r,r as i,t as a}from"../GitContributors-6yW-5mIh.js";import{n as o,r as s,t as c}from"../VPHeader-Bqp9d4cM.js";export{n as GitChangelog,a as GitContributor,r as GitContributors,c as VPHeader,o as locales,t as useChangelog,i as useContributors,s as useGitLocale,e as useLastUpdated};

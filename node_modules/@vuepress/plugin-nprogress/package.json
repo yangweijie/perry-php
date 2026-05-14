@@ -1,0 +1,51 @@
+{
+  "name": "@vuepress/plugin-nprogress",
+  "version": "2.0.0-rc.128",
+  "description": "VuePress plugin - nprogress",
+  "keywords": [
+    "nprogress",
+    "plugin",
+    "vuepress",
+    "vuepress-plugin"
+  ],
+  "homepage": "https://ecosystem.vuejs.press/plugins/features/nprogress.html",
+  "bugs": {
+    "url": "https://github.com/vuepress/ecosystem/issues"
+  },
+  "license": "MIT",
+  "author": "meteorlxy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuepress/ecosystem.git",
+    "directory": "plugins/features/plugin-nprogress"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@vuepress/helper": "2.0.0-rc.128",
+    "vue": "^3.5.31"
+  },
+  "peerDependencies": {
+    "vuepress": "2.0.0-rc.28"
+  },
+  "gitHead": "47b25c2008dc496e4638cae7528374846d3660dd"
+}

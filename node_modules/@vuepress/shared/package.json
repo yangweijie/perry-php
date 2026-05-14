@@ -1,0 +1,49 @@
+{
+  "name": "@vuepress/shared",
+  "version": "2.0.0-rc.28",
+  "description": "Utils that shared between VuePress node and client",
+  "keywords": [
+    "shared",
+    "utils",
+    "vuepress"
+  ],
+  "homepage": "https://github.com/vuepress",
+  "bugs": {
+    "url": "https://github.com/vuepress/core/issues"
+  },
+  "license": "MIT",
+  "author": "meteorlxy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuepress/core.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@mdit-vue/types": "^3.0.2"
+  },
+  "tsdown": {
+    "dts": true,
+    "entry": "./src/index.ts",
+    "fixedExtension": false,
+    "format": "esm",
+    "target": "es2023",
+    "tsconfig": "../../tsconfig.dts.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rimraf dist"
+  }
+}

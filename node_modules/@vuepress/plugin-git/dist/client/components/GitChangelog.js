@@ -1,0 +1,1 @@
+import{t as e}from"../../GitChangelog-Crl01_KU.js";export{e as GitChangelog};

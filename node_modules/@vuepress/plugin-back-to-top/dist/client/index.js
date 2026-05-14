@@ -1,0 +1,2 @@
+import{t as e}from"../BackToTop-Dc06QQ8m.js";const t=()=>window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0,n=()=>{window.scrollTo({top:0,behavior:`smooth`})};export{e as BackToTop,t as getScrollTop,n as scrollToTop};
+//# sourceMappingURL=index.js.map

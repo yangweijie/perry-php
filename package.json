@@ -1,0 +1,17 @@
+{
+  "name": "perry-php-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs",
+    "docs:clean": "rimraf docs/.vuepress/.temp docs/.vuepress/.cache docs/.vuepress/dist"
+  },
+  "devDependencies": {
+    "@vuepress/bundler-vite": "^2.0.0-rc.21",
+    "@vuepress/theme-default": "^2.0.0-rc.94",
+    "rimraf": "^6.0.1",
+    "vuepress": "^2.0.0-rc.21"
+  }
+}

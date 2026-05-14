@@ -1,0 +1,17 @@
+:root {
+  --code-word-highlight-bg-color: #4242421a;
+  --code-word-highlight-border: #78787866;
+}
+
+[data-theme="dark"] {
+  --code-word-highlight-bg-color: #0003;
+  --code-word-highlight-border: #636363cc;
+}
+
+div[class*="language-"] .highlighted-word {
+  border: solid 1px var(--code-word-highlight-border);
+  background-color: var(--code-word-highlight-bg-color);
+  border-radius: 4px;
+  margin: -1px -2px;
+  padding: 1px 2px;
+}

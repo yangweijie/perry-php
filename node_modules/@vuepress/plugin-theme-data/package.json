@@ -1,0 +1,52 @@
+{
+  "name": "@vuepress/plugin-theme-data",
+  "version": "2.0.0-rc.128",
+  "description": "VuePress plugin - theme data",
+  "keywords": [
+    "plugin",
+    "theme",
+    "vuepress",
+    "vuepress-plugin"
+  ],
+  "homepage": "https://ecosystem.vuejs.press/plugins/development/theme-data.html",
+  "bugs": {
+    "url": "https://github.com/vuepress/ecosystem/issues"
+  },
+  "license": "MIT",
+  "author": "meteorlxy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuepress/ecosystem.git",
+    "directory": "plugins/development/plugin-theme-data"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./type": {
+      "types": "./dist/client/themeData.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@vue/devtools-api": "^8.1.1",
+    "vue": "^3.5.31"
+  },
+  "peerDependencies": {
+    "vuepress": "2.0.0-rc.28"
+  },
+  "gitHead": "47b25c2008dc496e4638cae7528374846d3660dd"
+}

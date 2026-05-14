@@ -1,0 +1,119 @@
+:root {
+  --tab-border-radius: .5rem;
+  --tab-c-bg: var(--vp-c-bg);
+  --tab-c-nav: var(--vp-c-text);
+  --tab-c-bg-nav: var(--vp-c-grey-bg);
+  --tab-c-bg-nav-hover: var(--vp-c-control-hover);
+}
+
+.vp-tabs {
+  border: 1px solid var(--vp-c-border);
+  border-radius: var(--tab-border-radius);
+  margin: 1.5rem 0;
+}
+
+.vp-tabs-nav {
+  border-radius: var(--tab-border-radius) var(--tab-border-radius) 0 0;
+  background: var(--tab-c-bg-nav);
+  white-space: nowrap;
+  transition: background var(--vp-t-color);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+@media print {
+  .vp-tabs-nav {
+    display: none;
+  }
+}
+
+.vp-tab-nav {
+  border-radius: var(--tab-border-radius) var(--tab-border-radius) 0 0;
+  min-width: 4rem;
+  color: var(--tab-c-nav);
+  cursor: pointer;
+  transition: background var(--vp-t-color), color var(--vp-t-color);
+  background: none;
+  border: none;
+  margin: 0;
+  padding: .5em 1em;
+  font-size: .875em;
+  font-weight: 600;
+  line-height: 1.75;
+  position: relative;
+}
+
+.vp-tab-nav:hover {
+  background: var(--tab-c-bg-nav-hover);
+}
+
+.vp-tab-nav:before, .vp-tab-nav:after {
+  content: " ";
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  position: absolute;
+  bottom: 0;
+}
+
+.vp-tab-nav:before {
+  right: 100%;
+}
+
+.vp-tab-nav:after {
+  left: 100%;
+}
+
+.vp-tab-nav.active {
+  background: var(--tab-c-bg);
+}
+
+.vp-tab-nav.active:before {
+  background: radial-gradient(16px at left top, transparent 50%, var(--tab-c-bg) 50%);
+}
+
+.vp-tab-nav.active:after {
+  background: radial-gradient(16px at right top, transparent 50%, var(--tab-c-bg) 50%);
+}
+
+.vp-tab-nav:first-child:before {
+  display: none;
+}
+
+.vp-tab {
+  border-radius: 0 0 var(--tab-border-radius) var(--tab-border-radius);
+  background: var(--tab-c-bg);
+  transition: background var(--vp-t-color);
+  padding: 1rem .75rem;
+  display: none;
+}
+
+@media print {
+  .vp-tab {
+    padding: .5rem;
+    display: block;
+  }
+}
+
+.vp-tab.active {
+  display: block;
+}
+
+.vp-tab:nth-child(n+2) .vp-tab-title {
+  border-top: none;
+}
+
+.vp-tab-title {
+  border-top: 1px solid var(--vp-c-border);
+  padding: .25rem 0;
+  font-weight: 500;
+  display: none;
+}
+
+@media print {
+  .vp-tab-title {
+    display: block;
+  }
+}
