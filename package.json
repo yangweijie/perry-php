@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@vuepress/bundler-vite": "^2.0.0-rc.21",
+    "@vuepress/plugin-llms": "^2.0.0-rc.128",
     "@vuepress/plugin-slimsearch": "^2.0.0-rc.128",
     "rimraf": "^6.0.1",
     "sass-embedded": "^1.99.0",

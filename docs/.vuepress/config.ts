@@ -1,5 +1,6 @@
 import { defineUserConfig } from 'vuepress'
 import { viteBundler } from '@vuepress/bundler-vite'
+import { llmsPlugin } from '@vuepress/plugin-llms'
 import { hopeTheme } from 'vuepress-theme-hope'
 
 // GitHub repo
@@ -9,6 +10,14 @@ export default defineUserConfig({
   base: process.env.DOCS_BASE || '/perry-php/',
 
   bundler: viteBundler(),
+
+  plugins: [
+    llmsPlugin({
+      domain: 'https://yangweijie.github.io/perry-php',
+      locale: 'all',
+      filter: (page) => !page.path.includes('PROGRESS'),
+    }),
+  ],
 
   // ========== Locales ==========
   locales: {
