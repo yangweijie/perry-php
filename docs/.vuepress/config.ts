@@ -1,19 +1,16 @@
 import { defineUserConfig } from 'vuepress'
 import { viteBundler } from '@vuepress/bundler-vite'
-import { defaultTheme } from '@vuepress/theme-default'
-import { searchPlugin } from '@vuepress/plugin-search'
+import { hopeTheme } from 'vuepress-theme-hope'
 
 // GitHub repo
 const REPO = 'yangweijie/perry-php'
 
 export default defineUserConfig({
-  // For GitHub Pages: <user>.github.io/perry-php
-  // Override via env: DOCS_BASE=/perry-php/ npm run docs:build
   base: process.env.DOCS_BASE || '/perry-php/',
 
   bundler: viteBundler(),
 
-  // ========== Locales (English default) ==========
+  // ========== Locales ==========
   locales: {
     '/': {
       lang: 'en-US',
@@ -28,32 +25,29 @@ export default defineUserConfig({
     },
   },
 
-  // ========== Plugins ==========
-  plugins: [
-    searchPlugin({
-      locales: {
-        '/': {
-          placeholder: 'Search docs...',
-        },
-        '/zh/': {
-          placeholder: '搜索文档...',
-        },
-      },
-    }),
-  ],
-
   // ========== Theme ==========
-  theme: defaultTheme({
+  theme: hopeTheme({
     logo: null,
     repo: `https://github.com/${REPO}`,
     repoLabel: 'GitHub',
-    selectLanguageText: 'Languages',
+    docsRepo: `https://github.com/${REPO}`,
+    docsBranch: 'main',
+    docsDir: 'docs',
+
+    // ----- Plugins -----
+    plugins: {
+      slimsearch: {
+        locales: {
+          '/': { placeholder: 'Search docs...' },
+          '/zh/': { placeholder: '搜索文档...' },
+        },
+      },
+    },
 
     // ===== Locale-specific theme config =====
     locales: {
       // English
       '/': {
-        selectLanguageName: 'English',
         navbar: [
           { text: 'Home', link: '/' },
           { text: 'Guide', link: '/guide/' },
@@ -65,12 +59,14 @@ export default defineUserConfig({
           '/': [
             {
               text: 'Overview',
+              icon: 'home',
               children: ['/README.md', '/PROGRESS.md'],
             },
           ],
           '/guide/': [
             {
               text: 'Guide',
+              icon: 'book',
               children: [
                 '/guide/README.md',
                 '/guide/getting-started.md',
@@ -91,6 +87,7 @@ export default defineUserConfig({
           '/examples/': [
             {
               text: 'Examples',
+              icon: 'code',
               children: [
                 '/examples/README.md',
                 '/examples/calculator.md',
@@ -105,7 +102,6 @@ export default defineUserConfig({
 
       // Chinese
       '/zh/': {
-        selectLanguageName: '简体中文',
         navbar: [
           { text: '首页', link: '/zh/' },
           { text: '指南', link: '/zh/guide/' },
@@ -117,12 +113,14 @@ export default defineUserConfig({
           '/zh/': [
             {
               text: '概览',
+              icon: 'home',
               children: ['/zh/README.md', '/zh/PROGRESS.md'],
             },
           ],
           '/zh/guide/': [
             {
               text: '指南',
+              icon: 'book',
               children: [
                 '/zh/guide/README.md',
                 '/zh/guide/getting-started.md',
@@ -143,6 +141,7 @@ export default defineUserConfig({
           '/zh/examples/': [
             {
               text: '示例',
+              icon: 'code',
               children: [
                 '/zh/examples/README.md',
                 '/zh/examples/calculator.md',
