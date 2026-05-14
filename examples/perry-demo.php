@@ -52,6 +52,7 @@ $progress  = new Binding('progress', 0.5);
 $color     = new Binding('color', 'red');
 $checked   = new Binding('checked', false);
 $items     = new Binding('items', 'Perry PHP');
+$newItem   = new Binding('newItem', '');
 
 // ============================================================
 // 2. Styles — demonstrating all style properties
@@ -126,8 +127,19 @@ $toggleDark = Action::fromClosure(function () use ($isDark, $greeting) {
     }
 });
 
-// 3c. Append action
-$addItem = Action::append($items, "\n• item");
+// 3c. Closure with parameter substitution
+$addDemo = Action::fromClosure(
+    function () use ($items, $text) {
+        $items .= "\n• " . $text;
+    },
+    ['text' => 'Demo']
+);
+$addTest = Action::fromClosure(
+    function () use ($items, $text) {
+        $items .= "\n• " . $text;
+    },
+    ['text' => 'Test']
+);
 
 // 3d. Progress action
 $randomProgress = Action::fromClosure(function () use ($progress) {
@@ -188,13 +200,19 @@ $root = new VStack(
         ),
     ))->style($cardStyle),
 
-    // ========== Section 2: TextInput + Append Action ==========
-    new Text(' Text Input & Items')->style($sectionTitle),
+    // ========== Section 2: TextInput (widget demo) ==========
+    new Text(' TextInput Widget')->style($sectionTitle),
     (new VStack(
-        new TextInput($nameInput, 'Type and click Add...'),
+        new TextInput($nameInput, 'TextInput with StateId...'),
+    ))->style($cardStyle),
+
+    // ========== Section 3: Action Closure + param substitution ==========
+    new Text(' Closure Actions (param substitution)')->style($sectionTitle),
+    (new VStack(
         new HStack(
-            new Button('Add', $addItem)->style($primaryBtn),
-            new Button('Clear Items', Action::clear($items))->style($dangerBtn),
+            new Button('Add Demo', $addDemo)->style($primaryBtn),
+            new Button('Add Test', $addTest)->style($successBtn),
+            new Button('Clear', Action::clear($items))->style($dangerBtn),
         ),
         (new Text($items))->style(Style::make()->fontSize(14)->padding(8)),
     ))->style($cardStyle),
