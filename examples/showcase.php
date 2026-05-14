@@ -175,10 +175,10 @@ $app->setRoot($root);
 $target = $argv[1] ?? 'macos';
 $build  = in_array('--build', $argv);
 
-echo "=== Perry Showcase ===\n";
-echo "Target: {$target}\n\n";
-
 if ($build) {
+    echo "=== Perry Showcase ===\n";
+    echo "Target: {$target}\n\n";
+
     $compiler = new \Perry\Build\Compiler(Target::fromString($target), 'build');
     $result   = $compiler->compile($root, 'showcase');
 

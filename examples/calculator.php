@@ -257,14 +257,7 @@ if ($build) {
         echo "  {$result->error}\n";
     }
 } else {
-    echo "=== Perry Calculator ===\n";
-    echo "Target: {$target}\n\n";
-
     $app = new App(Target::fromString($target));
     $app->setRoot($calculator);
     echo $app->generateForTarget() . "\n\n";
-
-    echo "Tip: Run with --build to compile:\n";
-    echo "  php examples/calculator.php macos --build\n";
-    echo "  php examples/calculator.php web --build\n";
 }

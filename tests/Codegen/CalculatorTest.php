@@ -1,17 +1,16 @@
 <?php
 
-test('calculator builds successfully on macOS', function () {
+test('calculator generates SwiftUI output on macOS', function () {
     $output = shell_exec('php examples/calculator.php macos 2>&1');
     
-    expect($output)->toContain('Perry Calculator')
-        ->toContain('import SwiftUI');
+    expect($output)->toContain('import SwiftUI');
 });
 
-test('calculator HTML generation works', function () {
+test('calculator generates HTML output for web', function () {
     $output = shell_exec('php examples/calculator.php web 2>&1');
     
-    expect($output)->toContain('Perry Calculator')
-        ->toContain('Target: web');
+    expect($output)->toContain('<!DOCTYPE html>')
+        ->toContain('Perry');
 });
 
 test('all generators can instantiate', function () {
