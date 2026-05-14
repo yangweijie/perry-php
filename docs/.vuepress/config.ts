@@ -116,6 +116,12 @@ export default defineUserConfig({
             '/zh/guide/contributing.md',
           ],
         },
+        {
+          text: '概览',
+          children: [
+            '/zh/PROGRESS.md',
+          ],
+        },
       ],
       '/zh/examples/': [
         {
