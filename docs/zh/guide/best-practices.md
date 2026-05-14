@@ -174,17 +174,35 @@ $root = new VStack($header, $display_area, $button_row);
 |----------|----------|
 | 简单表单、计数器、开关 | 原生微件（Text, Button, Toggle） |
 | 复杂数据可视化 | `WebView` + HTML/JS |
+| 混合模式：原生框架 + Web 内容 | `WebView` 内嵌于 `AppContainer` |
 | 最大性能 | 原生微件 |
+
+Pry JSON 查看器是混合模式的典型范例：原生窗口框架 + 嵌入式 Web UI。
 
 ---
 
-## 11. Binding 名称必须唯一
+## 11. 优化生成的代码可读性
+
+你在 PHP 中编写的代码直接映射到生成的输出。编写能产生干净原生代码的 PHP：
+
+```php
+// ✅ 好——生成 { display = "42" }
+$action = Action::set($display, '42');
+
+// ❌ 避免——生成 { display = strval(42) }（不必要的函数调用）
+$action = Action::set($display, strval(42));
+```
+
+---
+
+## 12. Binding 名称必须唯一
 
 Binding 名称在应用中必须唯一。它们会成为生成代码中的变量名：
 
 ```php
 // ✅ 好——唯一、描述性
 $userName = new Binding('userName', '');
+$productCount = new Binding('productCount', 0);
 
 // ❌ 避免——过于通用
 $data = new Binding('data', '');
