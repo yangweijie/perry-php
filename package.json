@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "docs:dev": "vuepress dev docs",
-    "generate:gallery": "mkdir -p docs/.vuepress/public/gallery && php examples/calculator.php web > docs/.vuepress/public/gallery/calculator.html && php examples/counter.php html > docs/.vuepress/public/gallery/counter.html && php examples/todo.php html > docs/.vuepress/public/gallery/todo.html && php examples/pry.php web > docs/.vuepress/public/gallery/pry.html && php examples/showcase.php web > docs/.vuepress/public/gallery/showcase.html",
+    "generate:gallery": "mkdir -p docs/.vuepress/public/gallery && php examples/calculator.php web > docs/.vuepress/public/gallery/calculator.html && php examples/counter.php html > docs/.vuepress/public/gallery/counter.html && php examples/todo.php html > docs/.vuepress/public/gallery/todo.html && php examples/pry.php web > docs/.vuepress/public/gallery/pry.html && php examples/showcase.php web > docs/.vuepress/public/gallery/showcase.html && php examples/perry-demo.php web > docs/.vuepress/public/gallery/perry-demo.html",
     "docs:build": "npm run generate:gallery && vuepress build docs",
     "docs:clean": "rimraf docs/.vuepress/.temp docs/.vuepress/.cache docs/.vuepress/.temp docs/.vuepress/dist docs/.vuepress/public/gallery"
   },

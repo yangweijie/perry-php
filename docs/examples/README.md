@@ -35,6 +35,12 @@ Practical examples showing Perry PHP in action. Each example has a **Live Demo**
   <td>—</td>
   <td>Web, macOS, Windows</td>
 </tr>
+<tr>
+  <td>Feature Demo</td>
+  <td><a href="/perry-php/gallery/perry-demo.html" target="_blank">Run →</a></td>
+  <td><router-link to="/examples/perry-demo.html">Guide</router-link></td>
+  <td>Web, macOS, Windows, Android, Linux</td>
+</tr>
 </tbody>
 </table>
 

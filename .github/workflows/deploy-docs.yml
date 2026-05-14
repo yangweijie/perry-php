@@ -62,6 +62,7 @@ jobs:
           php examples/todo.php html > docs/.vuepress/public/gallery/todo.html
           php examples/pry.php web > docs/.vuepress/public/gallery/pry.html
           php examples/showcase.php web > docs/.vuepress/public/gallery/showcase.html
+          php examples/perry-demo.php web > docs/.vuepress/public/gallery/perry-demo.html
 
       - name: Build VuePress docs
         run: npm run docs:build

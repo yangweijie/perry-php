@@ -35,6 +35,12 @@ Perry PHP 的实际应用示例。每个示例都有**在线演示**（生成的
   <td>—</td>
   <td>Web, macOS, Windows</td>
 </tr>
+<tr>
+  <td>特性演示</td>
+  <td><a href="/perry-php/gallery/perry-demo.html" target="_blank">运行 →</a></td>
+  <td><router-link to="/zh/examples/perry-demo.html">指南</router-link></td>
+  <td>Web, macOS, Windows, Android, Linux</td>
+</tr>
 </tbody>
 </table>
 
