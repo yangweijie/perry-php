@@ -4,11 +4,11 @@ Practical examples showing Perry PHP in action. Each example has a **Live Demo**
 
 | Example | Live Demo | Docs | Platforms |
 |---------|-----------|------|-----------|
-| Calculator | [Run →](/gallery/calculator.html) | [Guide](/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
-| Counter | [Run →](/gallery/counter.html) | [Guide](/examples/counter.html) | All platforms |
-| Todo List | [Run →](/gallery/todo.html) | [Guide](/examples/todo.html) | macOS, Web |
-| Pry — JSON Viewer | [Run →](/gallery/pry.html) | [Guide](/examples/pry.html) | Windows (WebView2), macOS, Web |
-| Showcase | [Run →](/gallery/showcase.html) | — | Web, macOS, Windows |
+| Calculator | [Run →](/perry-php/gallery/calculator.html) | [Guide](/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
+| Counter | [Run →](/perry-php/gallery/counter.html) | [Guide](/examples/counter.html) | All platforms |
+| Todo List | [Run →](/perry-php/gallery/todo.html) | [Guide](/examples/todo.html) | macOS, Web |
+| Pry — JSON Viewer | [Run →](/perry-php/gallery/pry.html) | [Guide](/examples/pry.html) | Windows (WebView2), macOS, Web |
+| Showcase | [Run →](/perry-php/gallery/showcase.html) | — | Web, macOS, Windows |
 
 All examples are in the `examples/` directory and can be run directly:
 

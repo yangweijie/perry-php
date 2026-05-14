@@ -4,11 +4,11 @@ Perry PHP 的实际应用示例。每个示例都有**在线演示**（生成的
 
 | 示例 | 在线演示 | 文档 | 平台 |
 |---------|-----------|------|-----------|
-| 计算器 | [运行 →](/gallery/calculator.html) | [指南](/zh/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
-| 计数器 | [运行 →](/gallery/counter.html) | [指南](/zh/examples/counter.html) | 所有平台 |
-| 待办列表 | [运行 →](/gallery/todo.html) | [指南](/zh/examples/todo.html) | macOS, Web |
-| Pry — JSON 查看器 | [运行 →](/gallery/pry.html) | [指南](/zh/examples/pry.html) | Windows (WebView2), macOS, Web |
-| 功能展示 | [运行 →](/gallery/showcase.html) | — | Web, macOS, Windows |
+| 计算器 | [运行 →](/perry-php/gallery/calculator.html) | [指南](/zh/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
+| 计数器 | [运行 →](/perry-php/gallery/counter.html) | [指南](/zh/examples/counter.html) | 所有平台 |
+| 待办列表 | [运行 →](/perry-php/gallery/todo.html) | [指南](/zh/examples/todo.html) | macOS, Web |
+| Pry — JSON 查看器 | [运行 →](/perry-php/gallery/pry.html) | [指南](/zh/examples/pry.html) | Windows (WebView2), macOS, Web |
+| 功能展示 | [运行 →](/perry-php/gallery/showcase.html) | — | Web, macOS, Windows |
 
 所有示例都在 `examples/` 目录中，可直接运行：
 
