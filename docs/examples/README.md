@@ -2,13 +2,41 @@
 
 Practical examples showing Perry PHP in action. Each example has a **Live Demo** (generated HTML/JS) and **Docs** (step-by-step guide).
 
-| Example | Live Demo | Docs | Platforms |
-|---------|-----------|------|-----------|
-| Calculator | [Run →](/perry-php/gallery/calculator.html){target="_blank"} | [Guide](/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
-| Counter | [Run →](/perry-php/gallery/counter.html){target="_blank"} | [Guide](/examples/counter.html) | All platforms |
-| Todo List | [Run →](/perry-php/gallery/todo.html){target="_blank"} | [Guide](/examples/todo.html) | macOS, Web |
-| Pry — JSON Viewer | [Run →](/perry-php/gallery/pry.html){target="_blank"} | [Guide](/examples/pry.html) | Windows (WebView2), macOS, Web |
-| Showcase | [Run →](/perry-php/gallery/showcase.html){target="_blank"} | — | Web, macOS, Windows |
+<table>
+<thead><tr><th>Example</th><th>Live Demo</th><th>Docs</th><th>Platforms</th></tr></thead>
+<tbody>
+<tr>
+  <td>Calculator</td>
+  <td><a href="/perry-php/gallery/calculator.html" target="_blank">Run →</a></td>
+  <td><router-link to="/examples/calculator.html">Guide</router-link></td>
+  <td>macOS, Web, Windows, Android, Linux</td>
+</tr>
+<tr>
+  <td>Counter</td>
+  <td><a href="/perry-php/gallery/counter.html" target="_blank">Run →</a></td>
+  <td><router-link to="/examples/counter.html">Guide</router-link></td>
+  <td>All platforms</td>
+</tr>
+<tr>
+  <td>Todo List</td>
+  <td><a href="/perry-php/gallery/todo.html" target="_blank">Run →</a></td>
+  <td><router-link to="/examples/todo.html">Guide</router-link></td>
+  <td>macOS, Web</td>
+</tr>
+<tr>
+  <td>Pry — JSON Viewer</td>
+  <td><a href="/perry-php/gallery/pry.html" target="_blank">Run →</a></td>
+  <td><router-link to="/examples/pry.html">Guide</router-link></td>
+  <td>Windows (WebView2), macOS, Web</td>
+</tr>
+<tr>
+  <td>Showcase</td>
+  <td><a href="/perry-php/gallery/showcase.html" target="_blank">Run →</a></td>
+  <td>—</td>
+  <td>Web, macOS, Windows</td>
+</tr>
+</tbody>
+</table>
 
 All examples are in the `examples/` directory and can be run directly:
 
