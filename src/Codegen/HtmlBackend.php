@@ -295,7 +295,12 @@ final class HtmlBackend extends CodegenBackend
     private function formatJsValue(mixed $value): string
     {
         if (is_string($value)) {
-            return "'" . addslashes($value) . "'";
+            $escaped = str_replace(
+                ['\\', "'", "\n", "\r", "\t", "\0"],
+                ['\\\\', "\\'", '\\n', '\\r', '\\t', '\\0'],
+                $value
+            );
+            return "'" . $escaped . "'";
         }
         if (is_bool($value)) {
             return $value ? 'true' : 'false';

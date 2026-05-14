@@ -126,14 +126,8 @@ $toggleDark = Action::fromClosure(function () use ($isDark, $greeting) {
     }
 });
 
-// 3c. Closure with external binding substitution
-$addItem = Action::fromClosure(
-    function () use ($items, $nameInput) {
-        if (!empty($nameInput)) {
-            $items .= "\n• " . $nameInput;
-        }
-    }
-);
+// 3c. Append action
+$addItem = Action::append($items, "\n• item");
 
 // 3d. Progress action
 $randomProgress = Action::fromClosure(function () use ($progress) {
@@ -195,12 +189,12 @@ $root = new VStack(
     ))->style($cardStyle),
 
     // ========== Section 2: TextInput + Append Action ==========
-    new Text(' Text Input')->style($sectionTitle),
+    new Text(' Text Input & Items')->style($sectionTitle),
     (new VStack(
-        new TextInput($nameInput, 'Enter item name...'),
+        new TextInput($nameInput, 'Type and click Add...'),
         new HStack(
-            new Button('Add Item', $addItem)->style($primaryBtn),
-            new Button('Clear', Action::clear($items))->style($dangerBtn),
+            new Button('Add', $addItem)->style($primaryBtn),
+            new Button('Clear Items', Action::clear($items))->style($dangerBtn),
         ),
         (new Text($items))->style(Style::make()->fontSize(14)->padding(8)),
     ))->style($cardStyle),
