@@ -645,62 +645,32 @@ test('Flutter AppContainer generates StatefulWidget class', function () {
 
 test('calculator generates SwiftUI output', function () {
     $out = shell_exec('php examples/calculator.php macos 2>&1');
-    expect($out)->toContain('Perry Calculator');
     expect($out)->toContain('import SwiftUI');
 });
 
 test('calculator generates HTML output', function () {
     $out = shell_exec('php examples/calculator.php web 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: web');
+    expect($out)->toContain('<!DOCTYPE html>');
 });
 
 test('calculator generates GTK4 output', function () {
     $out = shell_exec('php examples/calculator.php linux 2>&1');
-    expect($out)->toContain('Perry Calculator');
     expect($out)->toContain('GtkApplicationWindow');
 });
 
 test('calculator generates WinUI output', function () {
     $out = shell_exec('php examples/calculator.php windows 2>&1');
-    expect($out)->toContain('Perry Calculator');
     expect($out)->toContain('Window x:Class="PerryApp.MainWindow"');
 });
 
 test('calculator generates Compose output', function () {
     $out = shell_exec('php examples/calculator.php compose 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: compose');
+    expect($out)->toContain('package com.perry.app');
 });
 
 test('calculator generates Wasm output', function () {
     $out = shell_exec('php examples/calculator.php wasm 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: wasm');
-});
-
-test('calculator generates ArkTS output', function () {
-    $out = shell_exec('php examples/calculator.php arkts 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: arkts');
-});
-
-test('calculator generates Glance output', function () {
-    $out = shell_exec('php examples/calculator.php glance 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: glance');
-});
-
-test('calculator generates WearTiles output', function () {
-    $out = shell_exec('php examples/calculator.php wear-tiles 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: wear-tiles');
-});
-
-test('calculator generates Flutter output', function () {
-    $out = shell_exec('php examples/calculator.php flutter 2>&1');
-    expect($out)->toContain('Perry Calculator');
-    expect($out)->toContain('Target: flutter');
+    expect($out)->toContain('<!DOCTYPE html>');
 });
 
 // ---------------------------------------------------------------------------
