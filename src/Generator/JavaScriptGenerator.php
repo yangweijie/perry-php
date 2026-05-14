@@ -95,7 +95,12 @@ class JavaScriptGenerator implements IR\Generator
     public function generateLiteral(IR\Literal $node): string
     {
         if (is_string($node->value)) {
-            return '"' . addslashes($node->value) . '"';
+            $escaped = str_replace(
+                ['\\', '"', "\n", "\r", "\t", "\0"],
+                ['\\\\', '\\"', '\\n', '\\r', '\\t', '\\0'],
+                $node->value
+            );
+            return '"' . $escaped . '"';
         }
         if (is_bool($node->value)) {
             return $node->value ? 'true' : 'false';
