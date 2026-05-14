@@ -9,8 +9,10 @@ docs/.vuepress/.cache/
 docs/.vuepress/.temp/
 docs/.vuepress/dist/
 
-# Playwright screenshots
-/docs-preview-*.png
+# Playwright artifacts
+/perry-demo-*.png
+/perry-demo-*.yml
+.playwright-mcp/
 
 # Generated example gallery
 docs/.vuepress/public/gallery/

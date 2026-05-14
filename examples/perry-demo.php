@@ -237,7 +237,7 @@ $root = new VStack(
     ))->style($cardStyle),
 
     // ========== Section 5: TabView ==========
-    new Text(' Tab View')->style($sectionTitle),
+    new Text(' Tab View (native only, web shows all tabs)')->style($sectionTitle),
     (new TabView(
         new VStack(
             new Text('Tab 1: Welcome'),
@@ -256,28 +256,31 @@ $root = new VStack(
             new Text('Perry PHP Demo v1.0'),
             new Text('Define UI once, generate for 11 platforms.'),
         ),
-    ))->style(Style::make()->height(120)->padding(8)),
+    ))->style(Style::make()->padding(8)),
 
     // ========== Section 6: ListWidget ==========
     new Text(' List Widget')->style($sectionTitle),
     (new ListWidget(
-        new Text('Item 1'),
-        new Text('Item 2'),
-        new Text('Item 3'),
+        (new Text('Item 1'))->style(Style::make()->padding(4)),
+        (new Text('Item 2'))->style(Style::make()->padding(4)),
+        (new Text('Item 3'))->style(Style::make()->padding(4)),
     ))->style(Style::make()->padding(8)),
 
     // ========== Section 7: ScrollView ==========
     new Text(' Scroll View')->style($sectionTitle),
     (new ScrollView(
         new VStack(
-            new Text('Scrollable content'),
-            new Text('This area scrolls if content overflows.'),
+            new Text('Line 1'),
+            new Text('Line 2'),
+            new Text('Line 3'),
+            new Text('Line 4'),
+            new Text('Line 5'),
         )->style(Style::make()->padding(8))
-    ))->style(Style::make()->height(80)),
+    ))->style(Style::make()->height(100)->border(1, '#ccc')),
 
     // ========== Section 8: Image ==========
-    new Text(' Image')->style($sectionTitle),
-    (new Image('placeholder.png'))->style(
+    new Text(' Image (SVG placeholder)')->style($sectionTitle),
+    (new Image('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22%3E%3Crect width=%22200%22 height=%22100%22 fill=%22%23eee%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3EPlaceholder%3C/text%3E%3C/svg%3E'))->style(
         Style::make()->width(200)->height(100)->cornerRadius(8)
     ),
 
