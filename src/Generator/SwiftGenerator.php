@@ -559,12 +559,14 @@ class SwiftGenerator implements IR\Generator
 
     public function generateIncrement(IR\Increment $node): string
     {
-        return $node->prefix ? "({$node->variable} += 1)" : "({$node->variable} += 1)";
+        $var = $this->generateVariable(new IR\Variable($node->variable));
+        return "({$var} += 1)";
     }
 
     public function generateDecrement(IR\Decrement $node): string
     {
-        return $node->prefix ? "({$node->variable} -= 1)" : "({$node->variable} -= 1)";
+        $var = $this->generateVariable(new IR\Variable($node->variable));
+        return "({$var} -= 1)";
     }
 
     public function generatePlusAssign(IR\PlusAssign $node): string

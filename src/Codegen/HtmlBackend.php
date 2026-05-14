@@ -258,10 +258,12 @@ final class HtmlBackend extends CodegenBackend
     {
         $target = $action->target?->name ?? '';
 
+        $var = in_array($target, $this->stateVars) ? "state.{$target}" : $target;
+
         $code = match ($action->type) {
-            ActionType::SetValue => "{$target}.value = {$this->formatJsValue($action->value)}",
-            ActionType::Append => "{$target}.value += {$this->formatJsValue($action->value)}",
-            ActionType::Clear => "{$target}.value = {$this->formatJsValue($action->target?->initialValue)}",
+            ActionType::SetValue => "{$var} = {$this->formatJsValue($action->value)}",
+            ActionType::Append => "{$var} += {$this->formatJsValue($action->value)}",
+            ActionType::Clear => "{$var} = {$this->formatJsValue($action->target?->initialValue)}",
             default => '',
         };
 

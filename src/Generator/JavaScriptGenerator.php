@@ -551,12 +551,14 @@ class JavaScriptGenerator implements IR\Generator
 
     public function generateIncrement(IR\Increment $node): string
     {
-        return $node->prefix ? "++{$node->variable}" : "{$node->variable}++";
+        $var = $this->generateVariable(new IR\Variable($node->variable));
+        return $node->prefix ? "++{$var}" : "{$var}++";
     }
 
     public function generateDecrement(IR\Decrement $node): string
     {
-        return $node->prefix ? "--{$node->variable}" : "{$node->variable}--";
+        $var = $this->generateVariable(new IR\Variable($node->variable));
+        return $node->prefix ? "--{$var}" : "{$var}--";
     }
 
     // ============================================================
