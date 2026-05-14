@@ -47,94 +47,113 @@ export default defineUserConfig({
     logo: null,
     repo: `https://github.com/${REPO}`,
     repoLabel: 'GitHub',
+    selectLanguageText: 'Languages',
 
-    // ----- Navbar -----
-    navbar: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/' },
-      { text: 'Examples', link: '/examples/' },
-      { text: 'Progress', link: '/PROGRESS.html' },
-      { text: 'GitHub', link: `https://github.com/${REPO}` },
-    ],
+    // ===== Locale-specific theme config =====
+    locales: {
+      // English
+      '/': {
+        selectLanguageName: 'English',
+        navbar: [
+          { text: 'Home', link: '/' },
+          { text: 'Guide', link: '/guide/' },
+          { text: 'Examples', link: '/examples/' },
+          { text: 'Progress', link: '/PROGRESS.html' },
+          { text: 'GitHub', link: `https://github.com/${REPO}` },
+        ],
+        sidebar: {
+          '/': [
+            {
+              text: 'Overview',
+              children: ['/README.md', '/PROGRESS.md'],
+            },
+          ],
+          '/guide/': [
+            {
+              text: 'Guide',
+              children: [
+                '/guide/README.md',
+                '/guide/getting-started.md',
+                '/guide/ui-components.md',
+                '/guide/state-management.md',
+                '/guide/actions.md',
+                '/guide/styling.md',
+                '/guide/code-generation.md',
+                '/guide/platforms.md',
+                '/guide/build-system.md',
+                '/guide/api-reference.md',
+                '/guide/best-practices.md',
+                '/guide/extending.md',
+                '/guide/contributing.md',
+              ],
+            },
+          ],
+          '/examples/': [
+            {
+              text: 'Examples',
+              children: [
+                '/examples/README.md',
+                '/examples/calculator.md',
+                '/examples/counter.md',
+                '/examples/todo.md',
+                '/examples/pry.md',
+              ],
+            },
+          ],
+        },
+      },
 
-    // ----- Sidebar -----
-    sidebar: {
-      '/': [
-        {
-          text: 'Overview',
-          children: ['/README.md', '/PROGRESS.md'],
-        },
-      ],
-      '/guide/': [
-        {
-          text: 'Guide',
-          children: [
-            '/guide/README.md',
-            '/guide/getting-started.md',
-            '/guide/ui-components.md',
-            '/guide/state-management.md',
-            '/guide/actions.md',
-            '/guide/styling.md',
-            '/guide/code-generation.md',
-            '/guide/platforms.md',
-            '/guide/build-system.md',
-            '/guide/api-reference.md',
-            '/guide/best-practices.md',
-            '/guide/extending.md',
-            '/guide/contributing.md',
+      // Chinese
+      '/zh/': {
+        selectLanguageName: '简体中文',
+        navbar: [
+          { text: '首页', link: '/zh/' },
+          { text: '指南', link: '/zh/guide/' },
+          { text: '示例', link: '/zh/examples/' },
+          { text: '进度', link: '/zh/PROGRESS.html' },
+          { text: 'GitHub', link: `https://github.com/${REPO}` },
+        ],
+        sidebar: {
+          '/zh/': [
+            {
+              text: '概览',
+              children: ['/zh/README.md', '/zh/PROGRESS.md'],
+            },
+          ],
+          '/zh/guide/': [
+            {
+              text: '指南',
+              children: [
+                '/zh/guide/README.md',
+                '/zh/guide/getting-started.md',
+                '/zh/guide/ui-components.md',
+                '/zh/guide/state-management.md',
+                '/zh/guide/actions.md',
+                '/zh/guide/styling.md',
+                '/zh/guide/code-generation.md',
+                '/zh/guide/platforms.md',
+                '/zh/guide/build-system.md',
+                '/zh/guide/api-reference.md',
+                '/zh/guide/best-practices.md',
+                '/zh/guide/extending.md',
+                '/zh/guide/contributing.md',
+              ],
+            },
+          ],
+          '/zh/examples/': [
+            {
+              text: '示例',
+              children: [
+                '/zh/examples/README.md',
+                '/zh/examples/calculator.md',
+                '/zh/examples/counter.md',
+                '/zh/examples/todo.md',
+                '/zh/examples/pry.md',
+              ],
+            },
           ],
         },
-      ],
-      '/examples/': [
-        {
-          text: 'Examples',
-          children: [
-            '/examples/README.md',
-            '/examples/calculator.md',
-            '/examples/counter.md',
-            '/examples/todo.md',
-            '/examples/pry.md',
-          ],
-        },
-      ],
-      '/zh/guide/': [
-        {
-          text: '指南',
-          children: [
-            '/zh/guide/README.md',
-            '/zh/guide/getting-started.md',
-            '/zh/guide/ui-components.md',
-            '/zh/guide/state-management.md',
-            '/zh/guide/actions.md',
-            '/zh/guide/styling.md',
-            '/zh/guide/code-generation.md',
-            '/zh/guide/platforms.md',
-            '/zh/guide/build-system.md',
-            '/zh/guide/api-reference.md',
-            '/zh/guide/best-practices.md',
-            '/zh/guide/extending.md',
-            '/zh/guide/contributing.md',
-          ],
-        },
-        {
-          text: '概览',
-          children: [
-            '/zh/PROGRESS.md',
-          ],
-        },
-      ],
-      '/zh/examples/': [
-        {
-          text: '示例',
-          children: [
-            '/zh/examples/README.md',
-            '/zh/examples/calculator.md',
-            '/zh/examples/counter.md',
-            '/zh/examples/todo.md',
-            '/zh/examples/pry.md',
-          ],
-        },
-      ],
+      },
     },
   }),
 })
