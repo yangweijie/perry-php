@@ -139,6 +139,13 @@ final class HtmlBackend extends CodegenBackend
                 input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #222; color: #fff; }
                 .toggle { display: flex; align-items: center; gap: 8px; }
                 .toggle input { width: 40px; height: 20px; }
+                .tab-view { width: 100%; }
+                .tab-bar { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 8px; }
+                .tab-btn { padding: 8px 16px; border: none; background: transparent; color: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
+                .tab-btn:hover { background: rgba(128,128,128,0.1); }
+                .tab-btn.active { border-bottom-color: #007AFF; color: #007AFF; font-weight: bold; }
+                .tab-panel { display: none; }
+                .tab-panel:first-child { display: block; }
                 .display { font-size: 24px; text-align: right; padding: 16px; background: #111; color: #fff; word-break: break-all; }
                 .calc-btn { padding: 16px; font-size: 18px; border: 1px solid #444; background: #222; color: #fff; cursor: pointer; }
                 .calc-btn:hover { background: #444; }
@@ -731,10 +738,84 @@ final class HtmlBackend extends CodegenBackend
 
     private function generateTabView(TabView $widget): string
     {
-        $this->indent++;
-        $children = $this->generateChildren($widget->tabs());
-        $this->indent--;
-        return "<div class=\"tab-view\">\n{$this->indentStr()}{$children}\n{$this->indentStr()}</div>";
+        $count = $widget->tabsCount();
+        $id = 'tabview_' . $this->nextId();
+        $selectedBinding = $widget->getSelected();
+
+        // Determine the state variable name for selected tab index
+        if ($selectedBinding !== null) {
+            $selectedVar = $selectedBinding->name;
+            // Ensure it's in stateVars
+            if (!in_array($selectedVar, $this->stateVars, true)) {
+                $this->stateVars[] = $selectedVar;
+                $this->stateBindings[$selectedVar] = $selectedBinding;
+            }
+        } else {
+            // Local state var managed internally
+            $selectedVar = '_tabIdx_' . $id;
+            if (!in_array($selectedVar, $this->stateVars, true)) {
+                $this->stateVars[] = $selectedVar;
+            }
+            self::$innerHTMLVars[] = $selectedVar;
+        }
+
+        $labels = $widget->getLabels();
+
+        // Generate tab bar
+        $bar = '<div class="tab-bar" id="' . $id . '_bar">';
+        for ($i = 0; $i < $count; $i++) {
+            $label = htmlspecialchars($labels[$i]);
+            $bar .= "<button class=\"tab-btn\" onclick=\"switchTab_{$id}({$i})\" data-tab=\"{$i}\">{$label}</button>";
+        }
+        $bar .= '</div>';
+
+        // Generate tab panels
+        $panels = '<div class="tab-panels" id="' . $id . '_panels">';
+        for ($i = 0; $i < $count; $i++) {
+            $content = $widget->content($i);
+            $inner = $content ? $this->generateWidget($content) : '';
+            $panels .= '<div class="tab-panel" data-panel="' . $i . '">' . $inner . '</div>';
+        }
+        $panels .= '</div>';
+
+        // Generate the switchTab function
+        $funcCode = "function switchTab_{$id}(index) {\n"
+            . "    state.{$selectedVar} = index;\n"
+            . "    render();\n"
+            . "    // Update tab button active states\n"
+            . "    var bar = document.getElementById('{$id}_bar');\n"
+            . "    if (bar) {\n"
+            . "        var btns = bar.querySelectorAll('.tab-btn');\n"
+            . "        btns.forEach(function(btn, i) {\n"
+            . "            btn.classList.toggle('active', i === index);\n"
+            . "        });\n"
+            . "    }\n"
+            . "    // Update panel visibility\n"
+            . "    var panels = document.getElementById('{$id}_panels');\n"
+            . "    if (panels) {\n"
+            . "        var items = panels.querySelectorAll('.tab-panel');\n"
+            . "        items.forEach(function(panel, i) {\n"
+            . "            panel.style.display = i === index ? 'block' : 'none';\n"
+            . "        });\n"
+            . "    }\n"
+            . "}\n";
+
+        // Also need an init call to set initial active tab
+        $initCode = "(function() {\n"
+            . "    switchTab_{$id}(state.{$selectedVar} || 0);\n"
+            . "})();\n";
+
+        // Add the functions to the script generation
+        if (!in_array($funcCode, $this->actionFunctions, true)) {
+            $this->actionFunctions[] = $funcCode;
+            // Need init to run after state is ready but only once
+            if (!in_array($initCode, $this->actionFunctions, true)) {
+                $this->actionFunctions[] = $initCode;
+            }
+        }
+
+        $style = $this->generateStyle($widget->getStyle());
+        return "<div class=\"tab-view\" id=\"{$id}\"{$style}>\n{$bar}\n{$panels}\n</div>";
     }
 
     private function generateChildren(array $children): string

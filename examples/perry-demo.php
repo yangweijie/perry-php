@@ -63,6 +63,7 @@ $color     = new Binding('color', 'red');
 $checked   = new Binding('checked', false);
 $items     = new Binding('items', 'Perry PHP');
 $newItem   = new Binding('newItem', '');
+$tabIndex  = new Binding('tabIndex', 0);
 
 // ============================================================
 // 2. Styles — demonstrating all style properties
@@ -255,14 +256,14 @@ $root = new VStack(
     ))->style($cardStyle),
 
     // ========== Section 5: TabView ==========
-    new Text(' Tab View (native only, web shows all tabs)')->style($sectionTitle),
+    new Text(' Tab View (with labels and switching)')->style($sectionTitle),
     (new TabView(
         new VStack(
-            new Text('Tab 1: Welcome'),
+            new Text('Welcome'),
             new Text('This is the first tab content.'),
         ),
         new VStack(
-            new Text('Tab 2: Settings'),
+            new Text('Notifications'),
             new HStack(
                 new Text('Notifications'),
                 new Spacer(),
@@ -270,11 +271,15 @@ $root = new VStack(
             ),
         ),
         new VStack(
-            new Text('Tab 3: About'),
             new Text('Perry PHP Demo v1.0'),
             new Text('Define UI once, generate for 11 platforms.'),
         ),
-    ))->style(Style::make()->padding(8)),
+    ))
+        ->label(0, 'Home')
+        ->label(1, 'Settings')
+        ->label(2, 'About')
+        ->withSelected($tabIndex)
+        ->style(Style::make()->padding(8)),
 
     // ========== Section 6: ListWidget ==========
     new Text(' List Widget')->style($sectionTitle),
@@ -315,7 +320,7 @@ $appWrapper = new AppContainer(
     $root,
     null, null,  // auto window size
     $greeting, $counter, $isDark, $opacity, $progress,
-    $color, $checked, $items
+    $color, $checked, $items, $tabIndex
 );
 
 // ============================================================
