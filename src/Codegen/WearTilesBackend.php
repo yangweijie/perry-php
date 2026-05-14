@@ -33,11 +33,19 @@ use Perry\UI\WidgetKind;
  * Wear OS Tiles backend.
  * Generates Kotlin code using androidx.wear.tiles builder API
  * for Wear OS home/assistant tiles.
+ *
+ * State persistence: uses companion object fields that survive
+ * across TileService instance re-creation. Button actions update
+ * companion object state and call requestRebus() for re-render.
  */
 final class WearTilesBackend extends CodegenBackend
 {
     private int $indent = 0;
     private array $currentBindings = [];
+    /** @var array<string, string> actionId => actionCode */
+    private array $actionMap = [];
+    private int $actionCounter = 0;
+    private bool $hasActions = false;
 
     public function name(): string
     {
@@ -53,11 +61,16 @@ final class WearTilesBackend extends CodegenBackend
     {
         $this->indent = 0;
         $this->currentBindings = [];
+        $this->actionMap = [];
+        $this->actionCounter = 0;
+        $this->hasActions = false;
         $stateFields = '';
         $widthCode = '';
         $heightCode = '';
+        $isApp = false;
 
         if ($root instanceof AppContainer) {
+            $isApp = true;
             $bindings = $root->bindings();
             $this->currentBindings = array_map(fn(Binding $b) => $b->name, $bindings);
             $stateFields = $this->generateStateFields($bindings);
@@ -73,6 +86,13 @@ final class WearTilesBackend extends CodegenBackend
         }
 
         $layout = $this->generateLayoutElement($root);
+        $actionsMethod = $this->generateActionMethods();
+
+        // Build state block
+        $stateBlock = '';
+        if ($stateFields !== '') {
+            $stateBlock = "    companion object {\n{$stateFields}    }\n";
+        }
 
         return <<<KOTLIN
         package com.perry.tile
@@ -88,7 +108,7 @@ final class WearTilesBackend extends CodegenBackend
         import com.google.common.util.concurrent.ListenableFuture
 
         class PerryTile : TileService() {
-        {$stateFields}
+        {$stateBlock}
             override fun onTileRequest(request: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
                 return Futures.immediateFuture(
                     TileBuilders.Tile.Builder()
@@ -105,6 +125,7 @@ final class WearTilesBackend extends CodegenBackend
                         .build()
                 )
             }
+        {$actionsMethod}
         }
         KOTLIN;
     }
@@ -120,9 +141,25 @@ final class WearTilesBackend extends CodegenBackend
                 default => 'String',
             };
             $val = $this->formatValue($binding->initialValue);
-            $fields[] = "    var {$binding->name}: {$type} = {$val}";
+            $fields[] = "        var {$binding->name}: {$type} = {$val}";
         }
-        return $fields ? "\n" . implode("\n", $fields) . "\n" : '';
+        return $fields ? implode("\n", $fields) . "\n" : '';
+    }
+
+    private function generateActionMethods(): string
+    {
+        if (!$this->hasActions || $this->actionMap === []) {
+            return '';
+        }
+
+        $cases = [];
+        foreach ($this->actionMap as $actionId => $actionCode) {
+            $cases[] = "            \"{$actionId}\" -> {{$actionCode}\n                requestRebus()\n            }";
+        }
+
+        $casesCode = implode("\n", $cases);
+
+        return "\n    private fun processAction(actionId: String) {\n        when (actionId) {\n{$casesCode}\n        }\n    }\n";
     }
 
     private function formatValue(mixed $value): string
@@ -171,8 +208,8 @@ final class WearTilesBackend extends CodegenBackend
             WidgetKind::SegmentedControl => $this->generateUnsupported('SegmentedControl'),
             WidgetKind::ContextMenu => $this->generateUnsupported('ContextMenu'),
             WidgetKind::DatePicker => $this->generateUnsupported('DatePicker'),
-        WidgetKind::AnimatedContainer => $this->generateUnsupported('AnimatedContainer'),
-        WidgetKind::Transition => $this->generateUnsupported('Transition'),
+            WidgetKind::AnimatedContainer => $this->generateUnsupported('AnimatedContainer'),
+            WidgetKind::Transition => $this->generateUnsupported('Transition'),
             default => '',
         };
     }
@@ -234,11 +271,66 @@ final class WearTilesBackend extends CodegenBackend
         return $txt;
     }
 
+    private function generateActionCode(?Action $action): string
+    {
+        if ($action === null) {
+            return '';
+        }
+
+        $this->hasActions = true;
+
+        if ($action->type === ActionType::Closure) {
+            $generator = new \Perry\Generator\KotlinGenerator($this->currentBindings);
+            $code = $action->generate($generator);
+            return $code !== '' ? "\n            {$code}" : '';
+        }
+
+        if ($action->type === ActionType::Custom) {
+            $code = $action->customCode ?? '';
+            return $code !== '' ? "\n            {$code}" : '';
+        }
+
+        $varName = $action->target->name ?? '';
+        if ($varName === '') {
+            return '';
+        }
+
+        return match ($action->type) {
+            ActionType::SetValue => "\n            {$varName} = {$this->formatValue($action->value)}",
+            ActionType::Append => "\n            {$varName} += {$this->formatValue($action->value)}",
+            ActionType::Clear => "\n            {$varName} = {$this->formatValue($action->target->initialValue)}",
+            default => '',
+        };
+    }
+
     private function generateButton(Button $widget): string
     {
         $label = addslashes($widget->label());
         $this->indent++;
         $result = "LayoutElementBuilders.Button.Builder()\n{$this->indentStr()}.setText(\"{$label}\")";
+
+        $action = $widget->getAction();
+        $actionCode = $this->generateActionCode($action);
+
+        if ($actionCode !== '') {
+            $actionId = 'action_' . ($this->actionCounter++);
+            $this->actionMap[$actionId] = $actionCode;
+
+            $result .= "\n{$this->indentStr()}.setClickable(
+                LayoutElementBuilders.Clickable.Builder()
+                    .setId(\"{$actionId}\")
+                    .setOnClick(
+                        androidx.wear.tiles.actionbuilders.ActionBuilders.Action.Builder()
+                            .setLaunchRequest(
+                                androidx.wear.tiles.actionbuilders.ActionBuilders.ActionLaunchRequest.Builder()
+                                    .setIntent(android.content.Intent(\"com.perry.tile.{$actionId}\"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )";
+        }
 
         $style = $widget->getStyle();
         if ($style !== null) {
@@ -266,26 +358,6 @@ final class WearTilesBackend extends CodegenBackend
         $result .= "\n{$this->indentStr()}.build()";
         $this->indent--;
         return $result;
-    }
-
-    private function generateVStack(VStack $widget): string
-    {
-        $this->indent++;
-        $children = $this->generateChildren($widget->children());
-        $style = $widget->getStyle();
-        $container = $this->applyContainerStyle('Column', $style);
-        $this->indent--;
-        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
-    }
-
-    private function generateHStack(HStack $widget): string
-    {
-        $this->indent++;
-        $children = $this->generateChildren($widget->children());
-        $style = $widget->getStyle();
-        $container = $this->applyContainerStyle('Row', $style);
-        $this->indent--;
-        return "LayoutElementBuilders.Row.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
     }
 
     private function applyContainerStyle(string $builderType, ?Style $style): string
@@ -329,6 +401,26 @@ final class WearTilesBackend extends CodegenBackend
             $result .= "\n{$this->indentStr()}.setOpacity({$style->get($props::Opacity)})";
         }
         return $result;
+    }
+
+    private function generateVStack(VStack $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $style = $widget->getStyle();
+        $container = $this->applyContainerStyle('Column', $style);
+        $this->indent--;
+        return "LayoutElementBuilders.Column.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
+    }
+
+    private function generateHStack(HStack $widget): string
+    {
+        $this->indent++;
+        $children = $this->generateChildren($widget->children());
+        $style = $widget->getStyle();
+        $container = $this->applyContainerStyle('Row', $style);
+        $this->indent--;
+        return "LayoutElementBuilders.Row.Builder()\n{$this->indentStr()}.setWidth(LayoutElementBuilders.Expand.INSTANCE)\n{$this->indentStr()}.setHeight(LayoutElementBuilders.Expand.INSTANCE){$container}\n{$children}\n{$this->indentStr()}.build()";
     }
 
     private function generateImage(Image $widget): string

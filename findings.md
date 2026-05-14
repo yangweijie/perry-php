@@ -1,20 +1,59 @@
-# Perry PHP 文档站搭建 — 发现报告
+# Findings: WearTiles & SwiftUI Backend Issues
 
-## VuePress 依赖兼容性
+## WearTilesBackend State Binding
 
-| 包 | 版本 | 说明 |
-|---|------|------|
-| vuepress | ^2.0.0-rc.21 | 主框架 |
-| @vuepress/bundler-vite | ^2.0.0-rc.21 | Vite 打包器 |
-| @vuepress/theme-default | ^2.0.0-rc.94 | 默认主题 |
-| @vuepress/plugin-search | ^2.0.0-rc.128 | 搜索插件（需 RC 版，v1 不兼容） |
-| sass-embedded | ^1.86.3 | VuePress 2 RC 需要编译 SCSS |
+### Current State
+- Generates state `var` fields in TileService class (persist only within service instance)
+- `generateButton()` has NO action code at all
+- No `generateAction()` method
+- Button just generates static LayoutElementBuilders.Button with text only
+- State is NOT in companion object → lost on service recreate
+- No clickable/actionable interactive elements
 
-## 项目已有内容
-- docs/ 下有完整的 VuePress 结构（README.md 首页、guide/、examples/）
-- 9 个指南页面、5 个示例页面 — 全部有实质内容
-- 1 个 PROGRESS.md 进度报告
+### Fix Plan
+1. Add companion object to hold persistent state
+2. Add `generateAction()` method (SetValue/Append/Clear/Closure/Custom)
+3. Generate Clickable.Builder() for buttons
+4. Use requestRebus() pattern with companion object state mutation
+5. Handle pending actions on each tile request
 
-## 仓库地址
-- GitHub: `yangweijie/perry-php`
-- GitHub Pages URL: `https://yangweijie.github.io/perry-php/`
+### Wear Tiles API Constraints
+- Buttons use `Clickable.Builder().setOnClick(Action)` where Action is `ActionBuilders.Action`
+- Actions use `ActionBuilders.ActionLaunchRequest.Builder().setIntent(Intent)`
+- State changes require companion object (class instance is recreated)
+- `requestRebus()` triggers tile re-render
+
+## SwiftUIBackend Style Coverage
+
+### Current Issues
+
+#### Missing (not in supportedStyleProperties): 9
+| Property | Count | SwiftUI Mapping |
+|----------|-------|-----------------|
+| LetterSpacing | never declared | `.tracking(N)` |
+| MinWidth | never declared | `.frame(minWidth: N)` |
+| MaxWidth | never declared | `.frame(maxWidth: N)` |
+| MaxHeight | never declared | `.frame(maxHeight: N)` |
+| AnimationDelay | never declared | Skip (keyframe only) |
+| AnimationIterationCount | never declared | Skip |
+| AnimationDirection | never declared | Skip |
+| AnimationFillMode | never declared | Skip |
+| AnimationPlayState | never declared | Skip |
+
+#### Ghost (declared but no generateModifiers code): 9
+| Property | Fix |
+|----------|-----|
+| MinHeight | Add to frame modifier |
+| Margin | Map to `.padding(N)` |
+| FlexDirection | Skip (SwiftUI uses VStack/HStack, not relevant) |
+| FlexWrap | Skip (not supported in SwiftUI) |
+| Gap | Map to VStack/HStack `spacing:` parameter |
+| FlexShrink | `.layoutPriority(0)` for shrink |
+| AnimationDuration | Skip (keyframe animation, not transition) |
+| AnimationEasing | Skip |
+| TransitionProperty | Skip (all-property transitions) |
+
+#### Bugs: 3
+1. `overline` → generates invalid `.overline` → remove
+2. JustifyContent → all values map to `.frame(maxWidth: .infinity)` → differentiate
+3. BorderColor without BorderWidth → not rendered → generate overlay separately

@@ -113,6 +113,46 @@ final class Style
         return $this->set(StyleProperty::Height, $height);
     }
 
+    public function minWidth(float $width): static
+    {
+        return $this->set(StyleProperty::MinWidth, $width);
+    }
+
+    public function minHeight(float $height): static
+    {
+        return $this->set(StyleProperty::MinHeight, $height);
+    }
+
+    public function maxWidth(float $width): static
+    {
+        return $this->set(StyleProperty::MaxWidth, $width);
+    }
+
+    public function maxHeight(float $height): static
+    {
+        return $this->set(StyleProperty::MaxHeight, $height);
+    }
+
+    public function paddingTop(float $top): static
+    {
+        return $this->set(StyleProperty::PaddingTop, $top);
+    }
+
+    public function paddingBottom(float $bottom): static
+    {
+        return $this->set(StyleProperty::PaddingBottom, $bottom);
+    }
+
+    public function paddingLeading(float $leading): static
+    {
+        return $this->set(StyleProperty::PaddingLeading, $leading);
+    }
+
+    public function paddingTrailing(float $trailing): static
+    {
+        return $this->set(StyleProperty::PaddingTrailing, $trailing);
+    }
+
     public function cornerRadius(float $radius): static
     {
         return $this->set(StyleProperty::CornerRadius, $radius);
@@ -142,6 +182,31 @@ final class Style
     public function fontWeight(string $weight): static
     {
         return $this->set(StyleProperty::FontWeight, $weight);
+    }
+
+    public function fontFamily(string $family): static
+    {
+        return $this->set(StyleProperty::FontFamily, $family);
+    }
+
+    public function textDecoration(string $decoration): static
+    {
+        return $this->set(StyleProperty::TextDecoration, $decoration);
+    }
+
+    public function letterSpacing(float $spacing): static
+    {
+        return $this->set(StyleProperty::LetterSpacing, $spacing);
+    }
+
+    public function lineSpacing(float $spacing): static
+    {
+        return $this->set(StyleProperty::LineSpacing, $spacing);
+    }
+
+    public function margin(float $margin): static
+    {
+        return $this->set(StyleProperty::Margin, $margin);
     }
 
     public function textAlignment(string $alignment): static

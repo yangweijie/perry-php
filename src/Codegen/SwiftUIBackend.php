@@ -313,8 +313,221 @@ final class SwiftUIBackend extends CodegenBackend
     {
         $label = addslashes($widget->label());
         $action = $this->generateAction($widget->getAction());
-        $modifiers = $this->generateModifiers($widget->getStyle());
-        return "Button(action: {{$action}}) {\n{$this->indentStr()}    Text(\"{$label}\"){$modifiers}\n{$this->indentStr()}}";
+        $style = $widget->getStyle();
+
+        // Split modifiers: text-level (typography) go on Text, button-level (visual) go on Button
+        $textMods = $this->generateTextModifiers($style);
+        $buttonMods = $this->generateButtonModifiers($style);
+
+        return "Button(action: {{$action}}) {\n{$this->indentStr()}    Text(\"{$label}\"){$textMods}\n{$this->indentStr()}}{$buttonMods}";
+    }
+
+    /**
+     * Text-level modifiers (typography) - applied to Text view inside Button.
+     */
+    private function generateTextModifiers(?\Perry\UI\Styling\Style $style): string
+    {
+        if ($style === null) {
+            return '';
+        }
+        $mods = [];
+        $props = \Perry\UI\Styling\StyleProperty::class;
+
+        if ($style->has($props::FontSize)) {
+            $mods[] = '.font(.system(size: ' . $style->get($props::FontSize) . '))';
+        }
+        if ($style->has($props::FontWeight)) {
+            $v = $style->get($props::FontWeight);
+            $map = ['bold' => '.bold', 'semibold' => '.semibold', 'medium' => '.medium', 'normal' => '.regular', 'light' => '.light'];
+            $mods[] = '.fontWeight(' . ($map[$v] ?? '.regular') . ')';
+        }
+        if ($style->has($props::ForegroundColor)) {
+            $hex = ltrim($style->get($props::ForegroundColor), '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = sprintf('.foregroundColor(Color(red: %.2f, green: %.2f, blue: %.2f))', $r, $g, $b);
+        }
+        if ($style->has($props::FontFamily)) {
+            $size = $style->has($props::FontSize) ? $style->get($props::FontSize) : 17;
+            $mods[] = '.font(.custom("' . $style->get($props::FontFamily) . '", size: ' . $size . '))';
+        }
+        if ($style->has($props::TextAlignment)) {
+            $v = $style->get($props::TextAlignment);
+            $map = ['left' => '.leading', 'center' => '.center', 'right' => '.trailing'];
+            $mods[] = '.multilineTextAlignment(TextAlignment' . ($map[$v] ?? '.leading') . ')';
+        }
+        if ($style->has($props::LineSpacing)) {
+            $mods[] = '.lineSpacing(' . $style->get($props::LineSpacing) . ')';
+        }
+        if ($style->has($props::LetterSpacing)) {
+            $mods[] = '.tracking(' . $style->get($props::LetterSpacing) . ')';
+        }
+        if ($style->has($props::TextDecoration)) {
+            $v = $style->get($props::TextDecoration);
+            $map = ['underline' => '.underline', 'line-through' => '.strikethrough'];
+            if (isset($map[$v])) {
+                $mods[] = $map[$v];
+            }
+        }
+
+        return implode('', $mods);
+    }
+
+    /**
+     * Button-level modifiers (visual/container) - applied to Button view.
+     * Order: frame → background → cornerRadius to ensure visible rounded corners.
+     */
+    private function generateButtonModifiers(?\Perry\UI\Styling\Style $style): string
+    {
+        if ($style === null) {
+            return '';
+        }
+        $mods = [];
+        $props = \Perry\UI\Styling\StyleProperty::class;
+
+        // Frame: Width, Height, Min/Max constraints
+        $frameParts = [];
+        if ($style->has($props::Width)) {
+            $frameParts['width'] = $style->get($props::Width);
+        }
+        if ($style->has($props::Height)) {
+            $frameParts['height'] = $style->get($props::Height);
+        }
+        if ($style->has($props::MinWidth)) {
+            $frameParts['minWidth'] = $style->get($props::MinWidth);
+        }
+        if ($style->has($props::MinHeight)) {
+            $frameParts['minHeight'] = $style->get($props::MinHeight);
+        }
+        if ($style->has($props::MaxWidth)) {
+            $frameParts['maxWidth'] = $style->get($props::MaxWidth);
+        }
+        if ($style->has($props::MaxHeight)) {
+            $frameParts['maxHeight'] = $style->get($props::MaxHeight);
+        }
+        if ($frameParts !== []) {
+            $parts = [];
+            foreach ($frameParts as $key => $val) {
+                $parts[] = "{$key}: {$val}";
+            }
+            $mods[] = '.frame(' . implode(', ', $parts) . ')';
+        }
+
+        // Padding
+        if ($style->has($props::Padding)) {
+            $mods[] = '.padding(' . $style->get($props::Padding) . ')';
+        }
+        if ($style->has($props::Margin)) {
+            $mods[] = '.padding(' . $style->get($props::Margin) . ')';
+        }
+
+        // Background (before cornerRadius so it gets clipped)
+        if ($style->has($props::BackgroundColor)) {
+            $hex = ltrim($style->get($props::BackgroundColor), '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = sprintf('.background(Color(red: %.2f, green: %.2f, blue: %.2f))', $r, $g, $b);
+        }
+
+        // Corner radius (clips the background above)
+        if ($style->has($props::CornerRadius)) {
+            $mods[] = '.cornerRadius(' . $style->get($props::CornerRadius) . ')';
+        }
+
+        // Border
+        if ($style->has($props::BorderColor) || $style->has($props::BorderWidth)) {
+            $w = $style->has($props::BorderWidth) ? $style->get($props::BorderWidth) : 1;
+            $color = $style->has($props::BorderColor) ? $style->get($props::BorderColor) : '#000000';
+            $hex = ltrim($color, '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = ".overlay(RoundedRectangle(cornerRadius: 0).stroke(Color(red: {$r}, green: {$g}, blue: {$b}), lineWidth: {$w}))";
+        }
+
+        // Shadow
+        if ($style->has($props::ShadowColor)) {
+            $hex = ltrim($style->get($props::ShadowColor), '#');
+            $radius = $style->has($props::ShadowRadius) ? $style->get($props::ShadowRadius) : 4;
+            $ox = $style->has($props::ShadowOffsetX) ? $style->get($props::ShadowOffsetX) : 0;
+            $oy = $style->has($props::ShadowOffsetY) ? $style->get($props::ShadowOffsetY) : 2;
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $r = round(hexdec(substr($hex, 0, 2)) / 255, 2);
+            $g = round(hexdec(substr($hex, 2, 2)) / 255, 2);
+            $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
+            $mods[] = ".shadow(color: Color(red: {$r}, green: {$g}, blue: {$b}), radius: {$radius}, x: {$ox}, y: {$oy})";
+        }
+
+        // Opacity
+        if ($style->has($props::Opacity)) {
+            $mods[] = '.opacity(' . $style->get($props::Opacity) . ')';
+        }
+
+        // Layout
+        if ($style->has($props::FlexGrow)) {
+            $mods[] = '.frame(maxWidth: .infinity)';
+        }
+        if ($style->has($props::FlexShrink)) {
+            $mods[] = '.layoutPriority(0)';
+        }
+        if ($style->has($props::JustifyContent)) {
+            $v = $style->get($props::JustifyContent);
+            $map = [
+                'center' => '.frame(maxWidth: .infinity)',
+                'end' => '.frame(maxWidth: .infinity, alignment: .trailing)',
+                'space-between' => '.frame(maxWidth: .infinity)',
+                'start' => '.frame(maxWidth: .infinity, alignment: .leading)',
+            ];
+            $mods[] = $map[$v] ?? '.frame(maxWidth: .infinity)';
+        }
+        if ($style->has($props::AlignItems)) {
+            $v = $style->get($props::AlignItems);
+            $map = ['center' => '.center', 'start' => '.leading', 'end' => '.trailing'];
+            $mods[] = '.frame(alignment: ' . ($map[$v] ?? '.center') . ')';
+        }
+
+        // Transforms
+        if ($style->has($props::Rotate)) {
+            $mods[] = '.rotationEffect(.degrees(' . $style->get($props::Rotate) . '))';
+        }
+        if ($style->has($props::Scale)) {
+            $mods[] = '.scaleEffect(' . $style->get($props::Scale) . ')';
+        }
+        if ($style->has($props::TranslateX) || $style->has($props::TranslateY)) {
+            $x = $style->has($props::TranslateX) ? $style->get($props::TranslateX) : 0;
+            $y = $style->has($props::TranslateY) ? $style->get($props::TranslateY) : 0;
+            $mods[] = ".offset(x: {$x}, y: {$y})";
+        }
+
+        // Transition
+        if ($style->has($props::TransitionDuration) || $style->has($props::TransitionDelay)) {
+            $duration = $style->has($props::TransitionDuration) ? $style->get($props::TransitionDuration) : 300;
+            $delay = $style->has($props::TransitionDelay) ? $style->get($props::TransitionDelay) : 0;
+            $easing = $style->has($props::TransitionTimingFunction) ? $style->get($props::TransitionTimingFunction) : 'ease';
+            $curve = match ($easing) {
+                'ease-in' => 'easeIn',
+                'ease-out' => 'easeOut',
+                'ease-in-out' => 'easeInOut',
+                'linear' => 'linear',
+                default => 'ease',
+            };
+            $mods[] = '.animation(.default.duration(' . ($duration / 1000.0) . ').delay(' . ($delay / 1000.0) . '))';
+        }
+
+        return implode('', $mods);
     }
 
     private function generateAction(?Action $action): string
@@ -630,8 +843,10 @@ final class SwiftUIBackend extends CodegenBackend
         }
         if ($style->has($props::TextDecoration)) {
              $v = $style->get($props::TextDecoration);
-             $map = ['underline' => '.underline', 'line-through' => '.strikethrough', 'overline' => '.overline'];
-             $mods[] = $map[$v] ?? '';
+             $map = ['underline' => '.underline', 'line-through' => '.strikethrough'];
+             if (isset($map[$v])) {
+                 $mods[] = $map[$v];
+             }
          }
          if ($style->has($props::ForegroundColor)) {
             $hex = ltrim($style->get($props::ForegroundColor), '#');
@@ -655,8 +870,14 @@ final class SwiftUIBackend extends CodegenBackend
         if ($style->has($props::LineSpacing)) {
             $mods[] = '.lineSpacing(' . $style->get($props::LineSpacing) . ')';
         }
+        if ($style->has($props::LetterSpacing)) {
+            $mods[] = '.tracking(' . $style->get($props::LetterSpacing) . ')';
+        }
         if ($style->has($props::Padding)) {
             $mods[] = '.padding(' . $style->get($props::Padding) . ')';
+        }
+        if ($style->has($props::Margin)) {
+            $mods[] = '.padding(' . $style->get($props::Margin) . ')';
         }
         if ($style->has($props::CornerRadius)) {
             $mods[] = '.cornerRadius(' . $style->get($props::CornerRadius) . ')';
@@ -674,14 +895,39 @@ final class SwiftUIBackend extends CodegenBackend
             $b = round(hexdec(substr($hex, 4, 2)) / 255, 2);
             $mods[] = sprintf('.background(Color(red: %.2f, green: %.2f, blue: %.2f))', $r, $g, $b);
         }
-        if ($style->has($props::Width) || $style->has($props::Height)) {
-            $w = $style->has($props::Width) ? $style->get($props::Width) : 'nil';
-            $h = $style->has($props::Height) ? $style->get($props::Height) : 'nil';
-            $mods[] = ".frame(width: {$w}, height: {$h})";
+        // Frame: Width, Height, Min/Max constraints
+        $frameParts = [];
+        if ($style->has($props::MinWidth)) {
+            $frameParts['minWidth'] = $style->get($props::MinWidth);
         }
-        if ($style->has($props::BorderWidth)) {
-            $w = $style->get($props::BorderWidth);
-            $color = $style->has($props::BorderColor) ? $style->get($props::BorderColor) : '#000000';
+        if ($style->has($props::MinHeight)) {
+            $frameParts['minHeight'] = $style->get($props::MinHeight);
+        }
+        if ($style->has($props::MaxWidth)) {
+            $frameParts['maxWidth'] = $style->get($props::MaxWidth);
+        }
+        if ($style->has($props::MaxHeight)) {
+            $frameParts['maxHeight'] = $style->get($props::MaxHeight);
+        }
+        if ($style->has($props::Width)) {
+            $frameParts['width'] = $style->get($props::Width);
+        }
+        if ($style->has($props::Height)) {
+            $frameParts['height'] = $style->get($props::Height);
+        }
+        if ($frameParts !== []) {
+            $parts = [];
+            foreach ($frameParts as $key => $val) {
+                $parts[] = "{$key}: {$val}";
+            }
+            $mods[] = '.frame(' . implode(', ', $parts) . ')';
+        }
+        // Border: always generate overlay if BorderColor or BorderWidth is set
+        $hasBorderColor = $style->has($props::BorderColor);
+        $hasBorderWidth = $style->has($props::BorderWidth);
+        if ($hasBorderColor || $hasBorderWidth) {
+            $w = $hasBorderWidth ? $style->get($props::BorderWidth) : 1;
+            $color = $hasBorderColor ? $style->get($props::BorderColor) : '#000000';
             $hex = ltrim($color, '#');
             if (strlen($hex) === 3) {
                 $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
@@ -719,9 +965,17 @@ final class SwiftUIBackend extends CodegenBackend
         if ($style->has($props::FlexGrow)) {
             $mods[] = '.frame(maxWidth: .infinity)';
         }
+        if ($style->has($props::FlexShrink)) {
+            $mods[] = '.layoutPriority(0)';
+        }
         if ($style->has($props::JustifyContent)) {
             $v = $style->get($props::JustifyContent);
-            $map = ['center' => '.frame(maxWidth: .infinity)', 'end' => '.frame(maxWidth: .infinity)', 'space-between' => '.frame(maxWidth: .infinity)'];
+            $map = [
+                'center' => '.frame(maxWidth: .infinity)',
+                'end' => '.frame(maxWidth: .infinity, alignment: .trailing)',
+                'space-between' => '.frame(maxWidth: .infinity)',
+                'start' => '.frame(maxWidth: .infinity, alignment: .leading)',
+            ];
             $mods[] = $map[$v] ?? '.frame(maxWidth: .infinity)';
         }
         if ($style->has($props::AlignItems)) {
@@ -753,7 +1007,7 @@ final class SwiftUIBackend extends CodegenBackend
                 'linear' => 'linear',
                 default => 'ease',
             };
-            $mods[] = ".animation(.{$curve}.duration({$duration}).delay({$delay}))";
+            $mods[] = '.animation(.default.duration(' . ($duration / 1000.0) . ').delay(' . ($delay / 1000.0) . '))';
         }
 
         return implode('', $mods);
@@ -775,6 +1029,9 @@ final class SwiftUIBackend extends CodegenBackend
 
     private function getSpacing(?\Perry\UI\Styling\Style $style): string
     {
+        if ($style !== null && $style->has(StyleProperty::Gap)) {
+            return (string) $style->get(StyleProperty::Gap);
+        }
         return '0';
     }
 
@@ -787,10 +1044,12 @@ final class SwiftUIBackend extends CodegenBackend
             StyleProperty::TextDecoration, StyleProperty::Opacity, StyleProperty::CornerRadius,
             StyleProperty::Padding, StyleProperty::PaddingTop, StyleProperty::PaddingBottom,
             StyleProperty::PaddingLeading, StyleProperty::PaddingTrailing, StyleProperty::Width,
-            StyleProperty::Height, StyleProperty::MinHeight, StyleProperty::Margin,
+            StyleProperty::Height, StyleProperty::MinWidth, StyleProperty::MinHeight,
+            StyleProperty::MaxWidth, StyleProperty::MaxHeight, StyleProperty::Margin,
             StyleProperty::BorderWidth, StyleProperty::BorderColor, StyleProperty::ShadowColor,
             StyleProperty::ShadowRadius, StyleProperty::ShadowOffsetX, StyleProperty::ShadowOffsetY,
-            StyleProperty::LineSpacing, StyleProperty::FlexDirection, StyleProperty::JustifyContent,
+            StyleProperty::LineSpacing, StyleProperty::LetterSpacing,
+            StyleProperty::FlexDirection, StyleProperty::JustifyContent,
             StyleProperty::AlignItems, StyleProperty::FlexWrap, StyleProperty::Gap,
             StyleProperty::FlexGrow, StyleProperty::FlexShrink,
             // Transform & Animation
