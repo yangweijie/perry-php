@@ -1,13 +1,14 @@
 # Examples
 
-Practical examples showing Perry PHP in action.
+Practical examples showing Perry PHP in action. Each example has a **Live Demo** (generated HTML/JS) and **Docs** (step-by-step guide).
 
-| Example | Description | Platforms |
-|---------|-------------|-----------|
-| [Calculator](/examples/calculator.html) | Full calculator with 7 actions | macOS, Web, Windows, Android, Linux |
-| [Counter](/examples/counter.html) | Simple increment/decrement counter | All platforms |
-| [Todo List](/examples/todo.html) | Todo list with add/clear | macOS, Web |
-| [Pry — JSON Viewer](/examples/pry.html) | Native JSON viewer with tree view | Windows (WebView2), macOS, Web |
+| Example | Live Demo | Docs | Platforms |
+|---------|-----------|------|-----------|
+| Calculator | [Run →](/gallery/calculator.html) | [Guide](/examples/calculator.html) | macOS, Web, Windows, Android, Linux |
+| Counter | [Run →](/gallery/counter.html) | [Guide](/examples/counter.html) | All platforms |
+| Todo List | [Run →](/gallery/todo.html) | [Guide](/examples/todo.html) | macOS, Web |
+| Pry — JSON Viewer | [Run →](/gallery/pry.html) | [Guide](/examples/pry.html) | Windows (WebView2), macOS, Web |
+| Showcase | [Run →](/gallery/showcase.html) | — | Web, macOS, Windows |
 
 All examples are in the `examples/` directory and can be run directly:
 

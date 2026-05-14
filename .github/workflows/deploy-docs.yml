@@ -39,8 +39,26 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Install npm dependencies
         run: npm ci
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --no-interaction
+
+      - name: Generate example gallery (HTML demos)
+        run: |
+          mkdir -p docs/.vuepress/public/gallery
+          php examples/calculator.php web > docs/.vuepress/public/gallery/calculator.html
+          php examples/counter.php html > docs/.vuepress/public/gallery/counter.html
+          php examples/todo.php html > docs/.vuepress/public/gallery/todo.html
+          php examples/pry.php web > docs/.vuepress/public/gallery/pry.html
+          php examples/showcase.php web > docs/.vuepress/public/gallery/showcase.html
 
       - name: Build VuePress docs
         run: npm run docs:build

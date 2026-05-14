@@ -11,3 +11,6 @@ docs/.vuepress/dist/
 
 # Playwright screenshots
 /docs-preview-*.png
+
+# Generated example gallery
+docs/.vuepress/public/gallery/
