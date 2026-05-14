@@ -9,16 +9,15 @@
 ### Actions Taken
 - ✅ 更新 config.ts（base path, navbar, sidebar, search, i18n）
 - ✅ 安装 @vuepress/plugin-search + sass-embedded
-- ✅ 创建 api-reference.md（完整 API 文档）
-- ✅ 创建 best-practices.md（12 条最佳实践）
-- ✅ 创建 contributing.md（贡献指南）
-- ✅ 创建 zh/README.md + zh/guide/README.md（中文版框架）
+- ✅ 创建 api-reference.md、best-practices.md、contributing.md 英文版
 - ✅ 创建 .github/workflows/deploy-docs.yml
-- ✅ 构建成功：23 页，1.6s，0 错误，0 警告
-- ✅ 本地预览验证：首页、指南、API 参考、示例、PROGRESS、中文版全部正常
+- ✅ GitHub Pages 配置从 branch 切换为 GitHub Actions
+- ✅ 翻译 13 个中文指南页面（补齐 api-reference、extending、styling、code-generation、actions 缺失内容）
+- ✅ 创建 5 个中文示例页面（calculator、counter、todo、pry、README）
+- ✅ 本地预览验证通过
+- ✅ 构建 40 页，0 错误，0 警告
 
 ### Next Steps
-- ⏭️ 后续可选：翻译更多中文页面
 - ⏭️ 推送 main 分支触发 GitHub Pages 自动部署
 
 ### Test Results

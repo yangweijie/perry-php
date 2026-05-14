@@ -117,6 +117,18 @@ export default defineUserConfig({
           ],
         },
       ],
+      '/zh/examples/': [
+        {
+          text: '示例',
+          children: [
+            '/zh/examples/README.md',
+            '/zh/examples/calculator.md',
+            '/zh/examples/counter.md',
+            '/zh/examples/todo.md',
+            '/zh/examples/pry.md',
+          ],
+        },
+      ],
     },
   }),
 })

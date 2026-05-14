@@ -82,10 +82,43 @@ echo $gen->generateAssignment($ir2);
 **54 个中间表示节点类型**，以语言无关的形式表示 PHP 代码：
 
 ### 核心（14 个）
-`Program`, `Assignment`, `IfStatement`, `BinaryOp`, `UnaryOp`, `Variable`, `Literal`, `FunctionCall`, `ReturnStatement`, `ArrayAccess`, `MethodCall`, `PropertyAccess`, `Ternary`, `ArrayLiteral`
+`Program`、`Assignment`、`IfStatement`、`BinaryOp`、`UnaryOp`、`Variable`、`Literal`、`FunctionCall`、`ReturnStatement`、`ArrayAccess`、`MethodCall`、`PropertyAccess`、`Ternary`、`ArrayLiteral`
 
 ### 循环（5 个）
-`WhileStatement`, `ForStatement`, `ForeachStatement`, `BreakStatement`, `ContinueStatement`
+`WhileStatement`、`ForStatement`、`ForeachStatement`、`BreakStatement`、`ContinueStatement`
+
+### Switch/Match（3 个）
+`SwitchStatement`、`CaseNode`、`MatchExpression`
+
+### 输出（2 个）
+`EchoStatement`、`PrintStatement`
+
+### 类型系统（1 个）
+`Cast`
+
+### 自增/自减（2 个）
+`Increment`、`Decrement`
+
+### 复合赋值（5 个）
+`PlusAssign`、`MinusAssign`、`MulAssign`、`DivAssign`、`ModAssign`
+
+### 二元运算（11 个）
+`PowOp`、`BitwiseAnd`、`BitwiseOr`、`BitwiseXor`、`ShiftLeft`、`ShiftRight`、`SpaceshipOp`、`CoalesceOp`、`LogicalAnd`、`LogicalOr`、`LogicalXor`
+
+### 一元运算（2 个）
+`UnaryPlus`、`BitwiseNot`
+
+### 空安全（2 个）
+`NullsafeMethodCall`、`NullsafePropertyAccess`
+
+### 异常（3 个）
+`ThrowStatement`、`TryCatchStatement`、`CatchClause`
+
+### 静态（3 个）
+`StaticCall`、`StaticPropertyAccess`、`ClassConstFetch`
+
+### 包含（1 个）
+`IncludeStatement`
 
 ### 管线
 

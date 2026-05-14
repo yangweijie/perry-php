@@ -68,6 +68,7 @@ $toggle = new Toggle(true,
 | `TextInput` | `onChange` | 文本变化时触发 |
 | `Toggle` | `onToggle` | 切换状态变化时触发 |
 | `Checkbox` | `onChange` | 选中状态变化时触发 |
+| `Dropdown` | `onChange` | 选择变化时触发 |
 
 ### 按微件分类的动作类型
 
@@ -168,9 +169,39 @@ $row = new HStack(
 | Try/catch | `do{}catch{}` | `try{}catch{}` | `try{}catch{}` | `try{}catch{}` | `try{}catch{}` |
 | Throw | `throw` | `throw` | `throw` | `throw` | `throw` |
 | 类型转换 | `Int()` | `parseInt()` | `.toInt()` | `int.parse()` | `(int)` |
+| 自增 | `+= 1` | `x++` | `x++` | `x++` | `x++` |
+| 复合赋值 | `+=`, `-=`, `*=`, `/=` | ✅ | ✅ | ✅ | ✅ |
+| 空安全 | `?.method()` | `?.method()` | `?.method()` | `?.method()` | `?.method()` |
+| 静态调用 | `Class.method()` | `Class.method()` | `Class.method()` | `Class.method()` | `Class.method()` |
 
 ---
 
 ## PHP 函数映射
 
-Perry 将 97+ 个 PHP 内置函数映射到所有 5 种目标语言。完整表格请查看[英文版页面](/guide/actions.html)。
+Perry 将 97+ 个 PHP 内置函数映射到所有 5 种目标语言：
+
+| PHP | Swift | JavaScript | Kotlin | Dart | C# |
+|-----|-------|------------|--------|------|-----|
+| `substr($s, -1)` | `String(s.last!)` | `s.slice(-1)` | `s.last().toString()` | `s[s.length-1]` | `s[s.Length-1]` |
+| `substr($s, 0, -1)` | `String(s.dropLast(1))` | `s.slice(0,-1)` | `s.dropLast(1)` | `s.substring(0,s.length-1)` | `s.Substring(0,s.Length-1)` |
+| `substr($s, 1)` | `String(s.dropFirst(1))` | `s.slice(1)` | `s.dropFirst(1)` | `s.substring(1)` | `s.Substring(1)` |
+| `strlen($s)` | `s.count` | `s.length` | `s.length` | `s.length` | `s.Length` |
+| `floatval($x)` | `Double(x) ?? 0` | `parseFloat(x)` | `x.toDoubleOrNull() ?: 0.0` | `double.parse(x.toString())` | `Convert.ToDouble(x)` |
+| `intval($x)` | `Int(x)` | `parseInt(x)` | `x.toIntOrNull() ?: 0` | `int.parse(x.toString())` | `Convert.ToInt32(x)` |
+| `strval($x)` | `String(x)` | `String(x)` | `x.toString()` | `x.toString()` | `x.ToString()` |
+| `in_array($x, $a)` | `a.contains(x)` | `a.includes(x)` | `a.contains(x)` | `a.contains(x)` | `a.Contains(x)` |
+| `strpos($s, $n)` | `s.firstIndex(of: n)` | IIFE with `indexOf` | `s.indexOf(n)` | `s.indexOf(n)` | `s.IndexOf(n)` |
+| `end($a)` | `a.last!` | `a[a.length-1]` | `a.last()` | `a.last` | `a[a.Length-1]` |
+| `number_format($n,$d)` | `String(format: "%.$df", $n)` | `n.toFixed(d)` | `String.format("%.$df",n)` | `n.toStringAsFixed(d)` | `$n.ToString("F$d")` |
+| `floor($x)` | `floor(x)` | `Math.floor(x)` | `Math.floor(x).toInt()` | `x.floor()` | `Math.Floor(x)` |
+| `empty($x)` | `x.isEmpty` | `!x` | `x.isEmpty()` | `x.isEmpty` | `string.IsNullOrEmpty(x)` |
+| `count($a)` | `a.count` | `a.length` | `a.size` | `a.length` | `a.Length` |
+| `json_decode($s)` | `JSONDecoder()` | `JSON.parse(s)` | `Gson().fromJson(...)` | `jsonDecode(s)` | `JsonConvert.DeserializeObject(...)` |
+| `json_encode($v)` | `JSONEncoder()` | `JSON.stringify(v)` | `Gson().toJson(...)` | `jsonEncode(v)` | `JsonConvert.SerializeObject(...)` |
+| `preg_match($p, $s)` | `range(of: p, in: s)` | `s.match(p)` | `p.toRegex().find(s)` | `s.contains(RegExp(p))` | `Regex.IsMatch(s, p)` |
+| `array_push($a, $v)` | `a.append(v)` | `a.push(v)` | `a.add(v)` | `a.add(v)` | `a.Add(v)` |
+| `array_reduce($a, $f)` | `a.reduce(0, f)` | `a.reduce(f)` | `a.reduce(f)` | `a.reduce(f)` | `a.Aggregate(f)` |
+| `array_unique($a)` | `Array(Set(a))` | `[...new Set(a)]` | `a.distinct()` | `a.toSet().toList()` | `a.Distinct().ToArray()` |
+| `array_merge($a, $b)` | `a + b` | `[...a, ...b]` | `a + b` | `[...a, ...b]` | `a.Concat(b)` |
+
+**`=== false` 优化：** 所有生成器检测到 `expr === false` 时会生成 `!expr` 替代。
