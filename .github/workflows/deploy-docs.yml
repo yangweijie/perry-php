@@ -61,7 +61,7 @@ jobs:
           php examples/counter.php html > docs/.vuepress/public/gallery/counter.html
           php examples/todo.php html > docs/.vuepress/public/gallery/todo.html
           php examples/pry.php web > docs/.vuepress/public/gallery/pry.html
-          php examples/showcase.php web > docs/.vuepress/public/gallery/showcase.html
+          php examples/showcase.php web | sed -n '/<!DOCTYPE/,/<\/html>/p' > docs/.vuepress/public/gallery/showcase.html
 
       - name: Build VuePress docs
         run: npm run docs:build
