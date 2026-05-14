@@ -2,3 +2,12 @@
 /build
 vendor
 /.idea/
+node_modules
+
+# VuePress build output
+docs/.vuepress/.cache/
+docs/.vuepress/.temp/
+docs/.vuepress/dist/
+
+# Playwright screenshots
+/docs-preview-*.png

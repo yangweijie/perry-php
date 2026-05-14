@@ -1,79 +1,54 @@
-# Perry PHP — IR 生成器覆盖率提升计划
+# Perry PHP — VuePress 文档站搭建
 
 ## 目标
-提升 IR 生成器测试覆盖率和 PHP 函数映射覆盖率。
+用 VuePress 搭建完整的项目文档站，可发布到 GitHub Pages（`yangweijie/perry-php`）。
 
-## 当前状态（2026-05-09 分析）
+## 当前状态（2026-05-14）
 
-### IR 接口方法覆盖率
-**所有 5 个生成器（Swift/Kotlin/Dart/JS/C#）+ CGenerator 均已实现全部 90 个 IR 接口方法 — 100% ✅**
+### Phase 1: 配置与基础设施 ✅ COMPLETE
+- [x] 更新 `config.ts` — base path `/perry-php/`、导航栏、侧边栏
+- [x] 安装 `@vuepress/plugin-search` — 全文搜索
+- [x] 配置多语言骨架（en-US + zh-CN）
+- [x] 修复构建依赖（sass-embedded）
+- [x] 首次构建验证 — 23 页，0 错误，0 警告
 
-### PHP 函数映射
-每个生成器 21-22 个映射，常用 PHP 函数约 50+ 个未映射。
+### Phase 2: 内容补充 ✅ COMPLETE
+- [x] 创建 `docs/guide/api-reference.md` — 完整 API 参考
+- [x] 创建 `docs/guide/best-practices.md` — 12 条最佳实践
+- [x] 创建 `docs/guide/contributing.md` — 贡献指南含 PR 流程、编码规范
 
-### 测试覆盖率
-| 生成器 | 测试数 | 状态 |
-|--------|--------|------|
-| Swift | 19 | ✅ 良好 |
-| Kotlin | 22 | ✅ 良好 |
-| Dart | 22 | ✅ 良好 |
-| JavaScript | 14 | ⚠️ 最少 |
-| C# | 22 | ✅ 良好 |
-| C (新增) | 0 | ❌ 无测试 |
-| IRNodesTest | 31 | ✅ 覆盖所有 IR 节点 |
+### Phase 3: 部署配置 ✅ COMPLETE
+- [x] 创建 `.github/workflows/deploy-docs.yml` — GitHub Actions 自动构建部署
+- [x] 更新 `package.json` — 依赖声明
 
-## 优先级排序
-
-### Phase 1: CGenerator 测试（P0）✅ COMPLETE
-- [x] 创建 CGeneratorTest.php
-- [x] 测试基础 IR 节点（变量、字面量、赋值、二元运算）
-- [x] 测试循环（while, for, foreach）
-- [x] 测试控制流（if, switch, match, ternary）
-- [x] 测试函数调用映射
-- [x] 修复 `generateCoalesce()` 双求值 bug
-- [x] 修复 `Program` 类缺少构造函数
-- [x] 运行测试验证 — 46 tests 全部通过
-
-### Phase 2: JavaScript 生成器测试补充（P1）✅ COMPLETE
-- [x] 补充 state 测试
-- [x] 补充高级函数映射测试
-- [x] 补充 IR 节点测试（if/while/for/switch/match, ternary, echo/print, return, array access, method call, property access, array literal, nullsafe, throw, try-catch, static call/property/class const, include）
-- [x] 修复 6 处测试期望与实际输出不符的问题（empty, while, for, match, echo, include）
-- [x] 运行测试验证 — 43 tests 全部通过
-
-### Phase 3: PHP 函数映射扩展（P2）✅ COMPLETE
-- [x] 列出未映射的常用 PHP 函数
-- [x] 为每个生成器添加映射
-- [x] 添加测试
-- **状态**: 每个生成器从 21-22 个映射扩展到 50+ 个映射
-
-### Phase 4: 全测试套件运行 ✅ COMPLETE
-- [x] 运行 ./vendor/bin/pest
-- [x] 确保所有测试通过 — **430 tests, 2284 assertions 全部通过 ✅**
+### Phase 5: 中文内容翻译 ✅ COMPLETE
+- [x] 翻译 `zh/guide/getting-started.md` — 快速开始
+- [x] 翻译 `zh/guide/ui-components.md` — UI 组件
+- [x] 翻译 `zh/guide/state-management.md` — 状态管理
+- [x] 翻译 `zh/guide/actions.md` — 动作
+- [x] 翻译 `zh/guide/styling.md` — 样式
+- [x] 翻译 `zh/guide/code-generation.md` — 代码生成
+- [x] 翻译 `zh/guide/platforms.md` — 平台支持
+- [x] 翻译 `zh/guide/build-system.md` — 构建系统
+- [x] 翻译 `zh/guide/api-reference.md` — API 参考
+- [x] 翻译 `zh/guide/best-practices.md` — 最佳实践
+- [x] 翻译 `zh/guide/extending.md` — 扩展
+- [x] 翻译 `zh/guide/contributing.md` — 贡献指南
+- [x] 更新 `config.ts` 中文侧边栏 — 13 个页面全部注册
+- [x] 构建验证 — 35 页，0 错误，0 警告
 
 ## 决策日志
 | 日期 | 决定 | 理由 |
 |------|------|------|
-| 2026-05-09 | 启动 IR 生成器覆盖率提升 | 审计周期后最高优先级改进 |
-| 2026-05-09 | 发现所有生成器已 100% 实现 IR 接口 | 之前的 60% 估算是误判 |
-| 2026-05-09 | 优先级调整为：CGenerator 测试 > JS 测试 > 函数映射 | 新增功能无测试最紧急 |
-| 2026-05-09 | CGenerator `generateCoalesce()` 修复 | 双求值 bug，左右操作数需缓存 |
-| 2026-05-09 | `Program` 类添加构造函数 | statements 数组未初始化 |
-| 2026-05-09 | JavaScriptGenerator 测试期望修正 | 6 处实际输出与预期不符 |
-| 2026-05-09 | PHP 函数映射扩展 | 从 21-22 个扩展到 50+ 个 |
+| 2026-05-14 | 使用 `@vuepress/plugin-search@2.0.0-rc.128` | 兼容 VuePress 2 RC |
+| 2026-05-14 | 安装 `sass-embedded` | VuePress 2 RC 需要编译 SCSS |
+| 2026-05-14 | 配置 `/` 侧边栏包含 PROGRESS | 消除构建警告，方便导航到进度页 |
+| 2026-05-14 | zh-CN 只创建首页和指南首页框架 | 后续逐步翻译 |
 
 ## 错误日志
 | 错误 | 尝试 | 解决方法 |
 |------|------|---------|
-| CGenerator `generateCoalesce()` 双求值 | 直接 `$node->left->accept($this)` 两次 | 缓存左右操作数到临时变量 |
-| `Program` statements 始终为空 | 无构造函数 | 添加 `public $statements = [];` 和构造函数 |
-| JS `empty()` 期望 `arr.length === 0` | 实际输出 `!arr` | 修正测试期望 |
-| JS `while` 期望 `i--` | 实际输出 `let i = i - 1` | 修正测试期望 |
-| JS `for` 期望 `sum += i` | 实际输出 `let sum = sum + i` | 修正测试期望 |
-| JS `match` 期望 `if/else if` | 实际输出 `switch` | 修正测试期望 |
-| JS `echo` 期望 `console.log("Hello", name)` | 实际输出 `console.log("Hello" + " " + name)` | 修正测试期望 |
-| JS `include` 期望 `require("module.js")` | 实际输出 `// include 'module.js'` | 修正测试期望 |
-| Swift `ltrim/rtrim` 语法错误 | `??` 在双引号字符串插值中不工作 | 改用字符串拼接 |
-| C# `str_repeat` 括号不匹配 | `(int)({$args[1])` 缺少 `}` | 修正为 `(int)({$args[1]})` |
-| C# `array_rand` 语法错误 | `{$args[0].Length}` 在双引号字符串中不工作 | 改用 `{$args[0]}.Length` |
-| C# `json_encode/decode` 命名空间 | 测试期望短名，实际输出全名 | 修正测试期望 |
+| `chalk` 模块路径错误 | npm install | 重新安装依赖 |
+| `searchPlugin` 不是 named export | CommonJS 导入 | 安装 v2 RC 版本 |
+| `sass-embedded` 未找到 | npm install -D | 安装 sass-embedded |
+| PROGRESS.html 缺少 sidebar | 添加 `/` 侧边栏 | PROGRESS.md 在 Overview 中 |
