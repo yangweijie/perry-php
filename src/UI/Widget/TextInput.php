@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\UI\Widget;
 
 use Perry\UI\Action;
+use Perry\UI\Binding;
 use Perry\UI\StateId;
 use Perry\UI\Widget;
 use Perry\UI\WidgetKind;
@@ -12,13 +13,19 @@ use Perry\UI\WidgetKind;
 final class TextInput extends Widget
 {
     private ?Action $onChangeObj = null;
+    private Binding $valueBinding;
 
     public function __construct(
-        private StateId $value,
+        StateId|Binding $value,
         private string $placeholder = '',
         ?Action $onChange = null,
     ) {
         parent::__construct();
+        if ($value instanceof Binding) {
+            $this->valueBinding = $value;
+        } else {
+            $this->valueBinding = new Binding($value->name, '');
+        }
         if ($onChange instanceof Action) {
             $this->onChangeObj = $onChange;
         }
@@ -29,9 +36,9 @@ final class TextInput extends Widget
         return WidgetKind::TextInput;
     }
 
-    public function value(): StateId
+    public function value(): Binding
     {
-        return $this->value;
+        return $this->valueBinding;
     }
 
     public function placeholder(): string

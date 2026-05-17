@@ -28,7 +28,7 @@ final class AppContainer extends Widget
 
     public function kind(): WidgetKind
     {
-        return WidgetKind::VStack;
+        return WidgetKind::AppContainer;
     }
 
     /** @return Binding[] */

@@ -6,25 +6,35 @@ namespace Perry\Generator;
 
 use Perry\IR;
 
-class KotlinGenerator implements IR\Generator
+class KotlinGenerator extends AbstractGenerator
 {
-    private int $indent = 0;
-    private array $declaredVars = [];
-    private array $stateVars = [];
-    private array $varTypes = []; // variable name => 'Double'
+    /** @var array<string, string> variable name => Kotlin type */
+    private array $varTypes = [];
 
-    public function __construct(array $stateVars = [])
+    /**
+     * @param array<string> $stateVars List of state variable names
+     * @param array<string, string> $initialTypes Explicit type map for variables (e.g. ['counter' => 'Int', 'name' => 'String'])
+     */
+    public function __construct(array $stateVars = [], array $initialTypes = [])
     {
-        $this->stateVars = $stateVars;
-        // State vars are initialized with mutableStateOf(0.0) = Double
+        parent::__construct($stateVars);
         foreach ($stateVars as $var) {
-            $this->varTypes[$var] = 'Double';
+            $this->varTypes[$var] = $initialTypes[$var] ?? 'Double';
         }
     }
 
-    public function generate(IR\Node $node): string
+    private function inferKotlinType(IR\Node $node): string
     {
-        return $node->accept($this);
+        if ($node instanceof IR\Literal) {
+            return match (true) {
+                is_int($node->value) => 'Int',
+                is_float($node->value) => 'Double',
+                is_string($node->value) => 'String',
+                is_bool($node->value) => 'Boolean',
+                default => 'Any',
+            };
+        }
+        return 'Any';
     }
 
     public function generateProgram(IR\Program $node): string
@@ -41,11 +51,9 @@ class KotlinGenerator implements IR\Generator
         $escapedVar = $this->escapeKotlinKeyword($node->variable);
         $value = $node->value->accept($this);
 
-        // Track Double type from state vars and propagated locals
+        // Track Double type from propagated locals (no longer assumes state vars === Double)
         $isDouble = false;
-        if (in_array($node->variable, $this->stateVars)) {
-            $isDouble = true;
-        } elseif ($node->value instanceof IR\Variable &&
+        if ($node->value instanceof IR\Variable &&
                   ($this->varTypes[$node->value->name] ?? null) === 'Double') {
             $isDouble = true;
         } elseif (str_contains($value, '.toDouble()') || str_contains($value, '.toDoubleOrNull()')) {
@@ -902,11 +910,6 @@ class KotlinGenerator implements IR\Generator
     public function generateInclude(IR\IncludeStatement $node): string
     {
         return "// include '{$node->path}'";
-    }
-
-    private function indent(): string
-    {
-        return str_repeat('    ', $this->indent);
     }
 
     public function generateArrayPop(IR\ArrayPop $node): string

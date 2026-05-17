@@ -28,7 +28,10 @@ final class Text extends Widget
 
     public function content(): string
     {
-        return $this->binding ? '' : (string) $this->content;
+        if ($this->binding) {
+            return $this->binding->name;
+        }
+        return (string) $this->content;
     }
 
     public function getBinding(): ?Binding

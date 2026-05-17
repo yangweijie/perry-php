@@ -73,7 +73,7 @@ final class WebDriver extends AbstractPlatformDriver
             'foreground_color' => 'color',
             'border_color' => 'border-color',
             'border_width' => 'border-width',
-            'cornerRadius' => 'border-radius',
+            'corner_radius' => 'border-radius',
             'font_size' => 'font-size',
             'font_weight' => 'font-weight',
             'font_family' => 'font-family',
@@ -86,7 +86,7 @@ final class WebDriver extends AbstractPlatformDriver
 
     private function toCssValue(string $property, mixed $value): string
     {
-        if (in_array($property, ['font_size', 'border_width', 'padding', 'margin', 'width', 'height', 'cornerRadius'], true)) {
+        if (in_array($property, ['font_size', 'border_width', 'padding', 'margin', 'width', 'height', 'corner_radius'], true)) {
             return "{$value}px";
         }
         if ($property === 'opacity') {

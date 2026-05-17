@@ -431,7 +431,7 @@ XAML);
         }
 
         // 生成按钮属性时排除 CornerRadius，后续通过 ControlTemplate 处理
-        $buttonProps = $this->generateProperties($style, ['cornerRadius']);
+        $buttonProps = $this->generateProperties($style, ['corner_radius']);
 
         $action = $widget->getAction();
         $clickAttr = '';
@@ -497,7 +497,7 @@ XAML);
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $excludeStackProps = array_merge(['cornerRadius'], $hasPadding ? self::PADDING_PROPS : []);
+        $excludeStackProps = array_merge(['corner_radius'], $hasPadding ? self::PADDING_PROPS : []);
         $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $stackPanel = trim(<<<XAML
@@ -532,7 +532,7 @@ XAML);
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $excludeStackProps = array_merge(['cornerRadius'], $hasPadding ? self::PADDING_PROPS : []);
+        $excludeStackProps = array_merge(['corner_radius'], $hasPadding ? self::PADDING_PROPS : []);
         $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $stackPanel = trim(<<<XAML

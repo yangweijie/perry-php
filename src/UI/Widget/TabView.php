@@ -19,6 +19,9 @@ final class TabView extends Widget
     {
         parent::__construct();
         $this->tabs = $tabs;
+        foreach ($tabs as $tab) {
+            $this->addChild($tab);
+        }
     }
 
     /**

@@ -486,8 +486,8 @@ final class ComposeBackend extends CodegenBackend
     private function generateTextInput(TextInput $widget): string
     {
         $placeholder = addslashes($widget->placeholder());
-        $valueId = $widget->value();
-        $varName = !empty($valueId->name) ? $valueId->name : $valueId->id;
+        $binding = $widget->value();
+        $varName = $binding->name;
         return "TextField(value = {$varName}, onValueChange = {{$varName} = it}, placeholder = { Text(\"{$placeholder}\") })";
     }
 

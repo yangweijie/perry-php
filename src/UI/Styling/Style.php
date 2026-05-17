@@ -38,6 +38,14 @@ final class Style
     {
         $clone = clone $this;
         $clone->properties = array_merge($clone->properties, $other->properties);
+        // Also merge responsive variants (#10)
+        foreach ($other->responsiveVariants as $bp => $variant) {
+            if (isset($clone->responsiveVariants[$bp])) {
+                $clone->responsiveVariants[$bp] = $clone->responsiveVariants[$bp]->merge($variant);
+            } else {
+                $clone->responsiveVariants[$bp] = clone $variant;
+            }
+        }
         return $clone;
     }
 

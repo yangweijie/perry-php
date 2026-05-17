@@ -154,7 +154,7 @@ final class WearTilesBackend extends CodegenBackend
 
         $cases = [];
         foreach ($this->actionMap as $actionId => $actionCode) {
-            $cases[] = "            \"{$actionId}\" -> {{$actionCode}\n                requestRebus()\n            }";
+            $cases[] = "            \"{$actionId}\" -> {{$actionCode}\n                requestRebuild()\n            }";
         }
 
         $casesCode = implode("\n", $cases);

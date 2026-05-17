@@ -91,6 +91,9 @@ final class HtmlBackend extends CodegenBackend
         $this->generatedNamedActions = [];
         $this->responsiveCounter = 0;
         $this->responsiveStyles = [];
+        // Reset static properties to avoid cross-call contamination (#5)
+        self::$innerHTMLVars = [];
+        self::$customScript = null;
 
         $body = '';
         $title = 'Perry App';

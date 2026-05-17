@@ -48,7 +48,11 @@ final class Action
 
     public static function calculate(Binding $display, Binding $operand1, Binding $operand2, Binding $operation): self
     {
-        return new self(ActionType::Calculate, $display, null, null);
+        return new self(ActionType::Calculate, $display, null, null, closureBindings: [
+            'operand1' => $operand1,
+            'operand2' => $operand2,
+            'operation' => $operation,
+        ]);
     }
 
     public static function custom(string $code): self

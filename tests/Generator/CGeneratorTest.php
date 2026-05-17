@@ -13,7 +13,7 @@ test('CGenerator generates variable assignment', function () {
     $result = $gen->generate($assign);
     
     // CGenerator declares new variables with type
-    expect($result)->toBe('int message = "hello"');
+    expect($result)->toBe('const char* message = "hello"');
 });
 
 test('CGenerator generates new variable declaration', function () {
@@ -116,7 +116,7 @@ test('CGenerator generates if statement', function () {
     
     // CGenerator adds extra parentheses around conditions
     expect($result)->toContain('if ((x == 0)) {')
-        ->and($result)->toContain('int result = "zero"')
+        ->and($result)->toContain('const char* result = "zero"')
         ->and($result)->toContain('}');
 });
 
@@ -130,7 +130,7 @@ test('CGenerator generates if-else statement', function () {
     $result = $gen->generate($if);
     
     expect($result)->toContain('if ((x == 0)) {')
-        ->and($result)->toContain('int result = "zero"')
+        ->and($result)->toContain('const char* result = "zero"')
         ->and($result)->toContain('} else {')
         ->and($result)->toContain('result = "not-zero"')
         ->and($result)->toContain('}');

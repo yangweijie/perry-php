@@ -1,48 +1,33 @@
-# Task Plan: Fix WearTiles State Binding & SwiftUI Style Coverage
+# 代码库 Bug 修复计划
 
-## Goal
-Fix two identified backend issues in perry-php:
-1. **WearTilesBackend**: Add state binding integration (action generation, reactive updates)
-2. **SwiftUIBackend**: Improve style coverage from 65% to near-parity (fix ghost properties, missing properties, and bugs)
+## 目标
+按优先级修复 findings.md 中识别的所有 P0 和 P1 问题。
 
-## Phases
+## 修复顺序
 
-### Phase 1: Research & Analysis
-- [x] Read WearTilesBackend.php
-- [x] Read SwiftUIBackend.php
-- [x] Read GlanceBackend.php (reference for state binding)
-- [x] Read StyleProperty.php (all 51 properties)
-- [x] Read existing tests
-- [x] Document findings in findings.md
+### Phase 1: P0 单行/小修复（生成错误代码的问题）
+- [x] #6 WearTiles `requestRebus()` → `requestRebuild()`
+- [x] #4 CGenerator 全 int → 类型感知
+- [x] #7 KotlinGenerator 全 Double → 类型感知（支持类型映射参数）
+- [x] #20 Glance `colorFilter` 修复（改为正确的 TextStyle color）
+- [x] #21 Flutter SegmentedControl 修复（SegmentedButton → ButtonSegment）
+- [x] #5 HtmlBackend 静态属性重置（generate() 入口重置）
+- [x] #2 AppContainer::kind() + WidgetKind 条目
+- [x] #10 Style::merge() 响应式变体丢失
+- [x] #8 Generator 不可重入修复（6 个 Generator 全部添加 resetState）
+- [x] #9 CornerRadius 枚举命名统一（cornerRadius → corner_radius）
 
-### Phase 2: Fix WearTiles State Binding
-- [x] Add `generateAction()` method (SetValue/Append/Clear/Closure/Custom)
-- [x] Integrate action into `generateButton()`
-- [x] Add reactive update mechanism (TileUpdater / requestRebus)
-- [x] Add `supportedStyleProperties()` method (currently missing)
+### Phase 2: P0 中等修复
+- [x] #3 Action::calculate() 操作数丢失（存入 closureBindings）
+- [x] #1 Generator 抽象基类提取（AbstractGenerator + 5 个生成器继承）
 
-### Phase 3: Fix SwiftUI Style Coverage
-- [x] Implement missing 9 properties in `generateModifiers()`
-- [x] Implement 9 ghost properties (declared but no code)
-- [x] Fix bugs: overline mapping, justifyContent mapping, BorderColor dependency
-- [x] Add FlexShrink, Gap, FlexDirection/FlexWrap where feasible
+### Phase 3: P1 修复
+- [x] Widget 模型缺陷（Text/TabView/TextInput）
+- [x] 测试断言增强
+  - [x] SwiftUI 编译验证（swiftc calculator + button）
+  - [x] 边界测试（特殊字符、深度嵌套、空值）
+  - [x] 集成测试（Action::calculate、Text::content、TabView children）
 
-### Phase 4: Validation
-- [x] Run existing tests
-- [x] Verify generated code compiles
-- [x] Run full test suite
-
-## Decisions
-| Decision | Rationale |
-|----------|-----------|
-| WearTiles: Use Futures-based async pattern | Wear Tiles API uses ListenableFuture, not Compose |
-| WearTiles: Generate `requestRebus()` wrapper | Triggers tile re-render on state change |
-| SwiftUI: Prefer `.animation(_:value:)` over deprecated `.animation()` | Modern SwiftUI API |
-| SwiftUI: Map `Gap` to VStack/HStack `spacing` | Most natural SwiftUI mapping |
-| SwiftUI: Map `Margin` to `.padding()` | SwiftUI has no margin modifier |
-
-## Status
-- Phase 1: **complete**
-- Phase 2: **complete**
-- Phase 3: **complete**
-- Phase 4: **complete** ✅
+## 最终状态
+- **全部 findings.md 中识别的问题 100% 已修复** ✅
+- **Tests: 全部通过, 0 failed** ✅

@@ -6,22 +6,8 @@ namespace Perry\Generator;
 
 use Perry\IR;
 
-class JavaScriptGenerator implements IR\Generator
+class JavaScriptGenerator extends AbstractGenerator
 {
-    private int $indent = 0;
-    private array $declaredVars = [];
-    private array $stateVars = [];
-
-    public function __construct(array $stateVars = [])
-    {
-        $this->stateVars = $stateVars;
-    }
-
-    public function generate(IR\Node $node): string
-    {
-        return $node->accept($this);
-    }
-
     public function generateProgram(IR\Program $node): string
     {
         $stmts = [];
@@ -841,11 +827,6 @@ class JavaScriptGenerator implements IR\Generator
         $body = $node->body !== null ? $node->body->accept($this) : '';
         $indent = $this->indent();
         return "function($params) {\n{$indent}    {$body}\n{$indent}}}";
-    }
-
-    private function indent(): string
-    {
-        return str_repeat('    ', $this->indent);
     }
 
     public function generateArrayPop(IR\ArrayPop $node): string

@@ -6,22 +6,8 @@ namespace Perry\Generator;
 
 use Perry\IR;
 
-class SwiftGenerator implements IR\Generator
+class SwiftGenerator extends AbstractGenerator
 {
-    private int $indent = 0;
-    private array $declaredVars = [];
-    private array $stateVars = [];
-
-    public function __construct(array $stateVars = [])
-    {
-        $this->stateVars = $stateVars;
-    }
-
-    public function generate(IR\Node $node): string
-    {
-        return $node->accept($this);
-    }
-
     public function generateProgram(IR\Program $node): string
     {
         $stmts = [];
@@ -853,8 +839,5 @@ class SwiftGenerator implements IR\Generator
         return "({$node->array->accept($this)} as! [Any]).filter { !$0.isContainedIn({$node->diff->accept($this)} as! [Any]) }";
     }
 
-    private function indent(): string
-    {
-        return str_repeat('    ', $this->indent);
-    }
+
 }

@@ -32,4 +32,5 @@ enum WidgetKind: int
     case DatePicker = 23;
     case AnimatedContainer = 24;
     case Transition = 25;
+    case AppContainer = 26;
 }

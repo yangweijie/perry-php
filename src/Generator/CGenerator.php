@@ -17,7 +17,14 @@ class CGenerator implements IR\Generator
 
     public function generate(IR\Node $node): string
     {
+        $this->resetState();
         return $node->accept($this);
+    }
+
+    private function resetState(): void
+    {
+        $this->indent = 0;
+        $this->declaredVars = [];
     }
 
     public function generateProgram(IR\Program $node): string
@@ -29,11 +36,26 @@ class CGenerator implements IR\Generator
         return implode("\n", $stmts);
     }
 
+    private function inferCType(IR\Node $expr): string
+    {
+        if ($expr instanceof IR\Literal) {
+            return match (true) {
+                is_float($expr->value) => 'double',
+                is_int($expr->value)   => 'int',
+                is_bool($expr->value)  => 'int',
+                is_string($expr->value) => 'const char*',
+                default => 'int',
+            };
+        }
+        return 'int';
+    }
+
     public function generateAssignment(IR\Assignment $node): string
     {
         if (!in_array($node->variable, $this->declaredVars)) {
             $this->declaredVars[] = $node->variable;
-            return "int {$node->variable} = {$node->value->accept($this)}";
+            $type = $this->inferCType($node->value);
+            return "{$type} {$node->variable} = {$node->value->accept($this)}";
         }
         return "{$node->variable} = {$node->value->accept($this)}";
     }

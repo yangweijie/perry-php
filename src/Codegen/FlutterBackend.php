@@ -725,7 +725,7 @@ final class FlutterBackend extends CodegenBackend
         $items = [];
         foreach ($widget->options() as $label => $value) {
             $escLabel = addslashes((string) $label);
-            $items[] = "{$this->indentStr()}      SegmentedButton<String>(\n{$this->indentStr()}        value: '{$escLabel}',\n{$this->indentStr()}        label: const Text('{$escLabel}'),\n{$this->indentStr()}      )";
+            $items[] = "{$this->indentStr()}      ButtonSegment<String>(\n{$this->indentStr()}        value: '{$escLabel}',\n{$this->indentStr()}        label: Text('{$escLabel}'),\n{$this->indentStr()}      )";
         }
         $itemsCode = implode(",\n", $items);
         $wrappers = $this->generateStyleWrappers($widget->getStyle());

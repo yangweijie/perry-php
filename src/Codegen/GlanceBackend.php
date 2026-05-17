@@ -381,7 +381,7 @@ final class GlanceBackend extends CodegenBackend
         }
 
         if ($style->has($props::ForegroundColor)) {
-            $mods[] = "colorFilter = ColorProvider({$this->colorExpr($style->get($props::ForegroundColor))})";
+            $textStyleParts[] = "color = {$this->colorExpr($style->get($props::ForegroundColor))}";
         }
 
         // Padding

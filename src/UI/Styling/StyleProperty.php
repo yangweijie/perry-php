@@ -10,7 +10,7 @@ enum StyleProperty: string
     case ForegroundColor = 'foreground_color';
     case BorderColor = 'border_color';
     case BorderWidth = 'border_width';
-    case CornerRadius = 'cornerRadius';
+    case CornerRadius = 'corner_radius';
     case Opacity = 'opacity';
     case Padding = 'padding';
     case PaddingTop = 'padding_top';

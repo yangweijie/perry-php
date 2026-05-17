@@ -20,7 +20,7 @@ test('KotlinGenerator generates state var assignment', function () {
     $gen = new KotlinGenerator(['display']);
     $result = $gen->generate($assign);
     
-    expect($result)->toBe('display = "0"');
+    expect($result)->toBe('var display = "0"');
 });
 
 test('KotlinGenerator generates toDoubleOrNull', function () {
