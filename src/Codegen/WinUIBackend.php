@@ -204,11 +204,12 @@ XAML);
             $body = $this->generateActionBody($action);
             // Use async void if the body contains await (streaming API calls)
             $asyncKw = str_contains($body, 'await ') ? 'async ' : '';
+            // Skip trailing UpdateUI() if the body already contains it
+            $trailingUpdate = str_contains($body, 'UpdateUI()') ? '' : "\n            UpdateUI();";
             $methods .= <<<CS
 
         private {$asyncKw}void {$methodName}(object sender, {$eventArgsType} e) {
-{$prependCode}{$body}
-            UpdateUI();
+{$prependCode}{$body}{$trailingUpdate}
         }
 CS;
         }
