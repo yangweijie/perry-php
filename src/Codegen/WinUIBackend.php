@@ -61,6 +61,12 @@ final class WinUIBackend extends CodegenBackend
     /** @var array<string, string> 绑定变量名到 TextBlock 名称的映射 */
     private array $textBindings = [];
 
+    /** @var array<string, string> 绑定变量名到 CheckBox 名称的映射 */
+    private array $checkboxBindings = [];
+
+    /** @var array<string, string> 绑定变量名到 TabControl 名称的映射 */
+    private array $tabControlBindings = [];
+
     /** @var string 应用标题 */
     private string $appTitle = 'Perry App';
 
@@ -101,6 +107,8 @@ final class WinUIBackend extends CodegenBackend
         $this->needsWebView2 = false;
         $this->webViewHtml = null;
         $this->textBindings = [];
+        $this->checkboxBindings = [];
+        $this->tabControlBindings = [];
         $this->methodNameCounts = [];
         
         // Extract state variables and window size from AppContainer
@@ -194,9 +202,11 @@ XAML);
             }
             
             $body = $this->generateActionBody($action);
+            // Use async void if the body contains await (streaming API calls)
+            $asyncKw = str_contains($body, 'await ') ? 'async ' : '';
             $methods .= <<<CS
 
-        private void {$methodName}(object sender, {$eventArgsType} e) {
+        private {$asyncKw}void {$methodName}(object sender, {$eventArgsType} e) {
 {$prependCode}{$body}
             UpdateUI();
         }
@@ -208,6 +218,14 @@ CS;
         $updateUICode = '';
         foreach ($this->textBindings as $bindingName => $textBlockName) {
             $updateUICode .= "            if ({$textBlockName} != null) {$textBlockName}.Text = {$bindingName}.ToString() ?? \"\";\n";
+        }
+        // Sync CheckBox IsChecked state
+        foreach ($this->checkboxBindings as $bindingName => $checkboxName) {
+            $updateUICode .= "            if ({$checkboxName} != null) {$checkboxName}.IsChecked = {$bindingName};\n";
+        }
+        // Sync TabControl SelectedIndex state
+        foreach ($this->tabControlBindings as $bindingName => $tabControlName) {
+            $updateUICode .= "            if ({$tabControlName} != null) {$tabControlName}.SelectedIndex = {$bindingName};\n";
         }
 
         $usings = "using System;\n";
@@ -226,6 +244,7 @@ CS;
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            // Initialize WebView2
             try {
                 var appDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
                 var htmlFile = System.IO.Path.Combine(appDir, "{$outputName}.html");
@@ -237,6 +256,18 @@ CS;
                 } catch {
                     // WebView2 may not be available
                 }
+            }
+
+            // Health check: verify PHP backend is reachable
+            try {
+                var health = await App.Api.GetAsync<System.Text.Json.JsonElement>("/api/health");
+                if (health != null) {
+                    cleanStatus = "Backend connected";
+                    UpdateUI();
+                }
+            } catch {
+                cleanStatus = "Backend unavailable - please start the server";
+                UpdateUI();
             }
         }
 CS_WEBVIEW;
@@ -308,7 +339,19 @@ CS;
     private function generateActionBody(\Perry\UI\Action $action): string
     {
         if ($action->type === \Perry\UI\ActionType::Custom) {
-            return '            // Custom action: ' . $action->customCode;
+            $code = $action->customCode;
+            // Multi-line code = actual C# implementation, embed directly
+            if (str_contains($code, "\n")) {
+                $lines = explode("\n", $code);
+                $indented = array_map(fn($line) => '            ' . $line, $lines);
+                return implode("\n", $indented);
+            }
+            // Single-line starting with // = comment placeholder
+            if (str_starts_with(trim($code), '//')) {
+                return '            // Custom action: ' . $code;
+            }
+            // Single-line actual code
+            return '            ' . $code;
         }
 
         if ($action->type === \Perry\UI\ActionType::Closure) {
@@ -785,9 +828,16 @@ XAML);
         $label = htmlspecialchars($widget->label());
         $props = $this->generateProperties($widget->getStyle());
 
+        $isOn = $widget->getIsOn();
+        $isCheckedAttr = '';
+        if ($isOn !== null) {
+            $defaultVal = $isOn->initialValue ? 'True' : 'False';
+            $isCheckedAttr = " IsChecked=\"{$defaultVal}\" x:Name=\"checkbox_{$isOn->name}\"";
+            $this->checkboxBindings[$isOn->name] = 'checkbox_' . $isOn->name;
+        }
+
         $onToggle = '';
         $action = $widget->getOnToggle();
-        $isOn = $widget->getIsOn();
         if ($action !== null) {
             $safeId = $this->safeMethodName($widget->label());
             $methodName = 'On' . $safeId . 'Toggle';
@@ -803,7 +853,7 @@ XAML);
         }
 
         return trim(<<<XAML
-        {$this->indentStr()}<CheckBox Content="{$label}"{$onToggle}{$props} />
+        {$this->indentStr()}<CheckBox Content="{$label}"{$isCheckedAttr}{$onToggle}{$props} />
 XAML);
     }
 
@@ -859,6 +909,13 @@ XAML);
         $this->indent++;
         $parts = [];
         $labels = $widget->getLabels();
+        $selectedIndexAttr = '';
+        $selected = $widget->getSelected();
+        if ($selected !== null) {
+            $tabControlName = 'tabControl_main';
+            $selectedIndexAttr = " SelectedIndex=\"{$selected->initialValue}\" x:Name=\"{$tabControlName}\"";
+            $this->tabControlBindings[$selected->name] = $tabControlName;
+        }
         foreach ($widget->tabs() as $i => $tab) {
             $header = htmlspecialchars($labels[$i] ?? 'Tab ' . ($i + 1));
             $this->indent++;
@@ -873,7 +930,7 @@ XAML);
         $tabs = implode("\n", $parts);
         $this->indent--;
         return trim(<<<XAML
-        {$this->indentStr()}<TabControl>
+        {$this->indentStr()}<TabControl{$selectedIndexAttr}>
         {$tabs}
         {$this->indentStr()}</TabControl>
 XAML);
