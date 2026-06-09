@@ -13,6 +13,7 @@ abstract class Widget
     /** @var Widget[] */
     protected array $children = [];
     protected ?string $actionName = null;
+    protected ?string $widgetName = null;
 
     public function __construct()
     {
@@ -68,5 +69,20 @@ abstract class Widget
     public function getStyle(): ?Style
     {
         return $this->style;
+    }
+
+    /**
+     * Set an XAML element name (x:Name) for this widget.
+     * Allows hand-written code-behind to reference this element.
+     */
+    public function name(string $name): static
+    {
+        $this->widgetName = $name;
+        return $this;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->widgetName;
     }
 }

@@ -600,8 +600,10 @@ XAML);
         $excludeStackProps = array_merge(['corner_radius'], $hasPadding ? self::PADDING_PROPS : []);
         $stackProps = $this->generateProperties($style, $excludeStackProps);
 
+        $nameAttr = $widget->getName() !== null ? " x:Name=\"{$widget->getName()}\"" : '';
+
         $stackPanel = trim(<<<XAML
-        {$this->indentStr()}<StackPanel Orientation="Vertical"{$stackProps}>
+        {$this->indentStr()}<StackPanel Orientation="Vertical"{$nameAttr}{$stackProps}>
         {$childXaml}
         {$this->indentStr()}</StackPanel>
 XAML);
