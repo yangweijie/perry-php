@@ -251,6 +251,9 @@ CS;
             // This avoids C# string escaping issues and is more robust than embedding HTML in source
             $csWebViewInit = <<<CS_WEBVIEW
 
+        /// <summary>Hook for hand-written code to run after WebView2 initialization.</summary>
+        partial void OnAfterWebViewInit();
+
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             // Initialize WebView2
@@ -278,6 +281,9 @@ CS;
                 cleanStatus = "Backend unavailable - please start the server";
                 UpdateUI();
             }
+
+            // Notify hand-written partial class
+            OnAfterWebViewInit();
         }
 CS_WEBVIEW;
         } elseif ($this->needsWebView2) {
