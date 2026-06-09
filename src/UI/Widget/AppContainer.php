@@ -12,6 +12,9 @@ final class AppContainer extends Widget
 {
     /** @var Binding[] */
     private array $bindings = [];
+    private ?string $appTitle = null;
+    private ?string $appNamespace = null;
+    private ?string $appBackground = null;
 
     public function __construct(
         private Widget $content,
@@ -24,6 +27,33 @@ final class AppContainer extends Widget
         foreach ($extraBindings as $b) {
             $this->bindings[$b->name] = $b;
         }
+    }
+
+    /**
+     * Set the window title.
+     */
+    public function title(string $title): static
+    {
+        $this->appTitle = $title;
+        return $this;
+    }
+
+    /**
+     * Set the C# namespace.
+     */
+    public function namespace(string $namespace): static
+    {
+        $this->appNamespace = $namespace;
+        return $this;
+    }
+
+    /**
+     * Set the window background color.
+     */
+    public function background(string $color): static
+    {
+        $this->appBackground = $color;
+        return $this;
     }
 
     public function kind(): WidgetKind
@@ -50,6 +80,21 @@ final class AppContainer extends Widget
     public function windowHeight(): ?int
     {
         return $this->windowHeight;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->appTitle;
+    }
+
+    public function getNamespace(): ?string
+    {
+        return $this->appNamespace;
+    }
+
+    public function getBackground(): ?string
+    {
+        return $this->appBackground;
     }
 
     private function collectBindings(Widget $widget): void
