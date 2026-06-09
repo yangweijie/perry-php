@@ -53,7 +53,6 @@ final class WinUIBackend extends CodegenBackend
     private ?string $windowHeight = null;
     
     /** @var bool 是否需要 WebView2 支持 */
-    /** @var bool 是否需要 WebView2 支持 */
     private bool $needsWebView2 = false;
 
     /** @var string|null WebView 的 HTML 内容 */
@@ -61,6 +60,18 @@ final class WinUIBackend extends CodegenBackend
     
     /** @var array<string, string> 绑定变量名到 TextBlock 名称的映射 */
     private array $textBindings = [];
+
+    /** @var string 应用标题 */
+    private string $appTitle = 'Perry App';
+
+    /** @var string C# 命名空间 */
+    private string $appNamespace = 'PerryApp';
+
+    /** @var string 窗口背景色 */
+    private string $appBackground = 'White';
+
+    /** @var array<string, int> 已生成的方法名计数器，用于去重 */
+    private array $methodNameCounts = [];
 
     public function needsWebView2(): bool
     {
@@ -90,6 +101,7 @@ final class WinUIBackend extends CodegenBackend
         $this->needsWebView2 = false;
         $this->webViewHtml = null;
         $this->textBindings = [];
+        $this->methodNameCounts = [];
         
         // Extract state variables and window size from AppContainer
         if ($root instanceof \Perry\UI\Widget\AppContainer) {
@@ -98,6 +110,9 @@ final class WinUIBackend extends CodegenBackend
             }
             $this->windowWidth = $root->windowWidth() !== null ? (string) $root->windowWidth() : '800';
             $this->windowHeight = $root->windowHeight() !== null ? (string) $root->windowHeight() : '600';
+            if ($root->getTitle() !== null) $this->appTitle = $root->getTitle();
+            if ($root->getNamespace() !== null) $this->appNamespace = $root->getNamespace();
+            if ($root->getBackground() !== null) $this->appBackground = $root->getBackground();
         }
         
         $body = $this->generateWidget($root);
@@ -111,13 +126,13 @@ final class WinUIBackend extends CodegenBackend
             : '';
 
         return trim(<<<XAML
-<Window x:Class="PerryApp.MainWindow"
+<Window x:Class="{$this->appNamespace}.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"{$wv2ns}
-        Title="Perry App"
+        Title="{$this->appTitle}"
         Width="{$this->windowWidth}"
         Height="{$this->windowHeight}"
-        Background="White"
+        Background="{$this->appBackground}"
         WindowStartupLocation="CenterScreen">
     <Grid>
 {$indentedBody}
@@ -267,7 +282,7 @@ CS;
 
         return <<<CS
 {$usings}
-namespace PerryApp
+namespace {$this->appNamespace}
 {
     public partial class MainWindow : Window
     {
@@ -436,8 +451,15 @@ XAML);
         $action = $widget->getAction();
         $clickAttr = '';
         if ($action !== null) {
-            $safeId = $this->safeMethodName($widget->label());
-            $methodName = 'On' . $safeId . 'Click';
+            $baseName = 'On' . $this->safeMethodName($widget->label());
+            $methodName = $baseName . 'Click';
+            // 去重: 如果方法名已存在，添加数字后缀
+            if (isset($this->methodNameCounts[$methodName])) {
+                $this->methodNameCounts[$methodName]++;
+                $methodName = $baseName . $this->methodNameCounts[$methodName] . 'Click';
+            } else {
+                $this->methodNameCounts[$methodName] = 1;
+            }
             $this->buttonActions[] = ['id' => $widget->label(), 'method' => $methodName, 'action' => $action];
             $clickAttr = " Click=\"{$methodName}\"";
         }
@@ -477,6 +499,26 @@ XAML);
             '=' => 'Equals',
         ];
         return $map[$label] ?? ucfirst(preg_replace('/[^a-zA-Z0-9]/', '', $label));
+    }
+
+    /**
+     * Format a color value for XAML.
+     * Hex colors (#RRGGBB, #AARRGGBB) keep the # prefix.
+     * Named colors (Transparent, White, Black, etc.) are returned as-is.
+     */
+    private function formatXamlColor(string $color): string
+    {
+        $color = trim($color);
+        // Already has # prefix — hex color
+        if (str_starts_with($color, '#')) {
+            return $color;
+        }
+        // Looks like hex without # (all hex chars, 6 or 8 digits)
+        if (preg_match('/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/', $color)) {
+            return '#' . $color;
+        }
+        // Named color (Transparent, White, Red, etc.) — return as-is with PascalCase
+        return ucfirst(strtolower($color));
     }
 
     private const PADDING_PROPS = [
@@ -815,7 +857,20 @@ XAML);
     private function generateTabView(TabView $widget): string
     {
         $this->indent++;
-        $tabs = $this->generateChildren($widget->tabs());
+        $parts = [];
+        $labels = $widget->getLabels();
+        foreach ($widget->tabs() as $i => $tab) {
+            $header = htmlspecialchars($labels[$i] ?? 'Tab ' . ($i + 1));
+            $this->indent++;
+            $content = $this->generateWidget($tab);
+            $this->indent--;
+            $parts[] = trim(<<<XAML
+        {$this->indentStr()}<TabItem Header="{$header}">
+        {$content}
+        {$this->indentStr()}</TabItem>
+XAML);
+        }
+        $tabs = implode("\n", $parts);
         $this->indent--;
         return trim(<<<XAML
         {$this->indentStr()}<TabControl>
@@ -855,18 +910,18 @@ XAML);
 
         $props = [];
         
-        // Colors - fix double # issue
+        // Colors - handle both hex (#RRGGBB) and named colors (Transparent, White, etc.)
         if ($style->has(StyleProperty::BackgroundColor) && $includeProp(StyleProperty::BackgroundColor)) {
-            $color = ltrim($style->get(StyleProperty::BackgroundColor), '#');
-            $props[] = "Background=\"#{$color}\"";
+            $color = $this->formatXamlColor($style->get(StyleProperty::BackgroundColor));
+            $props[] = "Background=\"{$color}\"";
         }
         if ($style->has(StyleProperty::ForegroundColor) && $includeProp(StyleProperty::ForegroundColor)) {
-            $color = ltrim($style->get(StyleProperty::ForegroundColor), '#');
-            $props[] = "Foreground=\"#{$color}\"";
+            $color = $this->formatXamlColor($style->get(StyleProperty::ForegroundColor));
+            $props[] = "Foreground=\"{$color}\"";
         }
         if ($style->has(StyleProperty::BorderColor) && $includeProp(StyleProperty::BorderColor)) {
-            $color = ltrim($style->get(StyleProperty::BorderColor), '#');
-            $props[] = "BorderBrush=\"#{$color}\"";
+            $color = $this->formatXamlColor($style->get(StyleProperty::BorderColor));
+            $props[] = "BorderBrush=\"{$color}\"";
         }
         
         // Sizing
