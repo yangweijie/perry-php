@@ -14,6 +14,7 @@ abstract class Widget
     protected array $children = [];
     protected ?string $actionName = null;
     protected ?string $widgetName = null;
+    protected ?Binding $visibleBinding = null;
 
     public function __construct()
     {
@@ -84,5 +85,26 @@ abstract class Widget
     public function getName(): ?string
     {
         return $this->widgetName;
+    }
+
+    /**
+     * Set a visibility binding: the widget is visible only when the binding
+     * evaluates to boolean true. When not set, the widget is always visible.
+     *
+     * Backends can use this to generate conditional visibility (e.g.,
+     * Visibility="Visible"/"Collapsed" in WPF XAML).
+     */
+    public function visible(Binding $binding): static
+    {
+        $this->visibleBinding = $binding;
+        return $this;
+    }
+
+    /**
+     * Get the visibility binding, or null if not set.
+     */
+    public function getVisible(): ?Binding
+    {
+        return $this->visibleBinding;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Perry\Codegen;
 
 use Perry\Build\Target;
+use Perry\UI\Binding;
 use Perry\UI\Styling\Style;
 use Perry\UI\Styling\StyleProperty;
 use Perry\UI\Widget;
@@ -82,6 +83,9 @@ final class WinUIBackend extends CodegenBackend
     /** @var array<string, int> 已生成的方法名计数器，用于去重 */
     private array $methodNameCounts = [];
 
+    /** @var array<string, Binding> widget名称 → 可见性Binding映射 */
+    private array $visibilityBindings = [];
+
     public function needsWebView2(): bool
     {
         return $this->needsWebView2;
@@ -113,6 +117,7 @@ final class WinUIBackend extends CodegenBackend
         $this->checkboxBindings = [];
         $this->tabControlBindings = [];
         $this->progressBindings = [];
+        $this->visibilityBindings = [];
         $this->methodNameCounts = [];
         
         // Extract state variables and window size from AppContainer
@@ -232,6 +237,11 @@ CS;
         // Sync ProgressBar Value state
         foreach ($this->progressBindings as $bindingName => $progressName) {
             $updateUICode .= "            if ({$progressName} != null) {$progressName}.Value = {$bindingName};\n";
+        }
+        // Sync Visibility state for widgets with visible() binding
+        foreach ($this->visibilityBindings as $panelName => $binding) {
+            $varName = $binding->name;
+            $updateUICode .= "            if ({$panelName} != null) {$panelName}.Visibility = {$varName} ? Visibility.Visible : Visibility.Collapsed;\n";
         }
 
         $usings = "using System;\n";
@@ -414,6 +424,7 @@ CS;
 
     private function generateWidget(Widget $widget): string
     {
+        $this->trackWidget($widget);
         if ($widget instanceof AppContainer) {
             $content = $this->generateWidget($widget->content());
             $containerStyle = $widget->getStyle();
@@ -461,6 +472,24 @@ XAML);
         WidgetKind::Transition => $this->generateTransition($widget),
             default => '',
         };
+    }
+
+    public function trackWidget(Widget $widget): void
+    {
+        $this->trackVisibility($widget);
+    }
+
+    private function trackVisibility(Widget $widget): void
+    {
+        $visibleBinding = $widget->getVisible();
+        if ($visibleBinding === null) {
+            return;
+        }
+        $panelName = $widget->getName();
+        if ($panelName === null) {
+            return; // need an explicit name() to reference from UpdateUI
+        }
+        $this->visibilityBindings[$panelName] = $visibleBinding;
     }
 
     private function generateText(Text $widget): string
