@@ -128,10 +128,7 @@ final class WinUIBackend extends CodegenBackend
         }
         
         $body = $this->generateWidget($root);
-        $indentedBody = implode("\n", array_map(
-            fn($line) => '            ' . $line,
-            explode("\n", $body)
-        ));
+        $indentedBody = $this->reindentXaml($body, 2);
 
         $wv2ns = $this->needsWebView2
             ? "\n        xmlns:wv2=\"clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf\""
@@ -1130,6 +1127,47 @@ XAML);
     private function indentStr(): string
     {
         return str_repeat('    ', $this->indent);
+    }
+
+    /**
+     * Post-process XAML to fix indentation based on actual nesting depth.
+     * The heredoc+trim pattern in generators produces inconsistent whitespace;
+     * this method re-computes proper indentation from the tag structure.
+     */
+    private function reindentXaml(string $xaml, int $baseIndent = 0): string
+    {
+        $lines = explode("\n", $xaml);
+        $result = [];
+        $depth = $baseIndent;
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '') {
+                continue;
+            }
+
+            // Closing tag: </Tag> or </Tag.Property>
+            if (preg_match('#^</\w+(\.\w+)?>#', $trimmed)) {
+                $depth = max($baseIndent, $depth - 1);
+                $result[] = str_repeat('    ', $depth) . $trimmed;
+                continue;
+            }
+
+            // Opening tag: <Tag ... or <Tag.Property ... (but not text content)
+            if (preg_match('#^<\w+(\.\w+)?[\s/>]#', $trimmed) || preg_match('#^<\w+(\.\w+)?>$#', $trimmed)) {
+                $result[] = str_repeat('    ', $depth) . $trimmed;
+                // Increase depth only if NOT self-closing
+                if (!str_ends_with($trimmed, '/>')) {
+                    $depth++;
+                }
+                continue;
+            }
+
+            // Other content (property elements like <Grid.RowDefinitions>, text, etc.)
+            $result[] = str_repeat('    ', $depth) . $trimmed;
+        }
+
+        return implode("\n", $result);
     }
 
     private function generateCheckbox(Checkbox $widget): string
