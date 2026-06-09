@@ -67,6 +67,9 @@ final class WinUIBackend extends CodegenBackend
     /** @var array<string, string> 绑定变量名到 TabControl 名称的映射 */
     private array $tabControlBindings = [];
 
+    /** @var array<string, string> 绑定变量名到 ProgressBar 名称的映射 */
+    private array $progressBindings = [];
+
     /** @var string 应用标题 */
     private string $appTitle = 'Perry App';
 
@@ -109,6 +112,7 @@ final class WinUIBackend extends CodegenBackend
         $this->textBindings = [];
         $this->checkboxBindings = [];
         $this->tabControlBindings = [];
+        $this->progressBindings = [];
         $this->methodNameCounts = [];
         
         // Extract state variables and window size from AppContainer
@@ -228,12 +232,16 @@ CS;
         foreach ($this->tabControlBindings as $bindingName => $tabControlName) {
             $updateUICode .= "            if ({$tabControlName} != null) {$tabControlName}.SelectedIndex = {$bindingName};\n";
         }
+        // Sync ProgressBar Value state
+        foreach ($this->progressBindings as $bindingName => $progressName) {
+            $updateUICode .= "            if ({$progressName} != null) {$progressName}.Value = {$bindingName};\n";
+        }
 
         $usings = "using System;\n";
         if ($hasSliderEvent) {
             $usings .= "using System.Windows.Controls.Primitives;\n";
         }
-        $usings .= "using System.Windows;\nusing System.Windows.Controls;\n";
+        $usings .= "using System.Windows;\nusing System.Windows.Controls;\nusing System.Text.Json;\n";
         if ($this->needsWebView2) {
             $usings .= "using Microsoft.Web.WebView2.Wpf;\nusing Microsoft.Web.WebView2.Core;\n";
         }
@@ -1180,10 +1188,16 @@ XAML);
         $props = $this->generateProperties($widget->getStyle());
 
         $progress = $widget->getProgress();
-        $valueAttr = $progress ? " Value=\"{" . $progress->name . "}\"" : '';
+        $nameAttr = '';
+        $valueAttr = '';
+        if ($progress) {
+            $nameAttr = " x:Name=\"progress_{$progress->name}\"";
+            $valueAttr = " Value=\"{$progress->initialValue}\"";
+            $this->progressBindings[$progress->name] = 'progress_' . $progress->name;
+        }
 
         return trim(<<<XAML
-        {$this->indentStr()}<ProgressBar{$valueAttr}{$props} />
+        {$this->indentStr()}<ProgressBar{$nameAttr}{$valueAttr}{$props} />
 XAML);
     }
 
