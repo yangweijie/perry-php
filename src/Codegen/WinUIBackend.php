@@ -652,7 +652,7 @@ XAML);
         {$this->indentStr()}<Button{$buttonProps}{$clickAttr}>
             <Button.Template>
                 <ControlTemplate TargetType="Button">
-                    <Border CornerRadius="{$cornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                    <Border CornerRadius="{$cornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                 </ControlTemplate>
@@ -873,10 +873,9 @@ XAML;
         $this->indent--;
         $rowDefs = rtrim($rowDefs);
         $childrenXaml = implode("\n", $childParts);
-        $nameAttr = $widget->getName() !== null ? " x:Name=\"{$widget->getName()}\"" : '';
 
         return <<<XAML
-        {$this->indentStr()}<Grid{$nameAttr}>
+        {$this->indentStr()}<Grid>
         {$this->indentStr()}    <Grid.RowDefinitions>
 {$rowDefs}
         {$this->indentStr()}    </Grid.RowDefinitions>
@@ -1116,9 +1115,7 @@ XAML);
             $this->indent--;
             $parts[] = trim(<<<XAML
         {$this->indentStr()}<TabItem Header="{$header}">
-        {$this->indentStr()}    <Grid>
-        {$this->reindentXaml($content, 3)}
-        {$this->indentStr()}    </Grid>
+        {$content}
         {$this->indentStr()}</TabItem>
 XAML);
         }
@@ -1132,17 +1129,15 @@ XAML);
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
-                                <Grid>
-                                    <Border x:Name="border" Background="#262626" BorderBrush="Transparent" BorderThickness="0,0,0,0" Padding="16,10" Cursor="Hand">
-                                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </Border>
-                                    <Border x:Name="underline" Background="#35C2A5" Height="2" VerticalAlignment="Bottom" Visibility="Collapsed" />
-                                </Grid>
+                                <Border x:Name="border" Background="#262626" Padding="14,8" Cursor="Hand">
+                                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
                                         <Setter TargetName="border" Property="Background" Value="#1E1E1E" />
                                         <Setter Property="Foreground" Value="#F5F5F5" />
-                                        <Setter TargetName="underline" Property="Visibility" Value="Visible" />
+                                        <Setter Property="BorderBrush" Value="#35C2A5" />
+                                        <Setter Property="BorderThickness" Value="0,0,0,2" />
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="False">
                                         <Setter Property="Foreground" Value="#A3A3A3" />
