@@ -147,9 +147,56 @@ final class WinUIBackend extends CodegenBackend
         Width="{$this->windowWidth}"
         Height="{$this->windowHeight}"
         Background="{$this->appBackground}"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        ResizeMode="CanResizeWithGrip">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" x:Name="titleBar" Height="32" Background="#1E1E1E" MouseDown="TitleBar_MouseDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{$this->appTitle}" Foreground="#F5F5F5" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0" Grid.Column="0" />
+                <Button x:Name="btnMinimize" Grid.Column="1" Content="─" Width="36" Height="28" FontSize="12" Background="Transparent" Foreground="#A3A3A3" Click="OnMinimizeClick">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="btnMaximize" Grid.Column="2" Content="☐" Width="36" Height="28" FontSize="12" Background="Transparent" Foreground="#A3A3A3" Click="OnMaximizeClick">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="btnClose" Grid.Column="3" Content="✕" Width="36" Height="28" FontSize="12" Background="Transparent" Foreground="#A3A3A3" Click="OnCloseClick">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="1">
 {$indentedBody}
+        </Grid>
     </Grid>
 </Window>
 XAML);
@@ -326,11 +373,25 @@ CS_WEBVIEW;
                     FileName = url,
                     UseShellExecute = true
                 });
-            } catch (Exception ex)
+            } catch (Exception)
             {
                 MessageBox.Show("Please open this URL manually:" + Environment.NewLine + Environment.NewLine + url, "WebView2 Download", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+CS;
+
+        $chromeHandlers = <<<'CS'
+
+        // 自定义窗口标题栏事件
+        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                this.DragMove();
+        }
+        private void OnMinimizeClick(object sender, RoutedEventArgs e) => this.WindowState = WindowState.Minimized;
+        private void OnMaximizeClick(object sender, RoutedEventArgs e) =>
+            this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        private void OnCloseClick(object sender, RoutedEventArgs e) => this.Close();
 CS;
 
         return <<<CS
@@ -346,6 +407,7 @@ namespace {$this->appNamespace}
             Loaded += MainWindow_Loaded;
         }
 {$methods}
+{$chromeHandlers}
 
         private void UpdateUI()
         {
@@ -494,7 +556,16 @@ XAML);
 
     private function generateText(Text $widget): string
     {
-        $props = $this->generateProperties($widget->getStyle());
+        $style = $widget->getStyle();
+
+        // WPF TextBlock 不支持 CornerRadius 属性，需要提取出来用 Border 包裹
+        $cornerRadius = null;
+        if ($style !== null && $style->has(StyleProperty::CornerRadius)) {
+            $cornerRadius = $style->get(StyleProperty::CornerRadius);
+        }
+
+        // 生成 TextBlock 属性时排除 CornerRadius
+        $props = $this->generateProperties($style, ['corner_radius']);
         
         $nameAttr = '';
         $text = '';
@@ -512,10 +583,38 @@ XAML);
         } else {
             $text = htmlspecialchars($widget->content());
         }
-        
-        return trim(<<<XAML
+
+        $textBlock = trim(<<<XAML
         {$this->indentStr()}<TextBlock Text="{$text}"{$nameAttr}{$props} />
 XAML);
+
+        // 如果有 CornerRadius，用 Border 包裹 TextBlock
+        if ($cornerRadius !== null) {
+            // 提取背景色和前景色给 Border，从 TextBlock 属性中移除
+            $borderBg = '';
+            $borderFg = '';
+            if ($style !== null) {
+                if ($style->has(StyleProperty::BackgroundColor)) {
+                    $borderBg = ' Background="' . $this->formatXamlColor($style->get(StyleProperty::BackgroundColor)) . '"';
+                }
+                if ($style->has(StyleProperty::ForegroundColor)) {
+                    $borderFg = ' Foreground="' . $this->formatXamlColor($style->get(StyleProperty::ForegroundColor)) . '"';
+                }
+            }
+            // 重新生成 TextBlock 属性，排除背景色和前景色（它们移到了 Border 上）
+            $tbPropsExclude = ['corner_radius', 'background_color', 'foreground_color'];
+            $tbProps = $this->generateProperties($style, $tbPropsExclude);
+            $tbWithProps = trim(<<<XAML
+        {$this->indentStr()}<TextBlock Text="{$text}"{$nameAttr}{$tbProps} />
+XAML);
+            return trim(<<<XAML
+        {$this->indentStr()}<Border CornerRadius="{$cornerRadius}"{$borderBg}>
+{$tbWithProps}
+        {$this->indentStr()}</Border>
+XAML);
+        }
+
+        return $textBlock;
     }
 
     private function generateButton(Button $widget): string
@@ -553,7 +652,7 @@ XAML);
         {$this->indentStr()}<Button{$buttonProps}{$clickAttr}>
             <Button.Template>
                 <ControlTemplate TargetType="Button">
-                    <Border CornerRadius="{$cornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                    <Border CornerRadius="{$cornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                 </ControlTemplate>
@@ -618,12 +717,20 @@ XAML);
 
         $style = $widget->getStyle();
         $hasPadding = $style !== null && $this->styleHasPadding($style);
+        // WPF StackPanel 不支持 BorderBrush/BorderThickness/CornerRadius，需要用 Border 包裹
+        $needsBorder = $hasPadding
+            || ($style !== null && $style->has(StyleProperty::CornerRadius))
+            || ($style !== null && $style->has(StyleProperty::BorderWidth))
+            || ($style !== null && $style->has(StyleProperty::BorderColor));
 
         $this->indent++;
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $excludeStackProps = array_merge(['corner_radius'], $hasPadding ? self::PADDING_PROPS : []);
+        $excludeStackProps = ['corner_radius', 'border_color', 'border_width'];
+        if ($hasPadding) {
+            $excludeStackProps = array_merge($excludeStackProps, self::PADDING_PROPS);
+        }
         $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $nameAttr = $widget->getName() !== null ? " x:Name=\"{$widget->getName()}\"" : '';
@@ -634,8 +741,9 @@ XAML);
         {$this->indentStr()}</StackPanel>
 XAML);
 
-        if ($hasPadding) {
-            $borderProps = $this->generateProperties($style, [], self::PADDING_PROPS);
+        if ($needsBorder) {
+            $borderExclude = $hasPadding ? self::PADDING_PROPS : [];
+            $borderProps = $this->generateProperties($style, $borderExclude);
             return trim(<<<XAML
         {$this->indentStr()}<Border{$borderProps}>
 {$stackPanel}
@@ -655,12 +763,20 @@ XAML);
 
         $style = $widget->getStyle();
         $hasPadding = $style !== null && $this->styleHasPadding($style);
+        // WPF StackPanel 不支持 BorderBrush/BorderThickness/CornerRadius，需要用 Border 包裹
+        $needsBorder = $hasPadding
+            || ($style !== null && $style->has(StyleProperty::CornerRadius))
+            || ($style !== null && $style->has(StyleProperty::BorderWidth))
+            || ($style !== null && $style->has(StyleProperty::BorderColor));
 
         $this->indent++;
         $childXaml = $this->generateChildren($children);
         $this->indent--;
 
-        $excludeStackProps = array_merge(['corner_radius'], $hasPadding ? self::PADDING_PROPS : []);
+        $excludeStackProps = ['corner_radius', 'border_color', 'border_width'];
+        if ($hasPadding) {
+            $excludeStackProps = array_merge($excludeStackProps, self::PADDING_PROPS);
+        }
         $stackProps = $this->generateProperties($style, $excludeStackProps);
 
         $stackPanel = trim(<<<XAML
@@ -669,8 +785,9 @@ XAML);
         {$this->indentStr()}</StackPanel>
 XAML);
 
-        if ($hasPadding) {
-            $borderProps = $this->generateProperties($style, [], self::PADDING_PROPS);
+        if ($needsBorder) {
+            $borderExclude = $hasPadding ? self::PADDING_PROPS : [];
+            $borderProps = $this->generateProperties($style, $borderExclude);
             return trim(<<<XAML
         {$this->indentStr()}<Border{$borderProps}>
 {$stackPanel}
@@ -749,16 +866,17 @@ XAML;
                 $childParts[] = $this->indentStr() . "<Rectangle Grid.Row=\"{$i}\" Fill=\"Transparent\" />";
             } else {
                 $xaml = $this->generateWidget($child);
-                $xaml = $this->addGridPosition($xaml, $i, 'Row');
+                $xaml = $this->addGridPosition($xaml, $i, 'Row', ' HorizontalAlignment="Center"');
                 $childParts[] = $xaml;
             }
         }
         $this->indent--;
         $rowDefs = rtrim($rowDefs);
         $childrenXaml = implode("\n", $childParts);
+        $nameAttr = $widget->getName() !== null ? " x:Name=\"{$widget->getName()}\"" : '';
 
         return <<<XAML
-        {$this->indentStr()}<Grid>
+        {$this->indentStr()}<Grid{$nameAttr}>
         {$this->indentStr()}    <Grid.RowDefinitions>
 {$rowDefs}
         {$this->indentStr()}    </Grid.RowDefinitions>
@@ -767,11 +885,11 @@ XAML;
 XAML;
     }
 
-    private function addGridPosition(string $xaml, int $index, string $axis): string
+    private function addGridPosition(string $xaml, int $index, string $axis, string $extraAttrs = ''): string
     {
         return preg_replace(
             '/^(<[a-zA-Z]+(\s[^>]*?)?)(\s*\/?>)/',
-            '$1 Grid.' . $axis . '="' . $index . '"$3',
+            '$1 Grid.' . $axis . '="' . $index . '"' . $extraAttrs . '$3',
             $xaml
         );
     }
@@ -843,7 +961,17 @@ XAML);
         $placeholder = htmlspecialchars($widget->placeholder());
         $binding = $widget->value();
         $name = $binding->name;
-        $props = $this->generateProperties($widget->getStyle());
+        $style = $widget->getStyle();
+
+        // WPF TextBox 不支持 PlaceholderText 属性（WinUI 特有）。
+        // 改用 Text 属性作为初始文本，placeholder 信息通过 Tag 传递。
+        // WPF TextBox 也不支持 CornerRadius，需提取后用 Border 包裹。
+        $cornerRadius = null;
+        if ($style !== null && $style->has(StyleProperty::CornerRadius)) {
+            $cornerRadius = $style->get(StyleProperty::CornerRadius);
+        }
+
+        $props = $this->generateProperties($style, ['corner_radius']);
 
         $onChange = '';
         $action = $widget->getOnChange();
@@ -859,11 +987,33 @@ XAML);
             $onChange = " TextChanged=\"{$methodName}\"";
         }
 
-        return trim(<<<XAML
+        // WPF 没有 PlaceholderText，用 Tag 存储 placeholder 文本供 code-behind 使用
+        $textBox = trim(<<<XAML
         {$this->indentStr()}<TextBox
             x:Name="textbox_{$name}"
-            PlaceholderText="{$placeholder}"{$onChange}{$props} />
+            Tag="{$placeholder}"{$onChange}{$props} />
 XAML);
+
+        if ($cornerRadius !== null) {
+            $borderBg = '';
+            if ($style !== null && $style->has(StyleProperty::BackgroundColor)) {
+                $borderBg = ' Background="' . $this->formatXamlColor($style->get(StyleProperty::BackgroundColor)) . '"';
+            }
+            $tbPropsExclude = ['corner_radius', 'background_color'];
+            $tbProps = $this->generateProperties($style, $tbPropsExclude);
+            $tbInner = trim(<<<XAML
+        {$this->indentStr()}<TextBox
+            x:Name="textbox_{$name}"
+            Tag="{$placeholder}"{$onChange}{$tbProps} />
+XAML);
+            return trim(<<<XAML
+        {$this->indentStr()}<Border CornerRadius="{$cornerRadius}"{$borderBg}>
+{$tbInner}
+        {$this->indentStr()}</Border>
+XAML);
+        }
+
+        return $textBox;
     }
 
     private function generateToggle(Toggle $widget): string
@@ -966,14 +1116,46 @@ XAML);
             $this->indent--;
             $parts[] = trim(<<<XAML
         {$this->indentStr()}<TabItem Header="{$header}">
-        {$content}
+        {$this->indentStr()}    <Grid>
+        {$this->reindentXaml($content, 3)}
+        {$this->indentStr()}    </Grid>
         {$this->indentStr()}</TabItem>
 XAML);
         }
         $tabs = implode("\n", $parts);
         $this->indent--;
+        $tabControlAttr = $selectedIndexAttr . " Background=\"#1E1E1E\"";
+        $tabItemStyle = <<<'XAML'
+
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Grid>
+                                    <Border x:Name="border" Background="#262626" BorderBrush="Transparent" BorderThickness="0,0,0,0" Padding="16,10" Cursor="Hand">
+                                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="underline" Background="#35C2A5" Height="2" VerticalAlignment="Bottom" Visibility="Collapsed" />
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#1E1E1E" />
+                                        <Setter Property="Foreground" Value="#F5F5F5" />
+                                        <Setter TargetName="underline" Property="Visibility" Value="Visible" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter Property="Foreground" Value="#A3A3A3" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+XAML;
         return trim(<<<XAML
-        {$this->indentStr()}<TabControl{$selectedIndexAttr}>
+        {$this->indentStr()}<TabControl{$tabControlAttr}>{$tabItemStyle}
         {$tabs}
         {$this->indentStr()}</TabControl>
 XAML);
@@ -1065,9 +1247,7 @@ XAML);
         if ($style->has(StyleProperty::TextAlignment) && $includeProp(StyleProperty::TextAlignment)) {
             $props[] = "TextAlignment=\"" . $this->mapTextAlignment($style->get(StyleProperty::TextAlignment)) . "\"";
         }
-        if ($style->has(StyleProperty::LetterSpacing) && $includeProp(StyleProperty::LetterSpacing)) {
-            $props[] = "CharacterSpacing=\"{$style->get(StyleProperty::LetterSpacing)}\"";
-        }
+        // WPF TextBlock 不支持 CharacterSpacing（WinUI 专有属性），跳过此样式
         
         // Layout — single Padding="left,top,right,bottom"
         $left = 0; $top = 0; $right = 0; $bottom = 0;
